@@ -32,7 +32,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
         <button
           onClick={() => handleNavClick('portal')}
           className={`flex items-center gap-1.5 transition-colors ${
-            currentPage === 'portal' ? 'text-[#4f93c5] font-bold' : 'hover:text-white'
+            currentPage === 'portal' ? 'text-[#4597CA] font-bold' : 'hover:text-white'
           }`}
           id="topbar-nav-portal"
         >
@@ -43,7 +43,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
         <button
           onClick={() => handleNavClick('admin')}
           className={`flex items-center gap-1.5 transition-colors ${
-            currentPage === 'admin' ? 'text-[#4f93c5] font-bold' : 'hover:text-white'
+            currentPage === 'admin' ? 'text-[#4597CA] font-bold' : 'hover:text-white'
           }`}
           id="topbar-nav-admin"
         >
@@ -73,14 +73,14 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                   onClick={() => handleNavClick(item.id)}
                   className={`relative px-1 py-2 text-xs xl:text-sm font-medium transition-colors duration-200 ${
                     currentPage === item.id 
-                      ? 'text-[#4f93c5] font-semibold' 
-                      : 'text-slate-600 hover:text-[#4f93c5]'
+                      ? 'text-[#4597CA] font-semibold' 
+                      : 'text-slate-600 hover:text-[#4597CA]'
                   }`}
                   id={`nav-${item.id}`}
                 >
                   {item.label}
                   {currentPage === item.id && (
-                    <span className="absolute bottom-0 left-0 w-full h-[2.5px] bg-[#4f93c5] rounded-full" />
+                    <span className="absolute bottom-0 left-0 w-full h-[2.5px] bg-[#4597CA] rounded-full" />
                   )}
                 </button>
               ))}
@@ -92,8 +92,8 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                 onClick={() => handleNavClick('cotizador')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 shadow-md ${
                   currentPage === 'cotizador'
-                    ? 'bg-gradient-to-r from-[#143b67] to-[#4f93c5] text-white shadow-[#143b67]/20 scale-95'
-                    : 'bg-gradient-to-r from-[#4f93c5] to-[#143b67] text-white shadow-[#4f93c5]/10 hover:shadow-[#4f93c5]/20 hover:scale-102 hover:-translate-y-0.5'
+                    ? 'bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white shadow-[#0C4169]/20 scale-95'
+                    : 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-[#4597CA]/10 hover:shadow-[#4597CA]/20 hover:scale-102 hover:-translate-y-0.5'
                 }`}
                 id="cta-nav-cotizador"
               >
@@ -127,8 +127,8 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                   onClick={() => handleNavClick(item.id)}
                   className={`block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     currentPage === item.id
-                      ? 'bg-[#4f93c5]/10 text-[#143b67] font-semibold border-l-4 border-[#4f93c5]'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-[#4f93c5]'
+                      ? 'bg-[#4597CA]/10 text-[#0C4169] font-semibold border-l-4 border-[#4597CA]'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-[#4597CA]'
                   }`}
                   id={`mobile-nav-${item.id}`}
                 >
@@ -138,7 +138,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                 <button
                   onClick={() => handleNavClick('cotizador')}
-                  className="flex items-center justify-center w-full gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#4f93c5] to-[#143b67] text-white font-bold text-xs shadow-md shadow-[#143b67]/15 active:scale-98 transition-all"
+                  className="flex items-center justify-center w-full gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs shadow-md shadow-[#0C4169]/15 active:scale-98 transition-all"
                   id="mobile-nav-cotizador"
                 >
                   <Calculator className="w-4 h-4" />

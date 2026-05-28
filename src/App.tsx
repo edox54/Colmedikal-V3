@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Page } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -20,56 +20,58 @@ import { ColmedicalProvider } from './context/ColmedicalContext';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('integral');
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('esencial');
 
   const renderContent = () => {
     switch (currentPage) {
       case 'home':
         return (
           <Home 
-            setCurrentPage={setCurrentPage} 
+            setCurrentPage={handlePageChange} 
             setSelectedPlanId={(id) => {
               setSelectedPlanId(id);
-              setCurrentPage('cotizador');
+              handlePageChange('cotizador');
             }} 
           />
         );
       case 'servicios':
-        return <Services setCurrentPage={setCurrentPage} />;
+        return <Services setCurrentPage={handlePageChange} />;
       case 'directorio':
-        return <DirectorioMedico setCurrentPage={setCurrentPage} />;
+        return <DirectorioMedico setCurrentPage={handlePageChange} />;
       case 'portal':
-        return <PortalAfiliados setCurrentPage={setCurrentPage} />;
+        return <PortalAfiliados setCurrentPage={handlePageChange} />;
       case 'faqs':
-        return <PreguntasFrecuentes setCurrentPage={setCurrentPage} />;
+        return <PreguntasFrecuentes setCurrentPage={handlePageChange} />;
       case 'nosotros':
-        return <About setCurrentPage={setCurrentPage} />;
+        return <About setCurrentPage={handlePageChange} />;
       case 'contacto':
-        return <Contact setCurrentPage={setCurrentPage} />;
+        return <Contact setCurrentPage={handlePageChange} />;
       case 'admin':
-        return <AdminPanel setCurrentPage={setCurrentPage} />;
+        return <AdminPanel setCurrentPage={handlePageChange} />;
       case 'cotizador':
         return (
           <Cotizador 
             currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
+            setCurrentPage={handlePageChange}
             selectedPlanId={selectedPlanId}
           />
         );
       default:
         return (
           <Home 
-            setCurrentPage={setCurrentPage} 
+            setCurrentPage={handlePageChange} 
             setSelectedPlanId={setSelectedPlanId} 
           />
         );
     }
   };
 
-  // Scroll to top automatically when swapping pages
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentPage]);
+
   const handlePageChange = (page: Page) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (

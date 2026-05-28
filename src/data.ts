@@ -2,57 +2,56 @@ import { Plan, Testimonial, ServiceDetail } from './types';
 
 export const MEDICAL_PLANS: Plan[] = [
   {
-    id: 'esencial',
-    name: 'Esencial Protect',
-    tagline: 'Protección óptima para estudiantes y jóvenes profesionales.',
-    basePrice: 38.50,
-    maxCoverage: 20000,
-    copayPercent: 20,
-    hospitalNetwork: 'Red Preferencial (Nivel 1 y 2)',
+    id: 'basico',
+    name: 'Plan Colmedikal Basico',
+    tagline: 'Cobertura médica esencial ambulatoria y hospitalaria.',
+    basePrice: 8.00,
+    maxCoverage: 2000,
+    copayPercent: 0,
+    hospitalNetwork: 'Red Colmedikal',
     features: [
-      'Cobertura hospitalaria al 80%',
-      'Consultas de medicina general con copago especial de $8',
-      'Emergencias médicas locales 100% cubiertas',
-      'Acceso a ginecología y pediatría',
-      'Línea de orientación médica telefónica 24/7',
-      'Descuentos del 15% en farmacias afiliadas'
+      'Consultas médicas con 0% de copago en la red',
+      'Cobertura en Cuidados Intensivos hasta $2000',
+      'Honorarios médicos cubiertos hasta $2000',
+      'Exámenes de laboratorio e imagen elementales hasta $100',
+      'Muerte por accidente y gastos de sepelio',
+      'Ambulancia terrestre por accidente'
     ],
     color: 'emerald'
   },
   {
-    id: 'integral',
-    name: 'Integral Family',
-    tagline: 'El plan familiar más balanceado para la tranquilidad de tu hogar.',
-    basePrice: 65.00,
-    maxCoverage: 75000,
-    copayPercent: 15,
-    hospitalNetwork: 'Red Nacional Premium (Nivel 1, 2 y 3)',
+    id: 'esencial',
+    name: 'Plan Colmedikal Esencial',
+    tagline: 'Protección equilibrada y accesible para mayor tranquilidad.',
+    basePrice: 12.00,
+    maxCoverage: 3000,
+    copayPercent: 0,
+    hospitalNetwork: 'Red Colmedikal',
     features: [
-      'Cobertura hospitalaria al 85%',
-      'Copagos fijos de $12 en consultas con especialistas',
-      'Maternidad básica y neonatología cubiertas',
-      'Ambulancia terrestre de emergencia ilimitada',
-      'Médico a domicilio con tarifa preferencial',
-      'Descuentos de hasta el 30% en medicamentos recetados'
+      'Consultas médicas con 0% de copago en la red',
+      'Cobertura en Cuidados Intensivos hasta $3000',
+      'Honorarios médicos cubiertos hasta $3000',
+      'Exámenes de laboratorio e imagen elementales hasta $100',
+      'Bono de maternidad estipulado hasta $500',
+      'Muerte por accidente hasta $2500 y sepelio hasta $500'
     ],
     color: 'teal'
   },
   {
-    id: 'elite',
-    name: 'Elite Executive',
-    tagline: 'Máxima cobertura nacional e internacional con acceso ilimitado.',
-    basePrice: 110.00,
-    maxCoverage: 250000,
-    copayPercent: 10,
-    hospitalNetwork: 'Red Global Total (Todas las Clínicas)',
+    id: 'premium',
+    name: 'Plan Colmedikal Premium',
+    tagline: 'Máxima cobertura para ti y tu familia en toda la red.',
+    basePrice: 22.00,
+    maxCoverage: 5000,
+    copayPercent: 0,
+    hospitalNetwork: 'Red Colmedikal',
     features: [
-      'Cobertura hospitalaria y quirúrgica al 90%',
-      'Copagos mínimos de $5 en laboratorios y consultas',
-      'Maternidad premium ampliada con controles prenatales',
-      'Odontología preventiva e integral incluida',
-      'Asistencia médica internacional de emergencia hasta $50k',
-      'Chequeo médico ejecutivo anual sin costo',
-      'Reembolso libre de médicos fuera de red'
+      'Consultas médicas con 0% de copago en la red',
+      'Cobertura en Cuidados Intensivos hasta $5000',
+      'Honorarios médicos cubiertos hasta $5000',
+      'Exámenes de laboratorio e imagen elementales hasta $100',
+      'Bono de maternidad estipulado hasta $700',
+      'Muerte por accidente hasta $3500 y sepelio hasta $800'
     ],
     color: 'indigo'
   }

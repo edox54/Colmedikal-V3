@@ -38,73 +38,54 @@ export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuen
   const categories: FAQCategory[] = [
     {
       id: 'carencias',
-      name: 'Periodos de Carencia',
+      name: 'Coberturas, Carencias y Emergencias Médicas',
       icon: Clock,
       items: [
         {
-          question: '¿Qué es un periodo de carencia y cómo opera en Colmedical?',
-          answer: 'Un periodo de carencia o tiempo de espera es el lapso de tiempo que transcurre entre el día de tu afiliación oficial y el día en que adquieres cobertura para ciertos servicios complejos de salud. Por ejemplo, urgencias médicas cuenta con cobertura inmediata (cero carencia), pero cirugías programadas complejas requieren un periodo de carencia estándar de 90 a 180 días.'
+          question: '1. ¿Qué es el período de carencia y a partir de qué momento puedo hacer uso efectivo de mi plan?',
+          answer: 'El período de carencia es el lapso de tiempo obligatorio, continuo e improrrogable que transcurre desde la firma de su contrato o la inclusión del beneficiario, durante el cual no se activan las coberturas programadas. Conforme al Acuerdo Ministerial No. 0068-2017 de la Autoridad Sanitaria Nacional y los reglamentos del plan, los plazos aplicables son:\n• Emergencia Médica y Accidentes: 24 horas\n• Atención Ambulatoria y Dental: 30 días calendario\n• Maternidad (Bono y Embarazo): 60 a 90 días calendario\n• Atención Hospitalaria y Quirúrgica: 90 días calendario\n• Enfermedades Crónicas y Catastróficas: 90 días calendario\n• Enfermedades Preexistentes Declaradas: 730 días (24 meses)'
         },
         {
-          question: '¿Existe algún servicio sin periodos de carencia?',
-          answer: 'Sí. Las consultas médicas de medicina general, consultas de especialidad externa, odontología preventiva, telemedicina inmediata y urgencias vitales (situación imprevisible con riesgo de muerte inmediato) cuentan con un periodo de carencia de 0 días. Puedes usarlas desde el primer día útil de vigencia del contrato médico.'
+          question: '2. ¿Cómo se diferencia operativamente una emergencia de una urgencia médica y cómo debo proceder en cada caso?',
+          answer: 'La distinción radica en la inminencia del riesgo vital:\n\n• Emergencia Médica: Toda condición repentina, aguda e imprevista con inminente peligro de vida o viabilidad de un órgano. El beneficiario puede acudir directamente a la red sin necesidad de preautorización, y no se pueden exigir pagarés para emergencias justificadas.\n• Urgencia Médica: Situación repentina que requiere asistencia médica, pero sin riesgo de muerte inminente. Es mandatorio comunicarse previamente con el call center para la asignación y preautorización de la consulta externa.'
         },
         {
-          question: '¿Se pueden eliminar los periodos de carencia al cambiarme de seguro?',
-          answer: 'Sí, llamamos a esto "Reconocimiento de Antigüedad". Si provienes de otra compañía de medicina prepagada certificada del país, y no ha transcurrido más de 30 días de la baja de tu póliza anterior, nuestro departamento técnico puede homologar o reducir tus periodos de carencia tras una evaluación de tu Declaración Jurada de Salud.'
+          question: '3. ¿Cómo aplica la cobertura de ambulancia terrestre por accidente y qué limitaciones tiene?',
+          answer: 'El traslado en ambulancia terrestre cuenta con cobertura al 100% (copago del 0%) hasta un monto máximo de USD 200.00 por evento, siempre que se trate de un accidente debidamente comprobado y el beneficiario se encuentre en condición crítica que exija su traslado hacia un hospital de la red. El medio de transporte debe estar debidamente equipado.'
         }
       ]
     },
     {
       id: 'preexistencias',
-      name: 'Enfermedades Preexistentes',
+      name: 'Preexistencias, Límites de Edad y Transición',
       icon: ShieldCheck,
       items: [
         {
-          question: '¿Qué se considera una Enfermedad Preexistente?',
-          answer: 'Se considera preexistencia a cualquier patología, enfermedad, afección o condición clínica diagnosticada por un médico competente previo a la firma del contrato de medicina prepagada, o que haya manifestado signos y síntomas evidentes por los cuales el afiliado razonablemente debía tener conocimiento.'
+          question: '4. ¿Tienen cobertura las enfermedades preexistentes y qué ocurre si omito declarar una patología?',
+          answer: '• Preexistencias Declaradas: Cualquier patología detallada de forma exhaustiva tendrá cobertura obligatoria a partir del mes 25 de vigencia consecutiva del plan, hasta el límite anual contratado.\n• Preexistencias No Declaradas: Cualquier condición omitida o falseada al momento de suscripción se considera no declarada y queda permanentemente excluida de todo financiamiento, reembolso o servicio.'
         },
         {
-          question: '¿Colmedical cubre enfermedades preexistentes?',
-          answer: 'Sí, de acuerdo con la Ley de Medicina Prepagada de Ecuador y las normas de seguros andinas, las enfermedades preexistentes cuentan con un tratamiento especial. Cuentan con un periodo de carencia legal de hasta 24 meses y una cobertura máxima preestablecida (ej. plan estándar cubre preexistencias con un límite de hasta 20 salarios básicos unificados).'
-        },
-        {
-          question: '¿Qué sucede si omito declarar una patología en la afiliación?',
-          answer: 'Omitir dolosamente una preexistencia se considera "reticencia" y puede ser causa de la pérdida del derecho a la cobertura para esa patología específica o de la rescisión total del contrato. Recomendamos declarar con total transparencia para estructurar una cobertura adecuada.'
+          question: '5. ¿Qué ocurre con mis coberturas al cumplir los 65 años de edad?',
+          answer: 'Al cumplir los 65 años, la Ley Orgánica (LOPAM) estipula una cláusula de transición automática y preferencial hacia el "Plan Colmedikal Sénior 65+". Esto garantiza la continuidad de su cobertura médica, respetando la antigüedad en la compañía y eximiéndolo de nuevos períodos de carencia, aplicando la tarifa técnica aprobada por la SCVS para dicho segmento.'
         }
       ]
     },
     {
       id: 'pagos',
-      name: 'Copagos y Reembolsos',
+      name: 'Gestión Comercial, Mora y Siniestralidad Colectiva',
       icon: DollarSign,
       items: [
         {
-          question: '¿Qué es el Copago o Bono Fijo y cuánto debo abonar?',
-          answer: 'El copago es el valor económico fijo o porcentual que realizas en la ventanilla de la clínica de convenio al momento de tu consulta médica. En nuestro Plan Elite el copago es de solo el 10% (abonando entre $5 y $12 dependiendo del especialista). Si te atiendes por fuera de nuestra red de convenio, no abonas copago, sino que solicitas Reembolso de Honorarios.'
+          question: '6. ¿Qué ocurre si me atraso en el pago de mi cuota mensual y de cuánto tiempo dispongo antes de perder la cobertura?',
+          answer: '• A los 31 días de mora: Suspensión automática de coberturas programadas. Únicamente se mantiene activa la atención de emergencia obligatoria.\n• A los 91 días de mora consecutiva: Solución del contrato de pleno derecho (cancelado automáticamente) y cobro legal de cuotas impagas.'
         },
         {
-          question: '¿Cómo tramito un reembolso de consulta externa?',
-          answer: 'Es 100% digital. Inicia sesión en nuestro "Portal del Afiliado" (Oficina Virtual), ve a la sección Reembolsos, llena los datos de la factura comercial autorizada por el SRI, adjunta fotos de la factura y de la orden médica, y listo. Se te depositará el beneficio (85% a 90% del honorario pactado) en un lapso récord de 48 horas hábiles.'
+          question: '7. ¿Cómo se determinan los ajustes en las cuotas mensuales de mi plan?',
+          answer: 'Colmedikal S.A. tiene prohibido hacer incrementos unilaterales por siniestralidad personal, edad sobrevenida o enfermedades catastróficas. La revisión de precios se realiza anualmente sobre la siniestralidad colectiva acumulada de la cartera del plan, utilizando estudios actuariales aprobados previamente por la SCVS.'
         },
         {
-          question: '¿Cuánto tiempo tengo para ingresar una factura para reembolso?',
-          answer: 'Tienes un periodo máximo de 90 días calendario a partir de la fecha de atención y emisión de la factura de servicio para ingresarla formalmente a nuestro departamento de auditoría médica.'
-        }
-      ]
-    },
-    {
-      id: 'cobertura',
-      name: 'Servicios y Maternidad',
-      icon: FileText,
-      items: [
-        {
-          question: '¿Cómo opera la cobertura de Maternidad?',
-          answer: 'La cobertura de maternidad (control prenatal, ecografías, parto natural o cesárea) requiere que la afiliada titular tenga una antigüedad mínima contratada de 10 meses previos al parto para activar el 100% de la cobertura estipulada en los planes Integral y Elite.'
-        },
-        {
-          question: '¿Se incluye asistencia médica internacional?',
-          answer: 'Sí. El Plan Elite y el Plan Integral de Colmedical incluyen Asistencia en Viajes Internacionales integrada que cubre emergencias médicas o accidentes fuera del país de hasta $30,000 USD y traslado médico de emergencia, gestionado por nuestro operador internacional certificado.'
+          question: '8. ¿Qué es una "Atención Masiva" y qué implicaciones tiene en mis beneficios especiales?',
+          answer: 'Se considera atención masiva a las prestaciones otorgadas a más del 20% de los afiliados de un contrato masivo, en un período de 15 días consecutivos y por un mismo prestador de la red adscrita. En este caso se excluyen ciertos beneficios (adquisición de zapatos ortopédicos, plantillas) para preservar reservas técnicas de riesgo de la compañía.'
         }
       ]
     }

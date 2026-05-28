@@ -16,16 +16,12 @@ export interface QuoteState {
   fullName: string;
   email: string;
   phone: string;
-  type: 'individual' | 'pareja' | 'familiar' | 'corporativo';
+  type: 'individual' | 'pareja' | 'familiar';
   primaryAge: number;
   partnerAge?: number;
   childrenCount: number;
   childrenAges: number[];
   basePlanId: string;
-  dentalAddon: boolean;
-  maternityAddon: boolean;
-  intlAddon: boolean;
-  rxAddon: boolean; // Pharmacy coverage
 }
 
 export interface LeadQuote {

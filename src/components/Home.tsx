@@ -10,10 +10,15 @@ import {
   Plus, 
   Award,
   Clock,
-  Heart
+  Heart,
+  Calendar,
+  FileText,
+  Mail
 } from 'lucide-react';
 import { Plan, Page } from '../types';
 import { MEDICAL_PLANS } from '../data';
+import Logo from './Logo';
+const heroBannerImg = "/src/assets/images/colmedikal_doctor_family_hero_1780008609458.png";
 
 interface HomeProps {
   setCurrentPage: (page: Page) => void;
@@ -37,122 +42,137 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
   return (
     <div className="space-y-24 pb-20 overflow-x-hidden" id="colmedical-home-view">
       
-      {/* 1. HERO SECTION */}
-      <section className="relative pt-12 md:pt-20 lg:pt-24 bg-gradient-to-b from-teal-50/60 via-white to-slate-50">
-        <div className="absolute inset-0 z-0 opacity-40">
-          <div className="absolute top-12 left-1/4 w-80 h-80 rounded-full bg-teal-200/50 blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-12 right-1/4 w-96 h-96 rounded-full bg-indigo-150/45 blur-3xl"></div>
-        </div>
+      {/* 1. HERO SECTION - NEW STUNNING BANNER PORTAL MATCHING THE CLIENT'S DESIGN */}
+      <section className="relative pt-6 md:pt-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" id="colmedikal-custom-hero-banner">
+        
+        {/* Banner Card Frame styled like a premium mock website window */}
+        <div className="relative w-full rounded-3xl border border-slate-200/95 bg-gradient-to-r from-slate-100 via-[#ecf3f8] to-[#f4f8fb] shadow-xl overflow-hidden min-h-[420px] lg:min-h-[480px] flex flex-col lg:flex-row items-stretch justify-between transition-all duration-300">
+          
+          {/* Subtle medical crosses watermarks on left/middle background matching draft */}
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+            {/* Top-left big subtle medical cross */}
+            <svg className="absolute -top-12 -left-12 w-60 h-60 text-[#dbe5f0] opacity-80" viewBox="0 0 100 100" fill="currentColor">
+              <path d="M 38 10 H 62 V 38 H 90 V 62 H 62 V 90 H 38 V 62 H 10 V 38 H 38 Z" />
+            </svg>
+            {/* Middle subtle medical cross */}
+            <svg className="absolute top-[20%] left-[32%] w-28 h-28 text-[#e3edf7] opacity-65" viewBox="0 0 100 100" fill="currentColor">
+              <path d="M 38 10 H 62 V 38 H 90 V 62 H 62 V 90 H 38 V 62 H 10 V 38 H 38 Z" />
+            </svg>
+            {/* Bottom subtle cross pointer */}
+            <svg className="absolute bottom-4 left-16 w-20 h-20 text-[#dae6f2] opacity-50" viewBox="0 0 100 100" fill="currentColor">
+              <path d="M 38 10 H 62 V 38 H 90 V 62 H 62 V 90 H 38 V 62 H 10 V 38 H 38 Z" />
+            </svg>
+          </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          {/* Left Column content: Branding identity, titles, buttons */}
+          <div className="relative z-10 flex-1 flex flex-col justify-between p-7 sm:p-10 lg:p-12 space-y-8 lg:space-y-0 max-w-2xl">
             
-            {/* Left Column Description */}
-            <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-100/50 text-teal-800 border border-teal-200/50 text-xs font-semibold uppercase tracking-wide w-fit mx-auto lg:mx-0">
-                <Sparkles className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-                <span>Salud que te protege en todo momento</span>
-              </div>
-              
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold text-slate-900 tracking-tight leading-tight">
-                El respaldo médico que tu vida <span className="bg-gradient-to-r from-teal-600 to-indigo-600 bg-clip-text text-transparent">merece tener</span>
-              </h1>
-              
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Descubre planes de medicina prepagada diseñados para acomodarse a ti, a tu familia o a los colaboradores de tu empresa. Coberturas amplias, respuesta sin demoras y una red nacional destacada.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <button
-                  onClick={() => {
-                    setSelectedPlanId('integral');
-                    setCurrentPage('cotizador');
-                  }}
-                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-[#4f93c5] to-[#143b67] hover:from-[#143b67] hover:to-[#4f93c5] text-white font-medium shadow-lg shadow-[#143b67]/25 hover:shadow-[#143b67]/35 transition-all text-center flex items-center justify-center gap-2 group"
-                  id="hero-cta-quote"
-                >
-                  <span>Cotizar mi Plan Ideal</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
-                </button>
-                
-                <button
-                  onClick={() => setCurrentPage('servicios')}
-                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-white hover:bg-slate-50 text-slate-800 font-medium border border-slate-200 shadow-sm transition-all text-center"
-                  id="hero-cta-services"
-                >
-                  Ver Red de Servicios
-                </button>
-              </div>
-
-              {/* Minimalist Trust Features */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 text-left max-w-lg mx-auto lg:mx-0">
-                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                  <CheckCircle className="w-4 h-4 text-teal-600" />
-                  <span>Sin papeleos complejos</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                  <CheckCircle className="w-4 h-4 text-teal-600" />
-                  <span>Trámite 100% en línea</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                  <CheckCircle className="w-4 h-4 text-teal-600" />
-                  <span>Médicos con red propia</span>
-                </div>
-              </div>
+            {/* Dynamic Brand Logo Integration inside banner as per draft */}
+            <div className="flex items-center">
+              <Logo className="h-10 sm:h-12 w-auto" />
             </div>
 
-            {/* Right Column Illustration Card */}
-            <div className="lg:col-span-5 relative mt-6 lg:mt-0">
-              <div className="absolute inset-0 bg-gradient-to-tr from-teal-400 to-indigo-500 rounded-3xl rotate-3 scale-102 opacity-10 blur-xl"></div>
+            {/* Standard texts from client's mockup */}
+            <div className="space-y-3 sm:space-y-4 pt-4">
+              <p className="text-[10px] sm:text-[11px] font-black tracking-widest text-[#5d7c9a] uppercase font-sans">
+                BIENVENIDOS A TU PORTAL DE BIENESTAR
+              </p>
               
-              {/* Overlapping layered medical imagery or UI cards */}
-              <div className="relative bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 p-6 glow-teal">
-                <img 
-                  src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=600" 
-                  alt="Doctora sonriendo con paciente" 
-                  className="w-full h-64 object-cover rounded-2xl mb-6 shadow-neutral-200"
-                  referrerPolicy="no-referrer"
-                />
-                
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-teal-50 px-4 py-3.5 rounded-xl border border-teal-100">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-teal-500 text-white flex items-center justify-center">
-                        <ShieldCheck className="w-4.5 h-4.5" />
-                      </div>
-                      <div>
-                        <span className="block text-xs font-semibold text-teal-950">Atención Garantizada</span>
-                        <span className="block text-[10px] text-teal-700">Copagos reducidos</span>
-                      </div>
-                    </div>
-                    <span className="text-teal-600 font-mono text-sm font-bold">85% Cobertura</span>
-                  </div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#143b67] tracking-tight leading-[1.1] font-sans">
+                TU SALUD EN LAS <br />
+                <span className="font-black text-[#143b67] tracking-tighter">MEJORES MANOS</span>
+              </h1>
+              
+              <p className="text-[10px] sm:text-xs font-bold text-[#143b67]/90 tracking-wide font-sans uppercase">
+                CUIDANDO DE TI Y TU FAMILIA, HOY Y SIEMPRE.
+              </p>
+            </div>
 
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-2 px-1">
-                    <span className="flex items-center gap-1.5 font-medium text-slate-600">
-                      <Award className="w-4 h-4 text-indigo-600" /> Líder en Calidad Médica
-                    </span>
-                    <span className="font-mono bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full font-semibold">
-                      Colmedical S.A.
-                    </span>
-                  </div>
-                </div>
-              </div>
+            {/* Micro pills / buttons on bottom left */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 lg:pt-0">
+              <button
+                onClick={() => setCurrentPage('directorio')}
+                className="px-6 py-3 sm:py-3.5 rounded-full bg-[#10b981] hover:bg-[#059669] active:scale-97 text-white font-extrabold text-[10px] sm:text-xs uppercase tracking-widest shadow-md hover:shadow-lg transition-all duration-300 text-center cursor-pointer border border-[#34d399]"
+                id="banner-cta-directorio"
+              >
+                AGENDAR CITA PREVENTIVA
+              </button>
               
-              {/* Floating micro-badges */}
-              <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 animate-bounce duration-5000">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                  <Clock className="w-5.5 h-5.5" />
-                </div>
-                <div>
-                  <span className="block text-xs font-bold text-slate-900">Respuesta Rápida</span>
-                  <span className="block text-[10px] text-slate-500">Autorizaciones s/espera</span>
-                </div>
-              </div>
+              <button
+                onClick={() => setCurrentPage('portal')}
+                className="px-6 py-3 sm:py-3.5 rounded-full bg-[#11294a] hover:bg-[#091b34] active:scale-97 text-white font-extrabold text-[10px] sm:text-xs uppercase tracking-widest shadow-md hover:shadow-lg transition-all duration-300 text-center cursor-pointer border border-[#1e3a63]"
+                id="banner-cta-portal"
+              >
+                INGRESAR AL PORTAL DE PACIENTES
+              </button>
             </div>
 
           </div>
+
+          {/* Right Column Content - Integrated Doctor Family Graphic + Floating Side Control Tabs */}
+          <div className="relative flex-1 min-h-[320px] lg:min-h-full overflow-hidden bg-slate-100 flex flex-col lg:flex-row items-stretch">
+            
+            {/* The beautiful generated doctor family illustration */}
+            <div className="relative flex-1 min-h-[300px] lg:min-h-full overflow-hidden">
+              <img 
+                src={heroBannerImg}
+                alt="Doctora Colmedikal y Familia Satisfecha"
+                className="absolute inset-0 w-full h-full object-cover z-0 object-center"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            
+            {/* Adaptive shortcuts panel:
+                On mobile and tablet, it sits horizontally below the graphic without cut-offs.
+                On desktop, it is a vertical panel next to the image.
+            */}
+            <div className="w-full lg:w-28 xl:w-32 bg-[#0C4169]/95 lg:bg-[#0C4169]/85 backdrop-blur-md border-t lg:border-t-0 lg:border-l border-white/10 flex flex-row lg:flex-col justify-around lg:justify-center items-stretch z-20 divide-x lg:divide-x-0 lg:divide-y divide-white/10">
+              
+              <button 
+                onClick={() => setCurrentPage('directorio')}
+                className="flex-1 lg:flex-none lg:py-8 flex flex-col items-center justify-center p-3 text-white hover:bg-white/10 transition-colors group cursor-pointer"
+                title="Ver Red de Afiliados"
+              >
+                <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-emerald-500/20 group-hover:scale-105 flex items-center justify-center transition-all shadow-sm">
+                  <Calendar className="w-4.5 h-4.5 text-[#10b981]" />
+                </div>
+                <span className="text-[10px] lg:text-[11px] mt-2 font-bold tracking-tight text-slate-200 text-center leading-tight">
+                  Red de <br className="hidden lg:block" /> Afiliados
+                </span>
+              </button>
+
+              <button 
+                onClick={() => setCurrentPage('cotizador')}
+                className="flex-1 lg:flex-none lg:py-8 flex flex-col items-center justify-center p-3 text-white hover:bg-white/10 transition-colors group cursor-pointer"
+                title="Cotizar tu plan de medicina prepagada"
+              >
+                <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-indigo-400/20 group-hover:scale-105 flex items-center justify-center transition-all shadow-sm">
+                  <FileText className="w-4.5 h-4.5 text-indigo-300" />
+                </div>
+                <span className="text-[10px] lg:text-[11px] mt-2 font-bold tracking-tight text-slate-200 text-center leading-tight">
+                  Cotizar <br className="hidden lg:block" /> Plan
+                </span>
+              </button>
+
+              <button 
+                onClick={() => setCurrentPage('contacto')}
+                className="flex-1 lg:flex-none lg:py-8 flex flex-col items-center justify-center p-3 text-white hover:bg-white/10 transition-colors group cursor-pointer"
+                title="Contacto y Soporte"
+              >
+                <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-rose-400/20 group-hover:scale-105 flex items-center justify-center transition-all shadow-sm">
+                  <Mail className="w-4.5 h-4.5 text-rose-400" />
+                </div>
+                <span className="text-[10px] lg:text-[11px] mt-2 font-bold tracking-tight text-slate-200 text-center leading-tight">
+                  Mensajes
+                </span>
+              </button>
+
+            </div>
+
+          </div>
+
         </div>
+
       </section>
 
       {/* 2. STATS SECTION */}
@@ -176,12 +196,14 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
       {/* 3. VALUE PROPOSITION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-          <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">¿Por qué Colmedical?</span>
+          <span className="text-xs font-bold text-brand-light tracking-wider uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+            Nuestra Misión y Valores
+          </span>
           <h2 className="text-3xl sm:text-4xl font-display font-black text-slate-900 tracking-tight">
-            Ofrecemos el respaldo que los seguros tradicionales omiten
+            "El mejor servicio en seguros de salud para socios Cooperativistas"
           </h2>
-          <p className="text-slate-600">
-            Combinamos una red hospitalaria de confianza con servicios digitales innovadores que agilizan tus consultas médicos, citas y reembolsos financieros.
+          <p className="text-slate-600 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
+            Guiados por nuestros pilares fundamentales de <span className="font-semibold text-brand-dark">Honestidad, Transparencia, Compromiso, Respeto</span>, ofrecemos el verdadero resguardo médico que supera las expectativas del sector.
           </p>
         </div>
 
@@ -237,7 +259,7 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
             {MEDICAL_PLANS.map((plan) => {
               const itemColor = plan.color === 'emerald' ? 'emerald' : plan.color === 'teal' ? 'teal' : 'indigo';
-              const isRecommended = plan.id === 'integral';
+              const isRecommended = plan.id === 'esencial';
 
               return (
                 <div 
@@ -250,8 +272,8 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
                   id={`plan-card-${plan.id}`}
                 >
                   {isRecommended && (
-                    <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-teal-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
-                      Recomendado por Humana
+                    <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
+                      Recomendado por Colmedikal
                     </span>
                   )}
 
@@ -311,8 +333,8 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
                       onClick={() => handlePlanSelect(plan.id)}
                       className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all text-center flex items-center justify-center gap-2 group cursor-pointer ${
                         isRecommended
-                          ? 'bg-gradient-to-r from-[#4f93c5] to-[#143b67] text-white shadow-lg shadow-[#143b67]/15 hover:shadow-[#143b67]/25'
-                          : 'bg-slate-100 hover:bg-[#4f93c5]/10 hover:text-[#143b67] text-slate-700 border border-slate-200'
+                          ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-lg shadow-[#0C4169]/15 hover:shadow-[#0C4169]/25'
+                          : 'bg-slate-100 hover:bg-[#4597CA]/10 hover:text-[#0C4169] text-slate-700 border border-slate-200'
                       }`}
                       id={`btn-quote-${plan.id}`}
                     >
@@ -411,20 +433,20 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={() => {
-                  setSelectedPlanId('integral');
+                  setSelectedPlanId('esencial');
                   setCurrentPage('cotizador');
                 }}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-[#4f93c5] to-[#143b67] hover:from-[#143b67] hover:to-[#4f93c5] text-white font-bold transition-all shadow-md group"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-[#4597CA] to-[#0C4169] hover:from-[#0C4169] hover:to-[#4597CA] text-white font-bold transition-all shadow-md group cursor-pointer"
                 id="footer-cta-quote"
               >
                 Ingresar al Cotizador
               </button>
               <button
                 onClick={() => setCurrentPage('contacto')}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-slate-850 hover:bg-slate-800 text-white font-medium border border-slate-750 transition-all flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-slate-850 hover:bg-slate-800 text-white font-medium border border-slate-750 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 id="footer-cta-support"
               >
-                <PhoneCall className="w-4.5 h-4.5 text-[#4f93c5]" />
+                <PhoneCall className="w-4.5 h-4.5 text-[#4597CA]" />
                 <span>Hablar con un asesor</span>
               </button>
             </div>

@@ -102,7 +102,7 @@ export default function Services({ setCurrentPage }: ServicesProps) {
               </div>
 
               <div className="pt-6 mt-6 border-t border-slate-100 flex justify-between items-center text-xs">
-                <span className="text-slate-400">Incluido en Plan Integral/Elite</span>
+                <span className="text-slate-400">Incluido en Plan Esencial/Premium</span>
                 <button
                   onClick={() => setCurrentPage('cotizador')}
                   className="text-teal-600 font-semibold group-hover:text-teal-700 flex items-center gap-1 cursor-pointer"

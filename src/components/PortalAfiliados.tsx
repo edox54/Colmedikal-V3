@@ -48,7 +48,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   const userProfile = {
     name: 'Ing. Carlos Ramos Valdiviezo',
     cardId: 'EC-445892-01',
-    planName: 'Plan Integral Familiar',
+    planName: 'Plan Colmedikal Esencial',
     validUntil: '31/12/2026',
     familyGroup: [
       { name: 'Elena Mendoza de Ramos', relationship: 'Cónyuge', cardId: 'EC-445892-02' },
@@ -251,7 +251,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
             <button
               type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-[#4f93c5] to-[#143b67] text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-98 cursor-pointer"
+              className="w-full py-3.5 bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-98 cursor-pointer"
               id="btn-login"
             >
               Iniciar Sesión Seguro
@@ -291,7 +291,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 onClick={() => setActiveTab('dash')}
                 className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
                   activeTab === 'dash'
-                    ? 'bg-gradient-to-r from-[#4f93c5] to-[#143b67] text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-sm'
                     : 'text-slate-650 hover:bg-slate-50'
                 }`}
                 id="portal-tab-dash"
@@ -307,7 +307,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 onClick={() => setActiveTab('carnet')}
                 className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
                   activeTab === 'carnet'
-                    ? 'bg-gradient-to-r from-[#4f93c5] to-[#143b67] text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-sm'
                     : 'text-slate-650 hover:bg-slate-50'
                 }`}
                 id="portal-tab-carnet"
@@ -323,8 +323,8 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 onClick={() => setActiveTab('reembolsos')}
                 className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
                   activeTab === 'reembolsos'
-                    ? 'bg-gradient-to-r from-[#4f93c5] to-[#143b67] text-white shadow-sm'
-                    : 'text-slate-650 hover:bg-slate-50'
+                    ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-sm'
+                    : 'text-slate-655 hover:bg-slate-50'
                 }`}
                 id="portal-tab-reembolsos"
               >
@@ -339,7 +339,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 onClick={() => setActiveTab('autorizaciones')}
                 className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
                   activeTab === 'autorizaciones'
-                    ? 'bg-gradient-to-r from-[#4f93c5] to-[#143b67] text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-sm'
                     : 'text-slate-650 hover:bg-slate-50'
                 }`}
                 id="portal-tab-autorizaciones"
@@ -355,7 +355,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 onClick={() => setActiveTab('triage')}
                 className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
                   activeTab === 'triage'
-                    ? 'bg-gradient-to-r from-[#4f93c5] to-[#143b67] text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-sm'
                     : 'text-slate-650 hover:bg-slate-50'
                 }`}
                 id="portal-tab-triage"
@@ -498,7 +498,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     <h3 className="text-lg font-bold font-sans tracking-wide leading-tight">{userProfile.name}</h3>
                     <div className="flex justify-between text-[11px] font-mono text-slate-350 bg-white/5 px-3 py-1.5 rounded-lg">
                       <span>Cél: {userProfile.cardId}</span>
-                      <span>Plan: Integral Familiar</span>
+                      <span>Plan: Colmedikal Esencial</span>
                     </div>
                   </div>
 

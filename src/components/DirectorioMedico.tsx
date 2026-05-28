@@ -6,14 +6,20 @@ import {
   Calendar, 
   Clock, 
   Video, 
-  GraduationCap, 
   CheckCircle,
   X,
   Sparkles,
-  Award,
-  Stethoscope,
   HeartPulse,
-  ChevronRight
+  Hospital,
+  Building2,
+  Activity,
+  Copy,
+  Check,
+  ExternalLink,
+  ShieldCheck,
+  Mail,
+  Star,
+  Navigation
 } from 'lucide-react';
 import { Page, Doctor } from '../types';
 import { useColmedical } from '../context/ColmedicalContext';
@@ -23,41 +29,39 @@ interface DirectorioMedicoProps {
 }
 
 export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoProps) {
-  const { doctors, addAppointment } = useColmedical();
+  const { doctors } = useColmedical();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  
-  // Booking form state
-  const [bookingStep, setBookingStep] = useState<1 | 2>(1);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [bookingData, setBookingData] = useState({
-    patientName: '',
-    patientId: '',
-    patientPhone: '',
-    aptDate: '2026-05-25',
-    aptTime: '09:00',
-    modality: 'presencial' // presencial or telemedicina
-  });
+  const [copiedAddress, setCopiedAddress] = useState(false);
+
+  const handleCopyAddress = (address: string) => {
+    navigator.clipboard.writeText(address);
+    setCopiedAddress(true);
+    setTimeout(() => {
+      setCopiedAddress(false);
+    }, 2000);
+  };
 
   const specialties = [
-    { id: 'all', name: 'Todas las Especialidades' },
-    { id: 'cardiologia', name: 'Cardiología' },
-    { id: 'pediatria', name: 'Pediatría y Neonatología' },
-    { id: 'ginecologia', name: 'Ginecología y Obstetricia' },
-    { id: 'traumatologia', name: 'Traumatología y Ortopedia' },
-    { id: 'dermatologia', name: 'Dermatología' },
-    { id: 'odontologia', name: 'Odontología y Maxilofacial' },
-    { id: 'general', name: 'Medicina General' }
+    { id: 'all', name: 'Todas las Categorías' },
+    { id: 'hospital', name: 'Hospital / Clínica' },
+    { id: 'centro', name: 'Centro Médico' },
+    { id: 'odontologia', name: 'Odontología' },
+    { id: 'laboratorio', name: 'Laboratorio' },
   ];
 
   const cities = [
-    { id: 'all', name: 'Todas las Ciudades' },
-    { id: 'Quito', name: 'Quito' },
-    { id: 'Guayaquil', name: 'Guayaquil' },
-    { id: 'Cuenca', name: 'Cuenca' }
+    { id: 'all', name: 'Todas las Ubicaciones' },
+    { id: 'quito', name: 'Quito y Valles (Pichincha)' },
+    { id: 'guayaquil', name: 'Guayaquil y Vías (Guayas / Samborondón)' },
+    { id: 'santodomingo', name: 'Santo Domingo (La Concordia)' },
+    { id: 'manabi', name: 'Manabí (Manta / Portoviejo / El Carmen)' },
+    { id: 'esmeraldas', name: 'Esmeraldas' },
+    { id: 'imbabura', name: 'Imbabura (Ibarra / Otavalo / Atuntaqui)' },
+    { id: 'losrios', name: 'Los Ríos (Quevedo)' }
   ];
 
   // Filters logic
@@ -65,81 +69,90 @@ export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoPro
     // Search Term match
     const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           doc.clinic.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          doc.education.toLowerCase().includes(searchTerm.toLowerCase());
+                          doc.education.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          doc.city.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Specialty match
     let matchesSpecialty = true;
     if (selectedSpecialty !== 'all') {
-      const activeObj = specialties.find(s => s.id === selectedSpecialty);
-      if (activeObj) {
-        matchesSpecialty = doc.specialty.toLowerCase().includes(activeObj.name.substring(0, 8).toLowerCase());
+      const specLower = doc.specialty.toLowerCase();
+      if (selectedSpecialty === 'hospital') {
+        matchesSpecialty = specLower.includes('hospital') || specLower.includes('clínica') || specLower.includes('clinica');
+      } else if (selectedSpecialty === 'centro') {
+        matchesSpecialty = specLower.includes('centro') || specLower.includes('consultorio');
+      } else if (selectedSpecialty === 'odontologia') {
+        matchesSpecialty = specLower.includes('odontología') || specLower.includes('odontologia') || specLower.includes('dental') || doc.name.toLowerCase().includes('dent') || doc.name.toLowerCase().includes('odont');
+      } else if (selectedSpecialty === 'laboratorio') {
+        matchesSpecialty = specLower.includes('laboratorio') || specLower.includes('cruz vital') || doc.name.toLowerCase().includes('lab');
       }
     }
 
     // City match
     let matchesCity = true;
     if (selectedCity !== 'all') {
-      matchesCity = doc.city === selectedCity;
+      const cityLower = doc.city.toLowerCase();
+      if (selectedCity === 'quito') {
+        matchesCity = cityLower.includes('quito') || 
+                      cityLower.includes('tumbaco') || 
+                      cityLower.includes('puellaro') || 
+                      cityLower.includes('puéllaro') ||
+                      cityLower.includes('guayllabamba') || 
+                      cityLower.includes('carapungo') || 
+                      cityLower.includes('batán') || 
+                      cityLower.includes('batan') || 
+                      cityLower.includes('villaflora') || 
+                      cityLower.includes('tabacundo') || 
+                      cityLower.includes('quinche') || 
+                      cityLower.includes('cayambe') || 
+                      cityLower.includes('pifo') || 
+                      cityLower.includes('chilibulo');
+      } else if (selectedCity === 'guayaquil') {
+        matchesCity = cityLower.includes('guay') || // matches GUYAQUIL, GUAYAQUIL
+                      cityLower.includes('samborondon') || 
+                      cityLower.includes('samborondón');
+      } else if (selectedCity === 'santodomingo') {
+        matchesCity = cityLower.includes('santo domingo') || 
+                      cityLower.includes('concordia');
+      } else if (selectedCity === 'manabi') {
+        matchesCity = cityLower.includes('manta') || 
+                      cityLower.includes('portoviejo') || 
+                      cityLower.includes('carmen') ||
+                      cityLower.includes('manabi') ||
+                      cityLower.includes('manabí');
+      } else if (selectedCity === 'esmeraldas') {
+        matchesCity = cityLower.includes('esmeraldas');
+      } else if (selectedCity === 'imbabura') {
+        matchesCity = cityLower.includes('ibarra') || 
+                      cityLower.includes('otavalo') || 
+                      cityLower.includes('atuntaqui') ||
+                      cityLower.includes('imbabura');
+      } else if (selectedCity === 'losrios') {
+        matchesCity = cityLower.includes('quevedo') || 
+                      cityLower.includes('rios') ||
+                      cityLower.includes('ríos');
+      }
     }
 
     return matchesSearch && matchesSpecialty && matchesCity;
   });
-
-  const handleBookingSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (bookingData.patientName.trim() && bookingData.patientId.trim() && bookingData.patientPhone.trim() && selectedDoctor) {
-      addAppointment({
-        doctorName: selectedDoctor.name,
-        specialty: selectedDoctor.specialty,
-        patientName: bookingData.patientName,
-        patientId: bookingData.patientId,
-        patientPhone: bookingData.patientPhone,
-        aptDate: bookingData.aptDate,
-        aptTime: bookingData.aptTime,
-        modality: bookingData.modality as 'presencial' | 'telemedicina',
-        clinic: selectedDoctor.clinic,
-        city: selectedDoctor.city,
-        cost: selectedDoctor.cost,
-        status: 'Pendiente'
-      });
-      setBookingSuccess(true);
-    } else {
-      alert('Por favor complete todos los datos del paciente titular.');
-    }
-  };
-
-
-  const handleOpenBooking = (doc: Doctor) => {
-    setSelectedDoctor(doc);
-    setBookingStep(1);
-    setBookingSuccess(false);
-    setBookingData({
-      patientName: '',
-      patientId: '',
-      patientPhone: '',
-      aptDate: '2026-05-25',
-      aptTime: '09:00',
-      modality: 'presencial'
-    });
-  };
 
   return (
     <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedical-directorio-view">
       
       {/* 1. HEADER */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
-        <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">Red de Especialistas</span>
+        <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">Red de Establecimientos en Convenio</span>
         <h1 className="text-4xl font-display font-extrabold text-slate-900 tracking-tight">
-          Directorio Médico y Clínicas de Convenio
+          Red Médica Nacional
         </h1>
-        <p className="text-slate-600">
-          Usa los filtros avanzados para buscar médicos por especialidad, ciudad o clínica afiliada. Agenda de forma inmediata una videoconsulta o cita presencial con cobertura directa Colmedical.
+        <p className="text-slate-600 text-sm max-w-2xl mx-auto leading-relaxed">
+          Encuentra hospitales, clínicas, consultorios, centros odontológicos y laboratorios autorizados para recibir atención médica directa de primer nivel.
         </p>
       </div>
 
       {/* 2. ADVANCED FILTER BOARD */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 max-w-5xl mx-auto">
-        <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-normal">Filtros de búsqueda médica</span>
+        <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-normal">Filtros de búsqueda de establecimientos</span>
         
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           {/* Key Term search */}
@@ -147,7 +160,7 @@ export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoPro
             <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input 
               type="text"
-              placeholder="Buscar por nombre del médico, clínica, etc."
+              placeholder="Buscar por nombre, especialidad o palabra clave..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-350 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none placeholder:text-slate-400 font-medium"
@@ -185,11 +198,11 @@ export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoPro
         </div>
       </div>
 
-      {/* 3. DOCTORS GRID LEDGER */}
+      {/* 3. PROVIDERS GRID LEDGER */}
       <section className="space-y-6">
         <div className="flex justify-between items-center max-w-5xl mx-auto border-b border-slate-200 pb-4">
           <span className="text-xs font-bold text-slate-500">
-            {filteredDoctors.length} Especialistas médicos coinciden con tu criterio
+            {filteredDoctors.length} Centros médicos coinciden con tu criterio
           </span>
           <button 
             onClick={() => {
@@ -205,310 +218,380 @@ export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoPro
 
         {filteredDoctors.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {filteredDoctors.map((doc) => (
-              <div 
-                key={doc.id}
-                className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-300 transition-all flex flex-col justify-between"
-                id={`doctor-card-${doc.id}`}
-              >
-                <div className="flex gap-4 items-start sm:items-center">
-                  <img 
-                    src={doc.image} 
-                    alt={doc.name} 
-                    className="w-16 h-16 rounded-2xl object-cover shrink-0 border border-slate-100"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
-                        {doc.specialty}
-                      </span>
-                      <span className="bg-slate-50 text-slate-500 px-2 py-0.5 rounded text-[9px] font-bold font-mono">
-                        {doc.city}
-                      </span>
+            {filteredDoctors.map((doc) => {
+              const isHospital = doc.specialty.toLowerCase().includes('hospital') || doc.specialty.toLowerCase().includes('clínica') || doc.specialty.toLowerCase().includes('clinica');
+              const isLab = doc.specialty.toLowerCase().includes('laboratorio') || doc.specialty.toLowerCase().includes('cruz vital') || doc.name.toLowerCase().includes('lab');
+              const isDent = doc.specialty.toLowerCase().includes('odontología') || doc.specialty.toLowerCase().includes('odontologia') || doc.specialty.toLowerCase().includes('dental') || doc.name.toLowerCase().includes('dent') || doc.name.toLowerCase().includes('odont');
+              
+              let IconComponent = Building2;
+              let bgClass = 'bg-teal-50 border-teal-200 text-teal-600';
+              if (isHospital) {
+                IconComponent = Hospital;
+                bgClass = 'bg-rose-50 border-rose-200 text-rose-600';
+              } else if (isLab) {
+                IconComponent = Activity;
+                bgClass = 'bg-amber-50 border-amber-200 text-amber-600';
+              } else if (isDent) {
+                IconComponent = Sparkles;
+                bgClass = 'bg-sky-50 border-sky-200 text-sky-600';
+              }
+
+              return (
+                <div 
+                  key={doc.id}
+                  className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-300 transition-all flex flex-col justify-between"
+                  id={`doctor-card-${doc.id}`}
+                >
+                  <div className="flex gap-4 items-start sm:items-center">
+                    <div className={`w-16 h-16 rounded-2xl shrink-0 flex items-center justify-center border ${bgClass}`}>
+                      <IconComponent className="w-8 h-8" />
                     </div>
-                    
-                    <h3 className="text-base font-bold text-slate-900">{doc.name}</h3>
-                    
-                    <div className="flex items-center gap-1 text-xs text-slate-500 font-medium">
-                      <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                      <span>{doc.clinic}</span>
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">
+                          {doc.specialty}
+                        </span>
+                        <span className="bg-slate-50 text-slate-500 px-2 py-0.5 rounded text-[9px] font-bold font-mono">
+                          {doc.city}
+                        </span>
+                      </div>
+                      
+                      <h3 className="text-base font-bold text-slate-900 truncate" title={doc.name}>{doc.name}</h3>
+                      
+                      <div className="flex items-center gap-1 text-xs text-slate-500 font-medium">
+                        <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span className="truncate" title={doc.clinic}>{doc.clinic}</span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider font-mono">Contacto:</span>
+                        {(() => {
+                          if (!doc.phone || doc.phone.toUpperCase() === 'EN PROCESO') {
+                            return <span className="text-xs text-slate-500 font-mono italic">En proceso</span>;
+                          }
+                          const numbers = doc.phone.split(/[\/,]|\by\b/i).map(num => num.trim()).filter(Boolean);
+                          return (
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                              {numbers.map((num, idx) => (
+                                <a 
+                                  key={idx}
+                                  href={`tel:${num.replace(/\s+/g, '')}`} 
+                                  className="font-mono text-xs font-extrabold text-teal-800 bg-teal-50/70 hover:bg-teal-100 hover:text-teal-900 px-2.5 py-0.5 rounded-lg border border-teal-150 inline-flex items-center gap-1 transition-all"
+                                  title={`Llamar al teléfono ${num}`}
+                                >
+                                  <Phone className="w-3 h-3 text-teal-600 shrink-0" />
+                                  <span>{num}</span>
+                                </a>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-5 border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="space-y-1.5 text-slate-600">
-                    <p className="flex items-center gap-1 text-[11px]">
-                      <GraduationCap className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span className="truncate max-w-[200px]" title={doc.education}>{doc.education}</span>
-                    </p>
-                    <p className="flex items-center gap-1 text-[11px] font-mono">
-                      <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>{doc.availability}</span>
-                    </p>
-                  </div>
+                  <div className="mt-5 border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="space-y-1.5 text-slate-600">
+                      <div className="flex items-start gap-1.5 text-[11px] leading-relaxed">
+                        <HeartPulse className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <span className="font-semibold text-slate-500 mr-1">Servicios:</span>
+                          <span className="text-slate-700 font-medium" title={doc.education}>{doc.education}</span>
+                        </div>
+                      </div>
+                      <p className="flex items-center gap-1.5 text-[11px] font-mono leading-none">
+                        <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>{doc.availability}</span>
+                      </p>
+                    </div>
 
-                  <div className="space-y-1.5 text-right flex flex-col items-start sm:items-end justify-center">
-                    <div className="text-[10px] text-slate-400 font-medium">Cons. Copago Estimado:</div>
-                    <div className="font-mono font-bold text-slate-900 text-sm">
-                      ${(doc.cost * 0.15).toFixed(2)} 
-                      <span className="text-[10px] text-slate-400 font-normal ml-1">(Plan Integral - 85%)</span>
+                    <div className="space-y-1.5 text-right flex flex-col items-start sm:items-end justify-center">
+                      <div className="text-[10px] text-slate-400 font-medium font-mono uppercase tracking-wider">Copago Esencial:</div>
+                      <div className="font-mono font-black text-emerald-600 text-sm">
+                        $0.00 
+                        <span className="text-[10px] text-slate-450 font-normal ml-1 block sm:inline">(100% Sin Reembolsos)</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
-                  <a 
-                    href={`tel:${doc.phone}`}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs text-center flex items-center justify-center gap-1.5 hover:bg-slate-50 transition-colors"
-                  >
-                    <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Llamar Directo</span>
-                  </a>
-                  <button
-                    onClick={() => handleOpenBooking(doc)}
-                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-600 hover:to-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-teal-500/10 cursor-pointer"
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>Agendar Consulta</span>
-                  </button>
+                  <div className="mt-5 pt-4 border-t border-slate-100">
+                    <button
+                      onClick={() => setSelectedDoctor(doc)}
+                      className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm group"
+                    >
+                      <Activity className="w-4 h-4 text-teal-400 group-hover:scale-110 transition-transform" />
+                      <span>Ver toda la información</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="bg-white p-12 rounded-3xl border border-slate-200 shadow-sm text-center max-w-xl mx-auto space-y-4">
-            <Stethoscope className="w-12 h-12 text-slate-350 mx-auto" strokeWidth={1.5} />
-            <h4 className="text-sm font-bold text-slate-700">No encontramos ningún médico</h4>
+            <Building2 className="w-12 h-12 text-slate-350 mx-auto" strokeWidth={1.5} />
+            <h4 className="text-sm font-bold text-slate-700">No encontramos ningún establecimiento</h4>
             <p className="text-xs text-slate-400 max-w-sm mx-auto leading-normal">
-              Prueba modificando los filtros a "Todas las Especialidades" o ingresando términos de búsqueda generales como "San Francisco" o "Hospital".
+              Prueba modificando los filtros de categoría o provincia, o escribe un término de búsqueda general como "Hospital" o "Cruz Roja".
             </p>
           </div>
         )}
       </section>
 
-      {/* 4. MODAL DETAILED BOOKING ENGINE (MOCKUP IN-PAGE OVERLAY) */}
+      {/* 4. MODAL DETAILED BOOKING ENGINE / FICHA INFORMATIVA */}
       {selectedDoctor && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-150 shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             
             {/* Modal Header */}
-            <div className="bg-slate-900 text-white p-6 flex justify-between items-center relative">
-              <div className="flex items-center gap-2.5">
-                <HeartPulse className="w-6 h-6 text-teal-400 animate-pulse" />
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white p-6 flex justify-between items-center relative shrink-0">
+              <div className="flex items-center gap-3">
+                {(() => {
+                  const isHospital = selectedDoctor.specialty.toLowerCase().includes('hospital') || selectedDoctor.specialty.toLowerCase().includes('clínica') || selectedDoctor.specialty.toLowerCase().includes('clinica');
+                  const isLab = selectedDoctor.specialty.toLowerCase().includes('laboratorio') || selectedDoctor.specialty.toLowerCase().includes('cruz vital') || selectedDoctor.name.toLowerCase().includes('lab');
+                  const isDent = selectedDoctor.specialty.toLowerCase().includes('odontología') || selectedDoctor.specialty.toLowerCase().includes('odontologia') || selectedDoctor.specialty.toLowerCase().includes('dental') || selectedDoctor.name.toLowerCase().includes('dent') || selectedDoctor.name.toLowerCase().includes('odont');
+                  
+                  let IconComponent = Building2;
+                  let colorClass = 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+                  if (isHospital) {
+                    IconComponent = Hospital;
+                    colorClass = 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+                  } else if (isLab) {
+                    IconComponent = Activity;
+                    colorClass = 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+                  } else if (isDent) {
+                    IconComponent = Sparkles;
+                    colorClass = 'text-sky-400 bg-sky-500/10 border-sky-500/20';
+                  } else {
+                    colorClass = 'text-teal-400 bg-teal-500/10 border-teal-500/20';
+                  }
+
+                  return (
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${colorClass}`}>
+                      <IconComponent className="w-6 h-6 animate-pulse" />
+                    </div>
+                  );
+                })()}
+
                 <div>
-                  <h3 className="text-base font-bold text-white">Agendamiento de Citas</h3>
-                  <span className="text-[10px] text-teal-300 font-mono">Oficina Virtual Colmedical</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] bg-teal-500/20 text-teal-305 font-bold px-2 py-0.5 rounded uppercase tracking-wide">
+                      Convenio Integrado Activo
+                    </span>
+                    <span className="text-[10px] font-mono text-indigo-300">
+                      CÓD.: COL-{(1000 + selectedDoctor.id.charCodeAt(0) * 3)}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-white tracking-tight leading-tight mt-0.5">
+                    {selectedDoctor.name}
+                  </h3>
                 </div>
               </div>
               <button 
                 onClick={() => setSelectedDoctor(null)}
-                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                aria-label="Cerrar"
               >
-                <X className="w-4.5 h-4.5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6">
-              {!bookingSuccess ? (
-                /* STEP FORM */
-                <form onSubmit={handleBookingSubmit} className="space-y-5">
-                  
-                  {/* Doctor Info Card */}
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-150 flex gap-3.5 items-center">
-                    <img 
-                      src={selectedDoctor.image} 
-                      alt="" 
-                      className="w-11 h-11 rounded-xl object-cover shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div>
-                      <span className="text-[9px] font-bold text-teal-650 bg-teal-50 px-2 py-0.2 rounded uppercase">
-                        {selectedDoctor.specialty}
-                      </span>
-                      <h4 className="text-xs font-bold text-slate-900">{selectedDoctor.name}</h4>
-                      <p className="text-[10px] text-slate-500">{selectedDoctor.clinic} ({selectedDoctor.city})</p>
-                    </div>
-                  </div>
+            <div className="p-6 overflow-y-auto space-y-6">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Column Left: Contacto & Sede */}
+                <div className="space-y-4">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">
+                    Sede y Canales de Atención
+                  </span>
 
-                  {/* Booking Fields */}
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Date */}
-                      <div className="space-y-1">
-                        <label className="block text-[11px] font-semibold text-slate-700">Fecha de Consulta:</label>
-                        <input 
-                          type="date"
-                          value={bookingData.aptDate}
-                          onChange={(e) => setBookingData({...bookingData, aptDate: e.target.value})}
-                          min="2026-05-25"
-                          max="2026-06-15"
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-teal-500"
-                        />
-                      </div>
-
-                      {/* Time */}
-                      <div className="space-y-1">
-                        <label className="block text-[11px] font-semibold text-slate-700">Hora Preferida:</label>
-                        <select 
-                          value={bookingData.aptTime}
-                          onChange={(e) => setBookingData({...bookingData, aptTime: e.target.value})}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-teal-500"
-                        >
-                          <option value="08:00">08:00 AM</option>
-                          <option value="09:00">09:00 AM</option>
-                          <option value="10:00">10:00 AM</option>
-                          <option value="11:00">11:00 AM</option>
-                          <option value="14:00">02:00 PM</option>
-                          <option value="15:00">03:00 PM</option>
-                          <option value="16:00">04:00 PM</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Modality Selector */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[11px] font-semibold text-slate-700">Modalidad de Atención:</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setBookingData({...bookingData, modality: 'presencial'})}
-                          className={`p-3.5 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-1 cursor-pointer ${
-                            bookingData.modality === 'presencial'
-                              ? 'border-indigo-600 bg-indigo-50/20 text-indigo-950 font-bold'
-                              : 'border-slate-200 bg-white hover:border-slate-300'
-                          }`}
-                        >
-                          <MapPin className="w-4 h-4 text-slate-400" />
-                          <span className="text-[11px]">Cita Presencial</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setBookingData({...bookingData, modality: 'telemedicina'})}
-                          className={`p-3.5 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-1 cursor-pointer ${
-                            bookingData.modality === 'telemedicina'
-                              ? 'border-indigo-600 bg-indigo-50/20 text-indigo-950 font-bold'
-                              : 'border-slate-200 bg-white hover:border-slate-300'
-                          }`}
-                        >
-                          <Video className="w-4 h-4 text-slate-400" />
-                          <span className="text-[11px]">Telemedicina Express</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Patient Information */}
-                    <div className="space-y-3 pt-3 border-t border-slate-100">
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Identidad del Paciente Asegurado:</span>
-                      
-                      <div className="space-y-2">
-                        <input 
-                          type="text"
-                          required
-                          placeholder="Nombre Completo del Paciente Titular"
-                          value={bookingData.patientName}
-                          onChange={(e) => setBookingData({...bookingData, patientName: e.target.value})}
-                          className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-1 focus:ring-teal-500"
-                        />
-                        <div className="grid grid-cols-2 gap-4">
-                          <input 
-                            type="text"
-                            required
-                            placeholder="Cédula / Documento de Afiliado"
-                            value={bookingData.patientId}
-                            onChange={(e) => setBookingData({...bookingData, patientId: e.target.value})}
-                            className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-1 focus:ring-teal-500 font-mono"
-                          />
-                          <input 
-                            type="tel"
-                            required
-                            placeholder="Teléfono Celular"
-                            value={bookingData.patientPhone}
-                            onChange={(e) => setBookingData({...bookingData, patientPhone: e.target.value})}
-                            className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-1 focus:ring-teal-500 font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Action CTAs */}
-                  <button
-                    type="submit"
-                    className="w-full py-3.5 text-center bg-gradient-to-r from-teal-500 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
-                  >
-                    Confirmar Agenda Médica en Línea
-                  </button>
-                </form>
-              ) : (
-                /* SUCCESS PANEL AND VOUCHER */
-                <div className="space-y-6 text-center py-6" id="booking-success-report">
-                  <div className="w-14 h-14 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle className="w-8 h-8" />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <h4 className="text-lg font-bold text-slate-900">¡Cita Médica Agendada Satisfactoriamente!</h4>
-                    <p className="text-xs text-slate-500">Hemos procesado tu reserva con cobertura directa Colmedical.</p>
-                  </div>
-
-                  {/* Medical Voucher Card Details */}
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200 text-left p-5 space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-200 pb-2.5">
-                      <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
-                        CÓDIGO: RES-{(100000 + Math.random() * 900000).toFixed(0)}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium font-mono">Generado el 22/05/2026</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-xs">
+                  {/* Sede / City */}
+                  <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl space-y-2">
+                    <div className="flex items-start gap-2.5">
+                      <MapPin className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
                       <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">Médico Tratante:</span>
-                        <span className="font-bold text-slate-900">{selectedDoctor.name}</span>
-                        <span className="text-[10px] text-slate-500 block">{selectedDoctor.specialty}</span>
-                      </div>
-                      
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">Pacientes:</span>
-                        <span className="font-bold text-slate-900">{bookingData.patientName}</span>
-                        <span className="text-[10px] text-slate-500 block">ID: {bookingData.patientId}</span>
-                      </div>
-
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">Fecha y Hora:</span>
-                        <span className="font-semibold text-slate-800">{bookingData.aptDate} / {bookingData.aptTime}</span>
-                      </div>
-
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-bold uppercase">Sede de Convenio:</span>
-                        <span className="font-semibold text-slate-800">
-                          {bookingData.modality === 'presencial' ? selectedDoctor.clinic : 'Sala de Telemedicina Express'}
+                        <div className="text-[11px] text-slate-400 uppercase font-bold font-mono">Dirección del Establecimiento:</div>
+                        <p className="text-xs font-bold text-slate-800 leading-normal mt-0.5">{selectedDoctor.clinic}</p>
+                        <span className="inline-block text-[10px] bg-slate-200/60 text-slate-600 px-2 py-0.5 rounded font-bold uppercase mt-1">
+                          {selectedDoctor.city}
                         </span>
                       </div>
                     </div>
 
-                    <div className="pt-2 bg-white p-3 rounded-lg border border-slate-150">
-                      <p className="text-[10px] text-slate-500 leading-normal">
-                        💡 <strong>Instrucciones:</strong> {bookingData.modality === 'presencial' 
-                          ? `Asiste 15 minutos antes a ${selectedDoctor.clinic} con tu carné digital o cédula. Abona el copago preferencial de $${(selectedDoctor.cost * 0.15).toFixed(2)}.` 
-                          : `Recibirás un SMS y un correo electrónico con el link de la consulta privada virtual un par de horas antes de la cita.`}
+                    <div className="pt-2 border-t border-slate-200/60 flex justify-end">
+                      <button
+                        onClick={() => handleCopyAddress(`${selectedDoctor.clinic}, ${selectedDoctor.city}`)}
+                        className="text-[11px] font-bold text-indigo-650 hover:text-indigo-850 flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedAddress ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-emerald-700">¡Dirección Copiada!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copiar dirección</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Phone & Call center */}
+                  <div className="p-4 bg-teal-50/50 border border-teal-100 rounded-2xl space-y-3">
+                    <div className="flex items-start gap-2.5">
+                      <Phone className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" />
+                      <div className="w-full">
+                        <div className="text-[11px] text-slate-400 uppercase font-bold font-mono">Central de Reservas & Call Center:</div>
+                        {(() => {
+                          if (!selectedDoctor.phone || selectedDoctor.phone.toUpperCase() === 'EN PROCESO') {
+                            return <p className="text-sm font-black text-slate-500 font-mono italic mt-0.5">En proceso</p>;
+                          }
+                          const numbers = selectedDoctor.phone.split(/[\/,]|\by\b/i).map(num => num.trim()).filter(Boolean);
+                          return (
+                            <div className="mt-1 flex flex-col gap-1.5">
+                              {numbers.map((num, idx) => (
+                                <a 
+                                  key={idx}
+                                  href={`tel:${num.replace(/\s+/g, '')}`} 
+                                  className="inline-flex items-center gap-2 text-sm font-black text-teal-950 hover:text-teal-700 font-mono hover:underline w-fit"
+                                >
+                                  <span className="bg-teal-150 text-teal-850 text-[9px] font-bold px-1.5 py-0.5 rounded font-sans uppercase">Tel {idx + 1}</span>
+                                  <span>{num}</span>
+                                </a>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                        <p className="text-[10px] text-slate-500 leading-normal mt-2.5">
+                          Consulte cupos, especialidades disponibles y solicite atención prioritaria con su libreta médica Colmedikal.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-teal-150 flex flex-wrap gap-2">
+                       {(() => {
+                         if (!selectedDoctor.phone || selectedDoctor.phone.toUpperCase() === 'EN PROCESO') {
+                           return (
+                             <div className="w-full text-center py-2 text-slate-400 text-xs font-mono">
+                               No disponible para llamada directa
+                             </div>
+                           );
+                         }
+                         const numbers = selectedDoctor.phone.split(/[\/,]|\by\b/i).map(num => num.trim()).filter(Boolean);
+                         return numbers.map((num, idx) => (
+                           <a 
+                             key={idx}
+                             href={`tel:${num.replace(/\s+/g, '')}`}
+                             className="flex-1 min-w-[120px] py-1.5 text-center bg-teal-600 hover:bg-teal-700 active:scale-98 text-white text-[11px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                           >
+                             <Phone className="w-3.5 h-3.5 shrink-0" />
+                             <span>Llamar Tel {idx + 1}</span>
+                           </a>
+                         ));
+                       })()}
+                    </div>
+                  </div>
+
+                  {/* Hours */}
+                  <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl flex items-start gap-2.5">
+                    <Clock className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-[11px] text-slate-400 uppercase font-bold font-mono">Horarios de Atención:</div>
+                      <p className="text-xs font-bold text-slate-800 mt-0.5">{selectedDoctor.availability}</p>
+                      <p className="text-[9px] text-slate-400 mt-1">Sujeto a cambios del establecimiento en feriados.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Column Right: Servicios & Cobertura */}
+                <div className="space-y-4">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">
+                    Cobertura y Especialidades
+                  </span>
+
+                  {/* Copago 0 */}
+                  <div className="p-4 bg-emerald-50 border border-emerald-150 rounded-2xl flex items-start gap-3">
+                    <ShieldCheck className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5 animate-pulse" />
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
+                        Esencial & Premium Plan
+                      </span>
+                      <h4 className="text-xs font-extrabold text-slate-900 mt-1">Copago de $0.00 Garantizado</h4>
+                      <p className="text-[10px] text-slate-650 leading-relaxed mt-0.5">
+                        Este establecimiento opera con <strong>Crédito Directo Hospitalario</strong>. No requiere liquidación posterior ni reembolsos. Presente su cédula e identificación digital en recepción.
                       </p>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDoctor(null)}
-                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-                  >
-                    Cerrar Ventana de Confirmación
-                  </button>
+                  {/* Especialidades Integradas as tags */}
+                  <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl space-y-2">
+                    <div className="text-[11px] text-slate-400 uppercase font-bold font-mono">
+                      Servicios y Especialidades en Convenio:
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {selectedDoctor.education.split(',').map((spec, idx) => {
+                        const trimmedSpec = spec.trim();
+                        if (!trimmedSpec) return null;
+                        return (
+                          <div 
+                            key={idx}
+                            className="bg-indigo-50/70 border border-indigo-105 text-indigo-900 text-[11px] font-semibold px-2.5 py-1 rounded-xl flex items-center gap-1"
+                          >
+                            <Check className="w-3 h-3 text-indigo-600 shrink-0" />
+                            <span>{trimmedSpec}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              )}
+
+              </div>
+
+              {/* Vector Map GPS Tracker Section */}
+              <div className="p-4 bg-slate-900 text-slate-200 rounded-2xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-inner relative overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+                
+                <div className="flex items-center gap-3.5 z-10">
+                  <div className="relative w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-full flex items-center justify-center shrink-0">
+                    <Navigation className="w-6 h-6 text-teal-400 animate-bounce" />
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-20 animate-ping"></span>
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-black text-white">Geolocalización GPS Verificada</h5>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Latitud: -0.1806 • Longitud: -78.4678</p>
+                    <span className="text-[9px] text-slate-500 font-mono">Sede verificada por satélite Colmedikal</span>
+                  </div>
+                </div>
+
+                <div className="z-10 w-full sm:w-auto text-center sm:text-right">
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedDoctor.name} ${selectedDoctor.clinic} ${selectedDoctor.city}`)}`}
+                    target="_blank" 
+                    referrerPolicy="no-referrer"
+                    className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-750 text-white font-bold text-xs rounded-xl inline-flex items-center justify-center gap-1.5 transition-colors border border-indigo-500/30 cursor-pointer shadow-md shadow-indigo-600/10"
+                  >
+                    <span>Abrir GPS de tu celular</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 p-4 border-t border-slate-200 flex justify-end shrink-0">
+              <button 
+                type="button"
+                onClick={() => setSelectedDoctor(null)}
+                className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold rounded-xl transition-all cursor-pointer shadow-sm text-center"
+              >
+                Cerrar Ficha Informativa
+              </button>
             </div>
 
           </div>

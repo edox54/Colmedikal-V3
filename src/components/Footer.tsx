@@ -97,7 +97,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
                   onClick={() => setCurrentPage('cotizador')} 
                   className="hover:text-teal-400 transition-colors text-left"
                 >
-                  Plan Esencial Protect - Cobertura Jóvenes
+                  Plan Colmedikal Basico
                 </button>
               </li>
               <li>
@@ -105,7 +105,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
                   onClick={() => setCurrentPage('cotizador')} 
                   className="hover:text-teal-400 transition-colors text-left"
                 >
-                  Plan Integral Family - Familia y Maternidad
+                  Plan Colmedikal Esencial
                 </button>
               </li>
               <li>
@@ -113,7 +113,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
                   onClick={() => setCurrentPage('cotizador')} 
                   className="hover:text-teal-400 transition-colors text-left"
                 >
-                  Plan Elite Executive - Cobertura Global
+                  Plan Colmedikal Premium
                 </button>
               </li>
               <li>

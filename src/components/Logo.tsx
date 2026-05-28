@@ -23,7 +23,7 @@ export default function Logo({ className = "h-8" }: LogoProps) {
              A 15 15 0 0 0 65 75 
              L 65 65 
              Z" 
-          fill="#4f93c5" 
+          fill="#4597CA" 
         />
         
         {/* Dark Blue: Top and Right */}
@@ -36,7 +36,7 @@ export default function Logo({ className = "h-8" }: LogoProps) {
              A 15 15 0 0 1 75 65 
              L 65 65 
              Z" 
-          fill="#143b67" 
+          fill="#0C4169" 
         />
       </g>
       
@@ -44,10 +44,10 @@ export default function Logo({ className = "h-8" }: LogoProps) {
       <text 
         x="95" 
         y="65" 
-        fontFamily="system-ui, -apple-system, sans-serif" 
+        fontFamily="'Kumbh Sans', 'Open Sans', system-ui, sans-serif" 
         fontWeight="800" 
         fontSize="46" 
-        fill="#143b67" 
+        fill="#0C4169" 
         letterSpacing="-1.5"
       >
         colmedikal

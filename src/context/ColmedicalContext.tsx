@@ -21,106 +21,7 @@ interface ColmedicalContextType {
 
 const ColmedicalContext = createContext<ColmedicalContextType | undefined>(undefined);
 
-const initialDoctors: Doctor[] = [
-  {
-    id: 'dr-mendoza',
-    name: 'Dr. Alejandro Mendoza',
-    specialty: 'Cardiología',
-    city: 'Quito',
-    phone: '02-3951025',
-    email: 'a.mendoza@colmedical.center',
-    clinic: 'Clínica San Francisco',
-    rating: '4.95 (120 valoraciones)',
-    availability: 'Disponible Lunes y Miércoles 08:00 - 13:00',
-    education: 'Especialización en Cardiología - Cleveland Clinic, USA',
-    image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150',
-    cost: 45
-  },
-  {
-    id: 'dra-alarcon',
-    name: 'Dra. Gabriela Alarcón',
-    specialty: 'Pediatría y Neonatología',
-    city: 'Quito',
-    phone: '02-3998112',
-    email: 'g.alarcon@colmedical.center',
-    clinic: 'Hospital Metropolitano',
-    rating: '4.98 (245 valoraciones)',
-    availability: 'Disponible de Lunes a Viernes 09:00 - 16:00',
-    education: 'Subespecialidad en Neonatología - Universidad Complutense, Madrid',
-    image: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=150',
-    cost: 40
-  },
-  {
-    id: 'dr-pacheco',
-    name: 'Dr. Fernando Pacheco',
-    specialty: 'Traumatología y Ortopedia',
-    city: 'Guayaquil',
-    phone: '04-2289650',
-    email: 'f.pacheco@colmedical.center',
-    clinic: 'Clínica Kennedy',
-    rating: '4.92 (98 valoraciones)',
-    availability: 'Disponible Martes y Jueves de 14:00 - 19:00',
-    education: 'Cirugía Ortopédica Avanzada - Hospital Clínic de Barcelona',
-    image: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=150',
-    cost: 50
-  },
-  {
-    id: 'dra-salinas',
-    name: 'Dra. Marina Salinas',
-    specialty: 'Ginecología y Obstetricia',
-    city: 'Guayaquil',
-    phone: '04-2583344',
-    email: 'm.salinas@colmedical.center',
-    clinic: 'Hospital Alcívar',
-    rating: '4.96 (180 valoraciones)',
-    availability: 'Disponible Lunes, Miércoles e Interdiario',
-    education: 'Obstetricia y Medicina Reproductiva - Universidad de Buenos Aires',
-    image: 'https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?auto=format&fit=crop&q=80&w=150',
-    cost: 45
-  },
-  {
-    id: 'dra-vintimilla',
-    name: 'Dra. Estefanía Vintimilla',
-    specialty: 'Dermatología',
-    city: 'Cuenca',
-    phone: '07-2815520',
-    email: 'e.vintimilla@colmedical.center',
-    clinic: 'Clínica Santa Inés',
-    rating: '4.94 (112 valoraciones)',
-    availability: 'Disponible de Lunes a Viernes 10:00 - 13:00 / 15:00 - 18:00',
-    education: 'Especialista en Dermatología Clínica y Estética - Universidad Central de Venezuela',
-    image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=150',
-    cost: 45
-  },
-  {
-    id: 'dr-barrera',
-    name: 'Dr. Javier Barrera',
-    specialty: 'Medicina General',
-    city: 'Quito',
-    phone: '02-3951111',
-    email: 'j.barrera@colmedical.center',
-    clinic: 'Colmedical Center Sede Amazonas',
-    rating: '4.91 (500+ valoraciones)',
-    availability: 'Disponible Hoy - Cobertura Telemedicina en Red 24/7',
-    education: 'Título de Médico Cirujano - Universidad de Chile',
-    image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=150',
-    cost: 25
-  },
-  {
-    id: 'dra-pombo',
-    name: 'Dra. Julia Pombo',
-    specialty: 'Odontología y Maxilofacial',
-    city: 'Guayaquil',
-    phone: '04-2289901',
-    email: 'j.pombo@colmedical.center',
-    clinic: 'Clínica Dental del Pacífico',
-    rating: '4.97 (88 valoraciones)',
-    availability: 'Disponible con cita programada de 08:30 - 17:30',
-    education: 'Diseño de Sonrisa y Rehabilitación Oral - Universidad de São Paulo',
-    image: 'https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&q=80&w=150',
-    cost: 30
-  }
-];
+import { initialDoctors } from '../data/doctors';
 
 const initialRefunds: RefundItem[] = [
   { id: 'REF-92051', familyMember: 'Carlos Ramos Valdiviezo', specialty: 'Dermatología', amount: 55.00, refundDate: '2026-05-15', status: 'Reembolsado', invoiceNumber: '001-001-12542', adminComment: 'Factura autorizada por SRI. Transferencia liquidada el 16/05' },
@@ -181,10 +82,6 @@ const initialLeads: LeadQuote[] = [
       childrenCount: 2,
       childrenAges: [10, 6],
       basePlanId: 'premium',
-      dentalAddon: true,
-      maternityAddon: false,
-      intlAddon: true,
-      rxAddon: true
     },
     estimatedPrice: 228.50,
     status: 'Nuevo Plan'
@@ -196,15 +93,11 @@ const initialLeads: LeadQuote[] = [
       fullName: 'Ing. Rodrigo Cevallos Placa',
       email: 'rcevallos@cevallostrans.ec',
       phone: '0992451002',
-      type: 'corporativo',
+      type: 'individual',
       primaryAge: 45,
       childrenCount: 0,
       childrenAges: [],
-      basePlanId: 'elite',
-      dentalAddon: true,
-      maternityAddon: false,
-      intlAddon: true,
-      rxAddon: true
+      basePlanId: 'premium',
     },
     estimatedPrice: 380.00,
     status: 'Contactado'
@@ -213,7 +106,7 @@ const initialLeads: LeadQuote[] = [
 
 export const ColmedicalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [doctors, setDoctors] = useState<Doctor[]>(() => {
-    const saved = localStorage.getItem('colmedical_doctors');
+    const saved = localStorage.getItem('colmedical_doctors_v3');
     return saved ? JSON.parse(saved) : initialDoctors;
   });
 
@@ -238,7 +131,7 @@ export const ColmedicalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   });
 
   useEffect(() => {
-    localStorage.setItem('colmedical_doctors', JSON.stringify(doctors));
+    localStorage.setItem('colmedical_doctors_v3', JSON.stringify(doctors));
   }, [doctors]);
 
   useEffect(() => {

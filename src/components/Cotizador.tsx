@@ -50,11 +50,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
     partnerAge: 30,
     childrenCount: 0,
     childrenAges: [],
-    basePlanId: selectedPlanId || 'integral',
-    dentalAddon: false,
-    maternityAddon: false,
-    intlAddon: false,
-    rxAddon: false,
+    basePlanId: selectedPlanId || 'esencial',
   });
 
   // Client-side validations
@@ -111,54 +107,21 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
 
     // 3. Children calculations
     let childrenPart = 0;
-    const childFlat = state.basePlanId === 'esencial' ? 14.0 : state.basePlanId === 'integral' ? 18.5 : 25.0;
+    const childFlat = state.basePlanId === 'basico' ? 5.0 : state.basePlanId === 'esencial' ? 8.0 : 12.0;
     if (state.type === 'familiar' && state.childrenCount > 0) {
       totalPeopleCount += state.childrenCount;
       childrenPart = state.childrenCount * childFlat;
     }
 
-    // 4. Corporate discount multiplier
-    let corporateDiscountFactor = 1.0;
-    if (state.type === 'corporativo') {
-      corporateDiscountFactor = 0.82; // 18% Corporate savings
-    }
-
-    // 5. Add-ons pricing
-    let addonsTotal = 0;
-    
-    // Per-person add-ons
-    if (state.dentalAddon) {
-      addonsTotal += 6.50 * totalPeopleCount;
-    }
-    if (state.intlAddon) {
-      addonsTotal += 14.50 * totalPeopleCount;
-    }
-    if (state.rxAddon) {
-      addonsTotal += 5.00 * totalPeopleCount;
-    }
-    
-    // Family flat add-on
-    if (state.maternityAddon) {
-      addonsTotal += 12.00; // Flat additional maternal coverage fee
-    }
-
     // Math aggregates
-    const subtotalRaw = (subscriberPart + partnerPart + childrenPart) * corporateDiscountFactor;
-    const finalMonthlyRaw = subtotalRaw + addonsTotal;
-
-    // Promotional Coupon discount
-    const promoDiscount = couponApplied ? finalMonthlyRaw * discountPercent : 0;
-    const finalPremium = finalMonthlyRaw - promoDiscount;
+    const subtotalRaw = subscriberPart + partnerPart + childrenPart;
+    const finalPremium = subtotalRaw;
 
     return {
       subscriberCost: subscriberPart,
       partnerCost: partnerPart,
       childrenCost: childrenPart,
-      corporateSavedPercent: state.type === 'corporativo' ? 18 : 0,
-      corporateSavedAmount: (subscriberPart + partnerPart + childrenPart) * 0.18,
       subtotalPlan: subtotalRaw,
-      addonsCost: addonsTotal,
-      discountAmount: promoDiscount,
       totalMonthly: finalPremium,
       peopleCount: totalPeopleCount
     };
@@ -199,26 +162,6 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
   const handlePrevStep = () => {
     setTopicErrors({});
     setStep(prev => Math.max(1, prev - 1));
-  };
-
-  // Applying promo code coupons
-  const applyPromoCode = () => {
-    setCouponError('');
-    if (couponCode.trim().toUpperCase() === 'HUMANA_FIRST') {
-      setDiscountPercent(0.15); // 15% discount
-      setCouponApplied(true);
-    } else if (couponCode.trim().toUpperCase() === 'BIENVENIDO') {
-      setDiscountPercent(0.10); // 10% discount
-      setCouponApplied(true);
-    } else {
-      setCouponError('Código no válido. Prueba con "HUMANA_FIRST" para 15% de ahorro.');
-    }
-  };
-
-  const removePromoCode = () => {
-    setCouponCode('');
-    setDiscountPercent(0);
-    setCouponApplied(false);
   };
 
   // Submit quotation to agent simulation
@@ -382,35 +325,6 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                     <h4 className="text-sm font-bold text-slate-900">Familiar Completo</h4>
                     <p className="text-[11px] text-slate-500 leading-normal">
                       Soporte integral para Ti, Pareja e Hijos. Las tarifas de los menores son planas y muy reducidas.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Corporativo Card */}
-                <div 
-                  onClick={() => setState({ ...state, type: 'corporativo' })}
-                  className={`p-6 rounded-2xl border-2 cursor-pointer transition-all space-y-3 relative ${
-                    state.type === 'corporativo' 
-                      ? 'border-teal-500 bg-teal-50/20 shadow-md' 
-                      : 'border-slate-200 hover:border-slate-350 bg-white'
-                  }`}
-                  id="choice-corporate"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
-                      <Briefcase className="w-5 h-5" />
-                    </div>
-                    {state.type === 'corporativo' && <span className="w-2.5 h-2.5 rounded-full bg-orange-500 ring-4 ring-orange-100" />}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                      Colectivo / Corporativo
-                      <span className="bg-orange-100 text-orange-850 px-2 py-0.2 text-[9px] rounded-full font-bold uppercase tracking-wider">
-                        Ahorra 18%
-                      </span>
-                    </h4>
-                    <p className="text-[11px] text-slate-500 leading-normal">
-                      Planes con tarifas reducidas para colectivos empresariales desde 4 colaboradores.
                     </p>
                   </div>
                 </div>
@@ -586,86 +500,20 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Optional Addons */}
-              <div className="space-y-3 pt-3 border-t border-slate-100">
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Módulos Extra de Bienestar Integrado:</span>
                 
-                <div className="space-y-3">
-                  
-                  {/* Odontologia */}
-                  <label className="flex items-start justify-between gap-4 p-3 bg-slate-50/50 rounded-xl border border-slate-150 cursor-pointer hover:bg-slate-50">
-                    <div className="flex items-start gap-2">
-                      <input 
-                        type="checkbox"
-                        checked={state.dentalAddon}
-                        onChange={(e) => setState({ ...state, dentalAddon: e.target.checked })}
-                        className="mt-1 accent-teal-550 w-4 h-4 shrink-0 rounded"
-                        id="addon-dental"
-                      />
-                      <div>
-                        <span className="block text-xs font-bold text-slate-900 text-left">Odontología Preventiva Integral</span>
-                        <p className="text-[10px] text-slate-500 leading-normal text-left">Incluye dos limpiezas completas, profilaxis anual y copagos preferenciales del 50% en ortodoncia.</p>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-mono font-bold text-teal-700 shrink-0">+$6.50/m p.p.</span>
-                  </label>
-
-                  {/* Maternidad (Disabled features if age is highly advanced) */}
-                  <label className="flex items-start justify-between gap-4 p-3 bg-slate-50/50 rounded-xl border border-slate-150 cursor-pointer hover:bg-slate-50">
-                    <div className="flex items-start gap-2">
-                      <input 
-                        type="checkbox"
-                        checked={state.maternityAddon}
-                        onChange={(e) => setState({ ...state, maternityAddon: e.target.checked })}
-                        className="mt-1 accent-teal-550 w-4 h-4 shrink-0 rounded"
-                        id="addon-maternity"
-                      />
-                      <div>
-                        <span className="block text-xs font-bold text-slate-900 text-left">Maternidad Protegida Premium</span>
-                        <p className="text-[10px] text-slate-500 leading-normal text-left">Cobertura ampliada de neonatología, parto y controles prenatales (disponible en planes familiares y de pareja).</p>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-mono font-bold text-teal-700 shrink-0">+$12.00/m famil.</span>
-                  </label>
-
-                  {/* Asistencia Internacional */}
-                  <label className="flex items-start justify-between gap-4 p-3 bg-slate-50/50 rounded-xl border border-slate-150 cursor-pointer hover:bg-slate-50">
-                    <div className="flex items-start gap-2">
-                      <input 
-                        type="checkbox"
-                        checked={state.intlAddon}
-                        onChange={(e) => setState({ ...state, intlAddon: e.target.checked })}
-                        className="mt-1 accent-teal-550 w-4 h-4 shrink-0 rounded"
-                        id="addon-intl"
-                      />
-                      <div>
-                        <span className="block text-xs font-bold text-slate-900 text-left">Asistencia en Viajes Internacionales</span>
-                        <p className="text-[10px] text-slate-500 leading-normal text-left">Cobertura de urgencias y traslados médicos fuera de la región patria por hasta $50,000 USD sin copagos.</p>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-mono font-bold text-teal-700 shrink-0">+$14.50/m p.p.</span>
-                  </label>
-
-                  {/* Cobertura Farmacia */}
-                  <label className="flex items-start justify-between gap-4 p-3 bg-slate-50/50 rounded-xl border border-slate-150 cursor-pointer hover:bg-slate-50">
-                    <div className="flex items-start gap-2">
-                      <input 
-                        type="checkbox"
-                        checked={state.rxAddon}
-                        onChange={(e) => setState({ ...state, rxAddon: e.target.checked })}
-                        className="mt-1 accent-teal-550 w-4 h-4 shrink-0 rounded"
-                        id="addon-rx"
-                      />
-                      <div>
-                        <span className="block text-xs font-bold text-slate-900 text-left">Farmacia de Red al 40%</span>
-                        <p className="text-[10px] text-slate-500 leading-normal text-left">Obtén tus medicamentos recetados por médico general directo en farmacias del país pagando un copago ínfimo.</p>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-mono font-bold text-teal-700 shrink-0">+$5.00/m p.p.</span>
-                  </label>
-
+                {/* Selected Plan Details */}
+                <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-150">
+                  <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-teal-500" /> Coberturas Principales de {selectedPlanObj.name}
+                  </h4>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {selectedPlanObj.features.map((feature, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
+                        <Check className="w-3.5 h-3.5 text-teal-500 shrink-0 mt-0.5" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             </div>
@@ -773,7 +621,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                   <div className="pt-2">
                     <button
                       type="submit"
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#4f93c5] to-[#143b67] text-white font-bold text-xs shadow-md shadow-[#143b67]/10 hover:shadow-[#143b67]/25 transition-all text-center flex items-center justify-center gap-2 group cursor-pointer"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs shadow-md shadow-[#0C4169]/10 hover:shadow-[#0C4169]/25 transition-all text-center flex items-center justify-center gap-2 group cursor-pointer"
                       id="btn-handoff-submit"
                     >
                       <span>Lock & Enviar Cotización</span>
@@ -829,7 +677,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
         </div>
 
         {/* Right Dynamic Live Invoice Card (5 cols) */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 to-slate-950 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl overflow-hidden relative">
+        <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 to-slate-950 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl overflow-hidden relative" id="print-invoice-area">
           
           <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
@@ -850,6 +698,15 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
               <HeartHandshake className="w-4 h-4 text-teal-400" />
               <span>Base: Plan <strong>{selectedPlanObj.name}</strong></span>
             </div>
+
+            {/* Print Button */}
+            <button
+              onClick={() => window.print()}
+              className="mt-3 flex items-center justify-center gap-2 w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-colors print:hidden"
+            >
+              <Download className="w-4 h-4" />
+              Descargar como PDF
+            </button>
           </div>
 
           {/* Pricing Details */}
@@ -883,38 +740,6 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
               </div>
             )}
 
-            {/* Corporate savings */}
-            {state.type === 'corporativo' && (
-              <div className="flex justify-between items-center pt-3 text-orange-400 font-medium">
-                <span className="text-left">Ahorro Empresarial Colectivo (-18%)</span>
-                <span className="font-mono font-bold">-${totals.corporateSavedAmount.toFixed(2)}</span>
-              </div>
-            )}
-
-            {/* Add-ons line breakdown */}
-            {totals.addonsCost > 0 && (
-              <div className="flex justify-between items-start pt-3">
-                <div className="space-y-0.5 text-left">
-                  <span className="block font-bold text-teal-400">Total Adicionales Bienestar</span>
-                  <div className="text-[10px] text-slate-400 leading-normal">
-                    {state.dentalAddon && <span>• Dental </span>}
-                    {state.maternityAddon && <span>• Maternidad </span>}
-                    {state.intlAddon && <span>• Internacional </span>}
-                    {state.rxAddon && <span>• Farmatool </span>}
-                  </div>
-                </div>
-                <span className="font-mono font-bold text-teal-400">${totals.addonsCost.toFixed(2)}</span>
-              </div>
-            )}
-
-            {/* Coupon Promo codes discount line */}
-            {couponApplied && (
-              <div className="flex justify-between items-center pt-3 text-emerald-400 font-semibold" id="coupon-applied-amount-row">
-                <span className="text-left">Cupón Aplicado ({(discountPercent * 100).toFixed(0)}%)</span>
-                <span className="font-mono">-${totals.discountAmount.toFixed(2)}</span>
-              </div>
-            )}
-
           </div>
 
           {/* Monthly Grand Total Display */}
@@ -933,48 +758,6 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
               </div>
             </div>
 
-            {/* Coupon codes Input Area */}
-            <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-2">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">¿Tienes un código promocional?</span>
-              
-              {couponApplied ? (
-                <div className="flex justify-between items-center bg-teal-950/30 border border-teal-800 p-2 rounded-xl text-xs" id="success-coupon-badge">
-                  <span className="text-teal-400 font-bold flex items-center gap-1.5">
-                    <BadgePercent className="w-4.5 h-4.5 text-teal-400 animate-bounce" /> Ahorras {(discountPercent * 100).toFixed(0)}% por Humana
-                  </span>
-                  <button 
-                    onClick={removePromoCode}
-                    className="text-[10px] font-bold uppercase tracking-wider bg-red-950 text-red-400 px-2 py-0.5 rounded hover:bg-red-900 border border-red-800/40"
-                  >
-                    Quitar
-                  </button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <input 
-                    type="text"
-                    placeholder="Ej. HUMANA_FIRST"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                    className="bg-slate-950 text-white text-xs border border-slate-800 rounded-xl px-3 py-1.5 grow font-mono uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-teal-500"
-                    id="coupon-input"
-                  />
-                  <button
-                    onClick={applyPromoCode}
-                    className="px-4 py-1.5 bg-teal-500 text-slate-950 rounded-xl text-xs font-bold hover:bg-teal-400 transition-all font-mono"
-                  >
-                    Aplicar
-                  </button>
-                </div>
-              )}
-              {couponError && <span className="text-[10px] text-red-400 block font-semibold text-left">{couponError}</span>}
-              {!couponApplied && (
-                <span className="block text-[9px] text-slate-500 text-left">
-                  💡 Tip: Prueba ingresando <strong>HUMANA_FIRST</strong> para habilitar un bono del 15%.
-                </span>
-              )}
-            </div>
-
           </div>
 
           {/* Quick Specifications Card footer */}
@@ -987,6 +770,18 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
 
         </div>
 
+      </div>
+
+      <div className="mt-12 text-center max-w-2xl mx-auto space-y-4 print:hidden">
+        <p className="text-sm font-semibold text-slate-600">
+          ¿No encuentras lo que buscas o necesitas una asesoría especializada?
+        </p>
+        <button
+          onClick={() => setCurrentPage('contacto')}
+          className="px-6 py-3 bg-white border-2 border-slate-200 hover:border-[#0C4169] hover:bg-slate-50 text-slate-800 text-sm font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 mx-auto cursor-pointer"
+        >
+          Contacta a un Agente Comercial
+        </button>
       </div>
 
     </div>
