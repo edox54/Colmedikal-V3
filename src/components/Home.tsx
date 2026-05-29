@@ -18,7 +18,7 @@ import {
 import { Plan, Page } from '../types';
 import { MEDICAL_PLANS } from '../data';
 import Logo from './Logo';
-const heroBannerImg = "./src/assets/images/colmedikal_doctor_family_hero_1780008609458.png";
+import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.png';
 
 interface HomeProps {
   setCurrentPage: (page: Page) => void;
