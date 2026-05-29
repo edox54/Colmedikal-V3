@@ -75,12 +75,12 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
             {/* Standard texts from client's mockup */}
             <div className="space-y-3 sm:space-y-4 pt-4">
               <p className="text-[10px] sm:text-[11px] font-black tracking-widest text-[#5d7c9a] uppercase font-sans">
-                BIENVENIDOS A TU PORTAL DE BIENESTAR
+                BIENVENIDOS A COLMEDIKAL
               </p>
               
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#143b67] tracking-tight leading-[1.1] font-sans">
-                TU SALUD EN LAS <br />
-                <span className="font-black text-[#143b67] tracking-tighter">MEJORES MANOS</span>
+              <h1 className="text-xl sm:text-2xl lg:text-[32px] font-bold text-[#143b67] tracking-normal leading-snug font-sans">
+                TRANQUILIDAD PARA TU VIDA, <br />
+                <span className="font-extrabold text-[#143b67]">SEGURIDAD PARA TU FAMILIA</span>
               </h1>
               
               <p className="text-[10px] sm:text-xs font-bold text-[#143b67]/90 tracking-wide font-sans uppercase">
