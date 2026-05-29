@@ -19,6 +19,8 @@ import { Plan, Page } from '../types';
 import { MEDICAL_PLANS } from '../data';
 import Logo from './Logo';
 import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.png';
+import avatarValentina from '../assets/images/avatar_valentina_1780025241348.png';
+import avatarCarlosElena from '../assets/images/avatar_carlos_elena_1780025264251.png';
 
 interface HomeProps {
   setCurrentPage: (page: Page) => void;
@@ -384,7 +386,7 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
               <div className="flex items-center gap-3">
                 <img 
                   className="w-10 h-10 rounded-full object-cover shrink-0" 
-                  src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=120" 
+                  src={avatarValentina} 
                   alt="Dra. Valentina"
                   referrerPolicy="no-referrer"
                 />
@@ -402,7 +404,7 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
               <div className="flex items-center gap-3">
                 <img 
                   className="w-10 h-10 rounded-full object-cover shrink-0" 
-                  src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=120" 
+                  src={avatarCarlosElena} 
                   alt="Carlos y Elena"
                   referrerPolicy="no-referrer"
                 />

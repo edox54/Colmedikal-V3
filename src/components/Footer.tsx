@@ -85,6 +85,14 @@ export default function Footer({ setCurrentPage }: FooterProps) {
                   Sobre Nosotros <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               </li>
+              <li>
+                <button 
+                  onClick={() => setCurrentPage('blog')} 
+                  className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left"
+                >
+                  Blog de Salud <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              </li>
             </ul>
           </div>
 

@@ -11,6 +11,7 @@ import {
   Plus
 } from 'lucide-react';
 import { Page } from '../types';
+import sedePrincipalBuilding from '../assets/images/sede_principal_building_1780025281820.png';
 
 interface AboutProps {
   setCurrentPage: (page: Page) => void;
@@ -72,7 +73,7 @@ export default function About({ setCurrentPage }: AboutProps) {
           <div className="absolute inset-0 bg-gradient-to-tr from-teal-500 to-indigo-600 rounded-3xl opacity-10 blur-xl"></div>
           <div className="relative bg-white rounded-3xl p-6 border border-slate-150 shadow-xl overflow-hidden">
             <img 
-              src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=600" 
+              src={sedePrincipalBuilding} 
               alt="Instalaciones de Colmedical Center"
               className="w-full h-80 object-cover rounded-2xl"
               referrerPolicy="no-referrer"

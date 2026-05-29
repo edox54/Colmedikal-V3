@@ -1,4 +1,28 @@
-export type Page = 'home' | 'servicios' | 'nosotros' | 'contacto' | 'cotizador' | 'directorio' | 'portal' | 'faqs' | 'admin';
+export type Page = 'home' | 'servicios' | 'nosotros' | 'contacto' | 'cotizador' | 'directorio' | 'portal' | 'faqs' | 'admin' | 'blog' | 'blog-detalle';
+
+export interface Author {
+  id: string;
+  name: string;
+  role: string;
+  specialty: string;
+  experience: string;
+  avatar: string; // URL/SVG illustration or path
+  bio: string;
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string[]; // split by paragraphs or sections
+  publishDate: string;
+  readTime: string;
+  category: string;
+  author: Author;
+  image: string;
+  tags: string[];
+}
 
 export interface Plan {
   id: string;

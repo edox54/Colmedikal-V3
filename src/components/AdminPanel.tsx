@@ -31,6 +31,10 @@ import {
   Filter
 } from 'lucide-react';
 import { Page, Doctor } from '../types';
+import avatarGomez from '../assets/images/avatar_gomez_1780024902226.png';
+import avatarRestrepo from '../assets/images/avatar_restrepo_1780024921091.png';
+import avatarDoctorM2 from '../assets/images/avatar_doctor_m2_1780025298286.png';
+import avatarDoctorF2 from '../assets/images/avatar_doctor_f2_1780025316717.png';
 
 interface AdminPanelProps {
   setCurrentPage: (page: Page) => void;
@@ -83,10 +87,10 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     }
 
     const imageMap: Record<string, string> = {
-      doctor_m: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150',
-      doctor_f: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=150',
-      doctor_m2: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=150',
-      doctor_f2: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=150'
+      doctor_m: avatarGomez,
+      doctor_f: avatarRestrepo,
+      doctor_m2: avatarDoctorM2,
+      doctor_f2: avatarDoctorF2
     };
 
     const imageUrl = imageMap[newDoc.image] || imageMap.doctor_m;
@@ -957,10 +961,10 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                   <label className="block text-[11px] font-bold text-slate-700">Foto del Especialista (Mockup):</label>
                   <div className="grid grid-cols-4 gap-2">
                     {[
-                      { id: 'doctor_m', alias: 'M-1', img: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=85&w=60' },
-                      { id: 'doctor_f', alias: 'F-1', img: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=85&w=60' },
-                      { id: 'doctor_m2', alias: 'M-2', img: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=85&w=60' },
-                      { id: 'doctor_f2', alias: 'F-2', img: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=85&w=60' }
+                      { id: 'doctor_m', alias: 'M-1', img: avatarGomez },
+                      { id: 'doctor_f', alias: 'F-1', img: avatarRestrepo },
+                      { id: 'doctor_m2', alias: 'M-2', img: avatarDoctorM2 },
+                      { id: 'doctor_f2', alias: 'F-2', img: avatarDoctorF2 }
                     ].map((avatar) => (
                       <button
                         type="button"

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Page } from './types';
+import { Page, BlogPost } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './components/Home';
@@ -16,11 +16,15 @@ import DirectorioMedico from './components/DirectorioMedico';
 import PortalAfiliados from './components/PortalAfiliados';
 import PreguntasFrecuentes from './components/PreguntasFrecuentes';
 import AdminPanel from './components/AdminPanel';
+import Blog from './components/Blog';
+import FloatingWidget from './components/FloatingWidget';
+import SEOController from './seo/SEOController';
 import { ColmedicalProvider } from './context/ColmedicalContext';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedPlanId, setSelectedPlanId] = useState<string>('esencial');
+  const [activeBlogPost, setActiveBlogPost] = useState<BlogPost | null>(null);
 
   const renderContent = () => {
     switch (currentPage) {
@@ -48,6 +52,17 @@ export default function App() {
         return <Contact setCurrentPage={handlePageChange} />;
       case 'admin':
         return <AdminPanel setCurrentPage={handlePageChange} />;
+      case 'blog':
+      case 'blog-detalle':
+        return (
+          <Blog 
+            currentPage={currentPage}
+            setCurrentPage={handlePageChange}
+            activeBlogPost={activeBlogPost}
+            setActiveBlogPost={setActiveBlogPost}
+            setSelectedPlanId={setSelectedPlanId}
+          />
+        );
       case 'cotizador':
         return (
           <Cotizador 
@@ -76,6 +91,7 @@ export default function App() {
 
   return (
     <ColmedicalProvider>
+      <SEOController currentPage={currentPage} activeBlogPost={activeBlogPost} />
       <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id="colmedical-portal-root">
         
         {/* 1. Header Banner */}
@@ -90,6 +106,9 @@ export default function App() {
 
         {/* 3. Footer content */}
         <Footer setCurrentPage={handlePageChange} />
+
+        {/* 4. Support Widget (Desktop support rail / Mobile bottom floating glass pill) */}
+        <FloatingWidget currentPage={currentPage} setCurrentPage={handlePageChange} />
         
       </div>
     </ColmedicalProvider>

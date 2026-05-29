@@ -1,4 +1,6 @@
 import { Plan, Testimonial, ServiceDetail } from './types';
+import avatarValentina from './assets/images/avatar_valentina_1780025241348.png';
+import avatarCarlosElena from './assets/images/avatar_carlos_elena_1780025264251.png';
 
 export const MEDICAL_PLANS: Plan[] = [
   {
@@ -109,7 +111,7 @@ export const TESTIMONIALS: Testimonial[] = [
     role: 'Odontóloga / Afiliada Individual',
     content: 'Como profesional de la salud corporal, sé lo valioso que es un soporte hospitalario veloz y confiable. Colmedical siempre me ha dado la mejor red de respuesta y el cotizador me permitió ver exactamente qué pagaría sin tarifas ocultas.',
     rating: 5,
-    image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200'
+    image: avatarValentina
   },
   {
     id: 't2',
@@ -117,7 +119,7 @@ export const TESTIMONIALS: Testimonial[] = [
     role: 'Plan Familiar Integral',
     content: 'Con tres hijos pequeños, las visitas al pediatra son constantes. Nuestro plan familiar nos ahorra cientos de dólares en copagos y la cobertura hospitalaria nos dio paz total en una hospitalización menor de nuestro hijo mayor.',
     rating: 5,
-    image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=200'
+    image: avatarCarlosElena
   }
 ];
 

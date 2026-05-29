@@ -169,7 +169,7 @@ export default function Services({ setCurrentPage }: ServicesProps) {
             <div className="bg-teal-500/10 p-4 rounded-xl border border-teal-500/30">
               <span className="block text-xs text-teal-300 font-bold mb-1">💡 Nota de preexistencia</span>
               <p className="text-[11px] text-teal-100/80 leading-relaxed">
-                De acuerdo con la reglamentación ecuatoriana y de medicina prepagada colombiana, las enfermedades preexistentes declaradas tienen un periodo de carencia estándar y tratamiento especial. Consulta con un asesor para los detalles de cobertura.
+                De acuerdo con la reglamentación ecuatoriana y de medicina prepagada de Ecuador, las enfermedades preexistentes declaradas tienen un periodo de carencia estándar y tratamiento especial. Consulta con un asesor para los detalles de cobertura.
               </p>
             </div>
           </div>

@@ -16,6 +16,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     { label: 'Servicios', id: 'servicios' as Page },
     { label: 'Directorio Médico', id: 'directorio' as Page },
     { label: 'Nosotros', id: 'nosotros' as Page },
+    { label: 'Blog', id: 'blog' as Page },
     { label: 'FAQs', id: 'faqs' as Page },
     { label: 'Contacto', id: 'contacto' as Page },
   ];
