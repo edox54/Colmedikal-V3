@@ -184,6 +184,38 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
           </div>
         </div>
 
+        {/* Mobile Menu Dropdown */}
+        {isOpen && (
+          <div className="lg:hidden border-t border-slate-100 bg-white/95 backdrop-blur-md shadow-xl animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className="px-4 pt-2 pb-6 space-y-1.5">
+              {menuItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                    currentPage === item.id
+                      ? 'bg-[#4597CA]/10 text-[#0C4169] font-semibold border-l-4 border-[#4597CA]'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-[#4597CA]'
+                  }`}
+                  id={`mobile-nav-${item.id}`}
+                >
+                  {item.label}
+                </button>
+              ))}
+              <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
+                <button
+                  onClick={() => handleNavClick('cotizador')}
+                  className="flex items-center justify-center w-full gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs shadow-md shadow-[#0C4169]/15 active:scale-98 transition-all cursor-pointer"
+                  id="mobile-nav-cotizador"
+                >
+                  <Calculator className="w-4 h-4" />
+                  <span>Cotizar Plan</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* =========================================================================
             MEGAMENU INTERACTIVO (DESKTOP)
             ========================================================================= */}
