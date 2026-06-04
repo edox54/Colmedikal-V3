@@ -1,5 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, QuoteState } from '../types';
+import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, QuoteState, AdminUser } from '../types';
+import { db, auth } from '../firebase';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  getDocs, 
+  getDocFromServer
+} from 'firebase/firestore';
 
 interface ColmedikalContextType {
   doctors: Doctor[];
@@ -7,8 +18,14 @@ interface ColmedikalContextType {
   appointments: AppointmentItem[];
   authorizations: AuthorizationItem[];
   leads: LeadQuote[];
+  admins: AdminUser[];
+  isAdminUser: boolean;
+  user: any | null;
+  logout: () => Promise<void>;
   addDoctor: (doctor: Doctor) => void;
   deleteDoctor: (id: string) => void;
+  toggleDoctorActiveStatus: (id: string) => void;
+  updateDoctor: (doctor: Doctor) => void;
   addRefund: (refund: Omit<RefundItem, 'id' | 'refundDate'>) => void;
   updateRefundStatus: (id: string, status: RefundItem['status'], comment?: string) => void;
   addAuthorization: (auth: Omit<AuthorizationItem, 'id' | 'requestDate'>) => void;
@@ -17,6 +34,9 @@ interface ColmedikalContextType {
   updateAppointmentStatus: (id: string, status: AppointmentItem['status']) => void;
   addLead: (quote: QuoteState, estimatedPrice: number) => void;
   updateLeadStatus: (id: string, status: LeadQuote['status']) => void;
+  addAdmin: (email: string, name: string, role: 'Administrador' | 'Auditor Clínico') => Promise<void>;
+  deleteAdmin: (email: string) => Promise<void>;
+  toggleAdminActiveStatus: (email: string) => Promise<void>;
 }
 
 const ColmedikalContext = createContext<ColmedikalContextType | undefined>(undefined);
@@ -104,12 +124,47 @@ const initialLeads: LeadQuote[] = [
   }
 ];
 
-export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [doctors, setDoctors] = useState<Doctor[]>(() => {
-    const saved = localStorage.getItem('colmedikal_doctors_v3');
-    return saved ? JSON.parse(saved) : initialDoctors;
-  });
+// 3. Error handler helper
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
 
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+  };
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [doctors, setDoctors] = useState<Doctor[]>(initialDoctors);
+  
   const [refunds, setRefunds] = useState<RefundItem[]>(() => {
     const saved = localStorage.getItem('colmedikal_refunds');
     return saved ? JSON.parse(saved) : initialRefunds;
@@ -130,10 +185,156 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return saved ? JSON.parse(saved) : initialLeads;
   });
 
-  useEffect(() => {
-    localStorage.setItem('colmedikal_doctors_v3', JSON.stringify(doctors));
-  }, [doctors]);
+  const [admins, setAdmins] = useState<AdminUser[]>(() => {
+    const saved = localStorage.getItem('colmedikal_admins');
+    return saved ? JSON.parse(saved) : [];
+  });
 
+  const [isAdminUser, setIsAdminUser] = useState<boolean>(false);
+  const [user, setUser] = useState<any | null>(null);
+
+  // Validate Firestore Connection on initial boot (Critical Constraint)
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, 'test-connection-probe', 'probe-id'));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration.");
+        }
+      }
+    };
+    testConnection();
+  }, []);
+
+  // Monitor Auth User to determine if it is the Corporate Administrator
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(async (u) => {
+      setUser(u);
+      if (u && u.emailVerified && u.email) {
+        if (u.email === "edox54@gmail.com") {
+          setIsAdminUser(true);
+        } else {
+          try {
+            // Check in firestore
+            const adminDocRef = doc(db, 'admins', u.email);
+            const adminSnap = await getDocFromServer(adminDocRef);
+            if (adminSnap.exists() && adminSnap.data()?.active !== false) {
+              setIsAdminUser(true);
+            } else {
+              setIsAdminUser(false);
+            }
+          } catch (e) {
+            console.error("Error verifying admin role in Firestore: ", e);
+            setIsAdminUser(false);
+          }
+        }
+      } else {
+        setIsAdminUser(false);
+      }
+    });
+    return unsub;
+  }, []);
+
+  // Sync /doctors live for everyone (Public directory)
+  useEffect(() => {
+    const seedDoctorsIfEmpty = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'doctors'));
+        if (querySnapshot.empty) {
+          console.log('Seeding doctors collection...');
+          for (const docItem of initialDoctors) {
+            await setDoc(doc(db, 'doctors', docItem.id), {
+              ...docItem,
+              active: docItem.active ?? true
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Initial check or seeding failed: ', error);
+      }
+    };
+
+    seedDoctorsIfEmpty().then(() => {
+      const unsub = onSnapshot(collection(db, 'doctors'), (snapshot) => {
+        const docsArr: Doctor[] = [];
+        snapshot.forEach((snapDoc) => {
+          docsArr.push(snapDoc.data() as Doctor);
+        });
+        setDoctors(docsArr);
+      }, (error) => {
+        handleFirestoreError(error, OperationType.GET, 'doctors');
+      });
+      return unsub;
+    });
+  }, []);
+
+  // Synchronize all administration records in real-time once admin is authenticated
+  useEffect(() => {
+    if (!isAdminUser) return;
+
+    console.log('Syncing administrative data feeds in real-time...');
+
+    const unsubRefunds = onSnapshot(collection(db, 'refunds'), (snapshot) => {
+      const arr: RefundItem[] = [];
+      snapshot.forEach((snapDoc) => {
+        arr.push(snapDoc.data() as RefundItem);
+      });
+      setRefunds(arr);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'refunds');
+    });
+
+    const unsubAuths = onSnapshot(collection(db, 'authorizations'), (snapshot) => {
+      const arr: AuthorizationItem[] = [];
+      snapshot.forEach((snapDoc) => {
+        arr.push(snapDoc.data() as AuthorizationItem);
+      });
+      setAuthorizations(arr);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'authorizations');
+    });
+
+    const unsubApts = onSnapshot(collection(db, 'appointments'), (snapshot) => {
+      const arr: AppointmentItem[] = [];
+      snapshot.forEach((snapDoc) => {
+        arr.push(snapDoc.data() as AppointmentItem);
+      });
+      setAppointments(arr);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'appointments');
+    });
+
+    const unsubLeads = onSnapshot(collection(db, 'leads'), (snapshot) => {
+      const arr: LeadQuote[] = [];
+      snapshot.forEach((snapDoc) => {
+        arr.push(snapDoc.data() as LeadQuote);
+      });
+      setLeads(arr);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'leads');
+    });
+
+    const unsubAdmins = onSnapshot(collection(db, 'admins'), (snapshot) => {
+      const arr: AdminUser[] = [];
+      snapshot.forEach((snapDoc) => {
+        arr.push(snapDoc.data() as AdminUser);
+      });
+      setAdmins(arr);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'admins');
+    });
+
+    return () => {
+      unsubRefunds();
+      unsubAuths();
+      unsubApts();
+      unsubLeads();
+      unsubAdmins();
+    };
+  }, [isAdminUser]);
+
+  // Persist guest offline data to local storage for portal history fallback
   useEffect(() => {
     localStorage.setItem('colmedikal_refunds', JSON.stringify(refunds));
   }, [refunds]);
@@ -150,73 +351,211 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     localStorage.setItem('colmedikal_leads', JSON.stringify(leads));
   }, [leads]);
 
-  const addDoctor = (doctor: Doctor) => {
-    setDoctors((prev) => [doctor, ...prev]);
+  useEffect(() => {
+    localStorage.setItem('colmedikal_admins', JSON.stringify(admins));
+  }, [admins]);
+
+  // Database handlers
+
+  const addDoctor = async (doctor: Doctor) => {
+    const docObj = {
+      ...doctor,
+      active: doctor.active ?? true
+    };
+    try {
+      await setDoc(doc(db, 'doctors', doctor.id), docObj);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `doctors/${doctor.id}`);
+    }
   };
 
-  const deleteDoctor = (id: string) => {
-    setDoctors((prev) => prev.filter((d) => d.id !== id));
+  const deleteDoctor = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'doctors', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `doctors/${id}`);
+    }
   };
 
-  const addRefund = (refund: Omit<RefundItem, 'id' | 'refundDate'>) => {
+  const toggleDoctorActiveStatus = async (id: string) => {
+    const docToToggle = doctors.find((d) => d.id === id);
+    if (!docToToggle) return;
+    const nextActive = docToToggle.active === false ? true : false;
+    try {
+      await updateDoc(doc(db, 'doctors', id), {
+        active: nextActive
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `doctors/${id}`);
+    }
+  };
+
+  const updateDoctor = async (updatedDoc: Doctor) => {
+    try {
+      await setDoc(doc(db, 'doctors', updatedDoc.id), updatedDoc);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `doctors/${updatedDoc.id}`);
+    }
+  };
+
+  const addRefund = async (refund: Omit<RefundItem, 'id' | 'refundDate'>) => {
+    const id = `REF-${Math.floor(10000 + Math.random() * 90000)}`;
+    const refundDate = new Date().toISOString().split('T')[0];
     const newRef: RefundItem = {
       ...refund,
-      id: `REF-${Math.floor(10000 + Math.random() * 90000)}`,
-      refundDate: new Date().toISOString().split('T')[0]
+      id,
+      refundDate,
+      status: 'Procesando'
     };
-    setRefunds((prev) => [newRef, ...prev]);
+
+    try {
+      await setDoc(doc(db, 'refunds', id), newRef);
+      setRefunds((prev) => [newRef, ...prev]);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `refunds/${id}`);
+    }
   };
 
-  const updateRefundStatus = (id: string, status: RefundItem['status'], comment?: string) => {
-    setRefunds((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status, adminComment: comment || r.adminComment } : r))
-    );
+  const updateRefundStatus = async (id: string, status: RefundItem['status'], comment?: string) => {
+    const payload: Partial<RefundItem> = { status };
+    if (comment !== undefined) {
+      payload.adminComment = comment;
+    }
+    try {
+      await updateDoc(doc(db, 'refunds', id), payload);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `refunds/${id}`);
+    }
   };
 
-  const addAuthorization = (auth: Omit<AuthorizationItem, 'id' | 'requestDate'>) => {
+  const addAuthorization = async (authItem: Omit<AuthorizationItem, 'id' | 'requestDate'>) => {
+    const id = `AUT-${Math.floor(80000 + Math.random() * 19500)}`;
+    const requestDate = new Date().toISOString().split('T')[0];
     const newAuth: AuthorizationItem = {
-      ...auth,
-      id: `AUT-${Math.floor(80000 + Math.random() * 19500)}`,
-      requestDate: new Date().toISOString().split('T')[0]
+      ...authItem,
+      id,
+      requestDate,
+      status: 'Pendiente'
     };
-    setAuthorizations((prev) => [newAuth, ...prev]);
+
+    try {
+      await setDoc(doc(db, 'authorizations', id), newAuth);
+      setAuthorizations((prev) => [newAuth, ...prev]);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `authorizations/${id}`);
+    }
   };
 
-  const updateAuthorizationStatus = (id: string, status: AuthorizationItem['status'], comment?: string) => {
-    setAuthorizations((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status, adminComment: comment || a.adminComment } : a))
-    );
+  const updateAuthorizationStatus = async (id: string, status: AuthorizationItem['status'], comment?: string) => {
+    const payload: Partial<AuthorizationItem> = { status };
+    if (comment !== undefined) {
+      payload.adminComment = comment;
+    }
+    try {
+      await updateDoc(doc(db, 'authorizations', id), payload);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `authorizations/${id}`);
+    }
   };
 
-  const addAppointment = (appointment: Omit<AppointmentItem, 'id'>) => {
+  const addAppointment = async (appointment: Omit<AppointmentItem, 'id'>) => {
+    const id = `APT-${Math.floor(10000 + Math.random() * 90000)}`;
     const newApt: AppointmentItem = {
       ...appointment,
-      id: `APT-${Math.floor(10000 + Math.random() * 90000)}`
+      id,
+      status: 'Pendiente'
     };
-    setAppointments((prev) => [newApt, ...prev]);
+
+    try {
+      await setDoc(doc(db, 'appointments', id), newApt);
+      setAppointments((prev) => [newApt, ...prev]);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `appointments/${id}`);
+    }
   };
 
-  const updateAppointmentStatus = (id: string, status: AppointmentItem['status']) => {
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status } : a))
-    );
+  const updateAppointmentStatus = async (id: string, status: AppointmentItem['status']) => {
+    try {
+      await updateDoc(doc(db, 'appointments', id), { status });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `appointments/${id}`);
+    }
   };
 
-  const addLead = (quote: QuoteState, estimatedPrice: number) => {
+  const addLead = async (quote: QuoteState, estimatedPrice: number) => {
+    const id = `LEAD-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(10 + Math.random() * 90)}`;
     const newLead: LeadQuote = {
-      id: `LEAD-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(10 + Math.random() * 90)}`,
+      id,
       timestamp: new Date().toISOString(),
       quoteData: quote,
       estimatedPrice,
       status: 'Nuevo Plan'
     };
-    setLeads((prev) => [newLead, ...prev]);
+
+    try {
+      await setDoc(doc(db, 'leads', id), newLead);
+      setLeads((prev) => [newLead, ...prev]);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `leads/${id}`);
+    }
   };
 
-  const updateLeadStatus = (id: string, status: LeadQuote['status']) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, status } : l))
-    );
+  const updateLeadStatus = async (id: string, status: LeadQuote['status']) => {
+    try {
+      await updateDoc(doc(db, 'leads', id), { status });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `leads/${id}`);
+    }
+  };
+
+  const addAdmin = async (email: string, name: string, role: 'Administrador' | 'Auditor Clínico') => {
+    const addedBy = auth.currentUser?.email || 'edox54@gmail.com';
+    const newAdminObj: AdminUser = {
+      email,
+      name,
+      role,
+      addedAt: new Date().toISOString(),
+      addedBy,
+      active: true
+    };
+    try {
+      await setDoc(doc(db, 'admins', email), newAdminObj);
+      setAdmins((prev) => [newAdminObj, ...prev.filter(a => a.email !== email)]);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `admins/${email}`);
+    }
+  };
+
+  const deleteAdmin = async (email: string) => {
+    try {
+      await deleteDoc(doc(db, 'admins', email));
+      setAdmins((prev) => prev.filter(a => a.email !== email));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `admins/${email}`);
+    }
+  };
+
+  const toggleAdminActiveStatus = async (email: string) => {
+    const adminToToggle = admins.find((a) => a.email === email);
+    if (!adminToToggle) return;
+    const nextActive = !adminToToggle.active;
+    try {
+      await updateDoc(doc(db, 'admins', email), {
+        active: nextActive
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `admins/${email}`);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await auth.signOut();
+      setIsAdminUser(false);
+      setUser(null);
+    } catch (error) {
+      console.error("Logout error: ", error);
+    }
   };
 
   return (
@@ -227,8 +566,14 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         appointments,
         authorizations,
         leads,
+        admins,
+        isAdminUser,
+        user,
+        logout,
         addDoctor,
         deleteDoctor,
+        toggleDoctorActiveStatus,
+        updateDoctor,
         addRefund,
         updateRefundStatus,
         addAuthorization,
@@ -236,7 +581,10 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         addAppointment,
         updateAppointmentStatus,
         addLead,
-        updateLeadStatus
+        updateLeadStatus,
+        addAdmin,
+        deleteAdmin,
+        toggleAdminActiveStatus
       }}
     >
       {children}

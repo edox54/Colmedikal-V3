@@ -20,6 +20,7 @@ import Blog from './components/Blog';
 import FloatingWidget from './components/FloatingWidget';
 import SEOController from './seo/SEOController';
 import { ColmedikalProvider } from './context/ColmedikalContext';
+import AdminPanel from './components/AdminPanel';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -71,6 +72,8 @@ export default function App() {
             selectedPlanId={selectedPlanId}
           />
         );
+      case 'admin':
+        return <AdminPanel setCurrentPage={handlePageChange} />;
       default:
         return (
           <Home 
@@ -90,12 +93,13 @@ export default function App() {
   };
 
   const isCotizador = currentPage === 'cotizador';
+  const isAdmin = currentPage === 'admin';
 
-  if (isCotizador) {
+  if (isCotizador || isAdmin) {
     return (
       <ColmedikalProvider>
         <SEOController currentPage={currentPage} activeBlogPost={activeBlogPost} />
-        <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id="colmedikal-portal-cotizador-root">
+        <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id={isAdmin ? "colmedikal-portal-admin-root" : "colmedikal-portal-cotizador-root"}>
           <main className="flex-grow">
             <div className="animate-in fade-in duration-300">
               {renderContent()}

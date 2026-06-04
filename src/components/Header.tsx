@@ -14,10 +14,13 @@ import {
   PhoneCall,
   CheckCircle,
   FileText,
-  MousePointerClick
+  MousePointerClick,
+  LogOut,
+  Settings
 } from 'lucide-react';
 import { Page } from '../types';
 import Logo from './Logo';
+import { useColmedikal } from '../context/ColmedikalContext';
 
 interface HeaderProps {
   currentPage: Page;
@@ -25,6 +28,7 @@ interface HeaderProps {
 }
 
 export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
+  const { user, logout, isAdminUser } = useColmedikal();
   const [isOpen, setIsOpen] = useState(false);
   
   // Megamenu state managers
@@ -145,6 +149,31 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
 
             {/* Call to Action Buttons */}
             <div className="hidden md:flex items-center gap-3">
+              {user && (
+                <div className="flex items-center gap-2 mr-2">
+                  {isAdminUser && (
+                    <button
+                      onClick={() => handleNavClick('admin')}
+                      className={`p-2.5 rounded-full transition-all duration-300 border border-slate-200 ${
+                        currentPage === 'admin' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-50'
+                      }`}
+                      title="Panel Administrativo"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => logout()}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                    title="Cerrar Sesión"
+                    id="header-logout-btn"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden xl:inline">Salir</span>
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={() => handleNavClick('cotizador')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 shadow-md ${
@@ -192,6 +221,31 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                   {item.label}
                 </button>
               ))}
+              
+              {user && (
+                <div className="pt-2 flex flex-col gap-2">
+                  {isAdminUser && (
+                    <button
+                      onClick={() => handleNavClick('admin')}
+                      className="flex items-center w-full gap-3 px-4 py-3 rounded-xl bg-slate-100 text-slate-900 font-bold text-xs cursor-pointer"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Panel Administrativo</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      logout();
+                      setIsOpen(false);
+                    }}
+                    className="flex items-center w-full gap-3 px-4 py-3 rounded-xl bg-rose-50 text-rose-600 font-bold text-xs border border-rose-100 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Cerrar Sesión</span>
+                  </button>
+                </div>
+              )}
+
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                 <button
                   onClick={() => handleNavClick('cotizador')}

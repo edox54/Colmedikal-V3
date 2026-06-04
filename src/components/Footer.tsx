@@ -101,6 +101,14 @@ export default function Footer({ setCurrentPage }: FooterProps) {
                   Blog de Salud <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               </li>
+              <li className="pt-2 border-t border-slate-800">
+                <button 
+                  onClick={() => setCurrentPage('admin')} 
+                  className="text-amber-450 hover:text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1"
+                >
+                  🔒 Portal Administrativo <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              </li>
             </ul>
           </div>
 

@@ -16,12 +16,14 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Page } from '../types';
+import { useColmedikal } from '../context/ColmedikalContext';
 
 interface TramitesOnlineProps {
   setCurrentPage: (page: Page) => void;
 }
 
 export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) {
+  const { addRefund, addAuthorization } = useColmedikal();
   const [activeForm, setActiveForm] = useState<'reembolso' | 'autorizacion'>('reembolso');
   
   // SHARED MANDATORY FIELDS
@@ -103,10 +105,13 @@ export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) 
 
     setIsSubmitting(true);
 
-    // Simulate sending data and triggering notifications
-    setTimeout(() => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      
+      const ticketId = 'TKT-' + Math.floor(Math.random() * 900000 + 100000);
       const data = {
-        id: 'TKT-' + Math.floor(Math.random() * 900000 + 100000),
+        id: ticketId,
         timestamp: new Date().toLocaleString(),
         type: activeForm === 'reembolso' ? 'Solicitud de Reembolso' : 'Solicitud de Autorización de Examen',
         fullName,
@@ -114,6 +119,7 @@ export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) 
         phone,
         email,
         fileName: attachedFileName,
+        fileData: base64String,
         specifics: activeForm === 'reembolso' ? {
           tipo: reimbursementType,
           monto: invoiceAmount,
@@ -128,10 +134,43 @@ export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) 
         corpWhatsappTarget: '+593 98 445 2211'
       };
 
+      // Push to global context for Back-office / Admin view
+      if (activeForm === 'reembolso') {
+        addRefund({
+          familyMember: fullName,
+          specialty: reimbursementType || 'Tratamiento Médico',
+          amount: Number(invoiceAmount) || 0,
+          status: 'Procesando',
+          invoiceNumber: invoiceNumber || 'S/N-SRI',
+          fileName: attachedFileName,
+          fileData: base64String,
+          userEmail: email,
+          userPhone: phone
+        });
+      } else {
+        addAuthorization({
+          patient: fullName,
+          procedure: authProcedure || 'Examen de Diagnóstico',
+          facility: medicalFacility || 'Clínica Sede Convenio',
+          status: 'Pendiente',
+          fileName: attachedFileName,
+          fileData: base64String,
+          userEmail: email,
+          userPhone: phone
+        });
+      }
+
       setSubmittedData(data);
       setIsSubmitting(false);
       setSubmissionSuccess(true);
-    }, 1800);
+    };
+
+    if (attachedFile) {
+      reader.readAsDataURL(attachedFile);
+    } else {
+      // Fallback if no file, though checked before
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -506,75 +545,6 @@ export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) 
                 Regresar a la Página Principal
               </button>
             </div>
-          </div>
-
-          {/* CRM Notification and Whatsapp API Logs Simulation Card */}
-          <div className="bg-slate-950 rounded-3xl text-slate-300 p-6 shadow-xl space-y-5 border border-slate-800">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <h3 className="text-xs font-black tracking-widest text-[#4597CA] uppercase font-mono">
-                  CRM WEBHOOK & AUTOMATION ENGINE STATUS
-                </h3>
-              </div>
-              <span className="text-[10px] text-emerald-400 font-mono font-bold uppercase tracking-wider bg-emerald-950/40 border border-emerald-900/60 px-2 py-0.5 rounded">
-                SIMULADOR AUTOMÁTICO EN LINEA
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs leading-relaxed">
-              {/* Box 1: Simulated Corporate Email dispatch */}
-              <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-3.5">
-                <div className="flex items-center gap-2 text-white font-bold border-b border-white/10 pb-1.5">
-                  <Mail className="w-4 h-4 text-cyan-400" />
-                  <span>📧 Notificación de Correo Corporativo</span>
-                </div>
-                
-                <div className="font-mono text-[10px] space-y-1 text-slate-300">
-                  <p><span className="text-slate-500">De:</span> server.gateway@colmedikal.ec</p>
-                  <p><span className="text-slate-500">Para:</span> {submittedData.corpEmailTarget}</p>
-                  <p><span className="text-slate-500">Copia:</span> {submittedData.email}</p>
-                  <p><span className="text-slate-500">Asunto:</span> [{submittedData.id}] Nuevo trámite de {submittedData.fullName}</p>
-                </div>
-                
-                <div className="bg-slate-900 p-2.5 rounded text-[10px] block overflow-x-auto text-slate-400 font-mono leading-normal whitespace-pre-wrap border border-slate-800">
-                  {`Se ha recibido una nueva solicitud de trámite desde la web oficial.
-Auditores asignados debidamente.
-
-Detalles:
-- Asegurado: ${submittedData.fullName}
-- Identificación: ${submittedData.cedula}
-- Teléfono: ${submittedData.phone}
-- Documento Adjunto: ${submittedData.fileName}
-${activeForm === 'reembolso' ? `- Factura SRI: ${submittedData.specifics.factura}\n- Monto Reembolso: $${submittedData.specifics.monto} USD` : `- Examen: ${submittedData.specifics.procedimiento}\n- Convenio: ${submittedData.specifics.clinica}`}`}
-                </div>
-              </div>
-
-              {/* Box 2: WhatsApp notification alert */}
-              <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-3.5">
-                <div className="flex items-center gap-2 text-white font-bold border-b border-white/10 pb-1.5">
-                  <Send className="w-4 h-4 text-emerald-400" />
-                  <span>💬 Notificación WhatsApp Business</span>
-                </div>
-
-                <div className="font-mono text-[10px] space-y-1 text-slate-300">
-                  <p><span className="text-slate-500">API Endpoint:</span> gateway.whatsapp.com/v1/messages</p>
-                  <p><span className="text-slate-500">Destinatario Empresarial:</span> {submittedData.corpWhatsappTarget}</p>
-                  <p><span className="text-slate-500">Estado de Envíos:</span> <span className="text-emerald-400">Entregado/Leído ✓✓</span></p>
-                </div>
-
-                <div className="p-3 bg-slate-900 rounded border border-slate-800 font-sans text-[10.5px]">
-                  <p className="font-bold text-slate-400">Mensaje enviado en plantilla homologada:</p>
-                  <p className="text-white mt-1 italic leading-snug">
-                    {`"¡Hola Colmedikal Operaciones! Se ha radicado un nuevo trámite web con código ${submittedData.id}. El cliente ${submittedData.fullName} con cédula ${submittedData.cedula} ha solicitado la gestión de su adjunto ${submittedData.fileName}. Por favor verificar y realizar la asignación de pagos."`}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-[10px] text-slate-500 font-mono text-center">
-              Lógica del CRM unificada: Oportunidad de cliente agilizada de forma inmediata y registrada en el pipeline general de la empresa.
-            </p>
           </div>
 
         </div>

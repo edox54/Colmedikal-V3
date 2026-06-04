@@ -66,6 +66,11 @@ export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoPro
 
   // Filters logic
   const filteredDoctors = doctors.filter(doc => {
+    // Only show active doctors to regular users
+    if (doc.active === false) {
+      return false;
+    }
+
     // Search Term match
     const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           doc.clinic.toLowerCase().includes(searchTerm.toLowerCase()) ||
