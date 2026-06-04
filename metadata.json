@@ -1,6 +1,6 @@
 {
-  "name": "Colmedical",
-  "description": "Portal web de salud para Colmedical con cotizador interactivo de planes de medicina prepagada.",
+  "name": "Colmedikal",
+  "description": "Portal web de salud para Colmedikal con cotizador interactivo de planes de medicina prepagada.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

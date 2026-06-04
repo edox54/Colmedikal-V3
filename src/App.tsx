@@ -13,13 +13,13 @@ import About from './components/About';
 import Contact from './components/Contact';
 import Cotizador from './components/Cotizador';
 import DirectorioMedico from './components/DirectorioMedico';
-import PortalAfiliados from './components/PortalAfiliados';
+import TramitesOnline from './components/TramitesOnline';
+import AgendamientoCitas from './components/AgendamientoCitas';
 import PreguntasFrecuentes from './components/PreguntasFrecuentes';
-import AdminPanel from './components/AdminPanel';
 import Blog from './components/Blog';
 import FloatingWidget from './components/FloatingWidget';
 import SEOController from './seo/SEOController';
-import { ColmedicalProvider } from './context/ColmedicalContext';
+import { ColmedikalProvider } from './context/ColmedikalContext';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -42,16 +42,16 @@ export default function App() {
         return <Services setCurrentPage={handlePageChange} />;
       case 'directorio':
         return <DirectorioMedico setCurrentPage={handlePageChange} />;
-      case 'portal':
-        return <PortalAfiliados setCurrentPage={handlePageChange} />;
+      case 'tramites':
+        return <TramitesOnline setCurrentPage={handlePageChange} />;
+      case 'agendamiento':
+        return <AgendamientoCitas setCurrentPage={handlePageChange} />;
       case 'faqs':
         return <PreguntasFrecuentes setCurrentPage={handlePageChange} />;
       case 'nosotros':
         return <About setCurrentPage={handlePageChange} />;
       case 'contacto':
         return <Contact setCurrentPage={handlePageChange} />;
-      case 'admin':
-        return <AdminPanel setCurrentPage={handlePageChange} />;
       case 'blog':
       case 'blog-detalle':
         return (
@@ -89,10 +89,27 @@ export default function App() {
     setCurrentPage(page);
   };
 
+  const isCotizador = currentPage === 'cotizador';
+
+  if (isCotizador) {
+    return (
+      <ColmedikalProvider>
+        <SEOController currentPage={currentPage} activeBlogPost={activeBlogPost} />
+        <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id="colmedikal-portal-cotizador-root">
+          <main className="flex-grow">
+            <div className="animate-in fade-in duration-300">
+              {renderContent()}
+            </div>
+          </main>
+        </div>
+      </ColmedikalProvider>
+    );
+  }
+
   return (
-    <ColmedicalProvider>
+    <ColmedikalProvider>
       <SEOController currentPage={currentPage} activeBlogPost={activeBlogPost} />
-      <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id="colmedical-portal-root">
+      <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id="colmedikal-portal-root">
         
         {/* 1. Header Banner */}
         <Header currentPage={currentPage} setCurrentPage={handlePageChange} />
@@ -111,7 +128,7 @@ export default function App() {
         <FloatingWidget currentPage={currentPage} setCurrentPage={handlePageChange} />
         
       </div>
-    </ColmedicalProvider>
+    </ColmedikalProvider>
   );
 }
 

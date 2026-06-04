@@ -23,7 +23,7 @@ export default function FloatingWidget({ currentPage, setCurrentPage }: Floating
           ========================================================================= */}
       <div 
         className="hidden md:flex flex-col gap-3.5 fixed right-5 bottom-8 z-50"
-        id="colmedical-desktop-floating-widget"
+        id="colmedikal-desktop-floating-widget"
       >
         {/* WhatsApp Button (Floating Pulse) */}
         <a
@@ -87,7 +87,7 @@ export default function FloatingWidget({ currentPage, setCurrentPage }: Floating
           ========================================================================= */}
       <div 
         className="md:hidden fixed bottom-4 left-4 right-4 z-50"
-        id="colmedical-mobile-floating-dock-wrapper"
+        id="colmedikal-mobile-floating-dock-wrapper"
       >
         <div className="bg-[#111C2Evb] backdrop-blur-md rounded-2xl px-5 py-2.5 shadow-2xl border border-white/10 flex items-center justify-around gap-2 max-w-sm mx-auto">
           {/* WhatsApp Mobile Trigger */}

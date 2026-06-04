@@ -113,7 +113,7 @@ export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuen
   });
 
   return (
-    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedical-faq-view">
+    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-faq-view">
       
       {/* HEADER */}
       <div className="text-center max-w-3xl mx-auto space-y-4">

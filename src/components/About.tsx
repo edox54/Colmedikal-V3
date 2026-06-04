@@ -41,7 +41,7 @@ export default function About({ setCurrentPage }: AboutProps) {
   ];
 
   return (
-    <div className="space-y-20 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedical-about-view">
+    <div className="space-y-20 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-about-view">
       
       {/* 1. HERO OF ABOUT US */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -51,7 +51,7 @@ export default function About({ setCurrentPage }: AboutProps) {
             Cuidando de ti con excelencia médica y corazón humano
           </h1>
           <p className="text-slate-600 text-sm leading-relaxed">
-            Herederos de un compromiso sólido en el sector salud, en Colmedical nos enfocamos en reformular el concepto de la medicina prepagada. Creamos un canal de protección integrado que destaca por su velocidad tecnológica, calidez en la atención y respaldo clínico absoluto.
+            Herederos de un compromiso sólido en el sector salud, en Colmedikal nos enfocamos en reformular el concepto de la medicina prepagada. Creamos un canal de protección integrado que destaca por su velocidad tecnológica, calidez en la atención y respaldo clínico absoluto.
           </p>
           <p className="text-slate-600 text-sm leading-relaxed">
             Nuestros planes se inspiran en la solidez metodológica y de servicio que proyectan marcas como Humana, adaptados a la realidad y necesidades locales, garantizando tarifas competitivas y beneficios complementarios que realmente marcan la diferencia.
@@ -74,12 +74,12 @@ export default function About({ setCurrentPage }: AboutProps) {
           <div className="relative bg-white rounded-3xl p-6 border border-slate-150 shadow-xl overflow-hidden">
             <img 
               src={sedePrincipalBuilding} 
-              alt="Instalaciones de Colmedical Center"
+              alt="Instalaciones de Colmedikal Center"
               className="w-full h-80 object-cover rounded-2xl"
               referrerPolicy="no-referrer"
             />
             <div className="absolute bottom-10 left-10 right-10 bg-white/95 backdrop-blur p-4 rounded-xl shadow-lg border border-slate-100 text-center">
-              <h4 className="text-xs font-bold text-slate-900">Sede Principal Colmedical Center</h4>
+              <h4 className="text-xs font-bold text-slate-900">Sede Principal Colmedikal Center</h4>
               <p className="text-[10px] text-slate-500 flex items-center justify-center gap-1 mt-1">
                 <MapPin className="w-3.5 h-3.5 text-rose-500" /> Av. Amazonas y Atahualpa, Quito - Ecuador
               </p>
@@ -159,7 +159,7 @@ export default function About({ setCurrentPage }: AboutProps) {
             </h3>
             
             <p className="text-xs text-slate-450 leading-relaxed">
-              Colmedical S.A. opera bajo la estricta vigilancia de la Superintendencia de Compañías, Valores y Seguros del Ecuador y cuenta con amplias reaseguradoras de prestigio nacional e internacional para garantizar la liquidez inmediata en casos de cirugías complejas de alta cobertura.
+              Colmedikal S.A. opera bajo la estricta vigilancia de la Superintendencia de Compañías, Valores y Seguros del Ecuador y cuenta con amplias reaseguradoras de prestigio nacional e internacional para garantizar la liquidez inmediata en casos de cirugías complejas de alta cobertura.
             </p>
 
             <ul className="space-y-2.5 text-xs text-slate-350">

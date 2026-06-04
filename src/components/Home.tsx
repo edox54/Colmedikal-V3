@@ -19,6 +19,8 @@ import { Plan, Page } from '../types';
 import { MEDICAL_PLANS } from '../data';
 import Logo from './Logo';
 import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.png';
+import heroBuildingImg from '../assets/images/sede_principal_building_1780025281820.png';
+import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.png';
 import avatarValentina from '../assets/images/avatar_valentina_1780025241348.png';
 import avatarCarlosElena from '../assets/images/avatar_carlos_elena_1780025264251.png';
 
@@ -29,6 +31,51 @@ interface HomeProps {
 
 export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
   
+  const [currentSlide, setCurrentSlide] = React.useState(0);
+
+  const slides = [
+    {
+      id: 'cotizador',
+      badge: 'BIENVENIDOS A COLMEDIKAL',
+      title: 'TRANQUILIDAD PARA TU VIDA, SEGURIDAD PARA TU FAMILIA',
+      subtitle: 'CUIDANDO DE TI Y TU FAMILIA, HOY Y SIEMPRE.',
+      extraText: 'Calcula tu propuesta médica prepagada 100% personalizada en 2 minutos.',
+      buttonText: 'COTIZAR MI PLAN DE SALUD',
+      image: heroBannerImg,
+      targetPage: 'cotizador' as Page,
+      color: 'bg-emerald-500 hover:bg-emerald-600',
+    },
+    {
+      id: 'directorio',
+      badge: 'RED NACIONAL DE CLÍNICAS',
+      title: 'CONVENIOS DIRECTOS CON LAS MEJORES CLÍNICAS DEL PAÍS',
+      subtitle: 'FILTRA Y UBICA PRESTADORES MÉDICOS INSTANTÁNEAMENTE.',
+      extraText: 'Accede a nuestro directorio de clínicas premium y especialistas certificados.',
+      buttonText: 'EXPLORAR RED MÉDICA',
+      image: heroBuildingImg,
+      targetPage: 'directorio' as Page,
+      color: 'bg-[#4597CA] hover:bg-sky-600',
+    },
+    {
+      id: 'agendamiento',
+      badge: 'RESERVA DE TURNOS',
+      title: 'AGENDAMIENTO DE CITAS MÉDICAS AL SEGUNDO',
+      subtitle: 'RESERVA TU CONSULTA CON ESPECIALISTAS Y CENTROS COLMEDIKAL.',
+      extraText: 'Indica la fecha, ciudad o especialidad y recibe confirmación directa en línea.',
+      buttonText: 'AGENDAR MI CITA AHORA',
+      image: heroAppointmentImg,
+      targetPage: 'agendamiento' as Page,
+      color: 'bg-teal-600 hover:bg-teal-700',
+    }
+  ];
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 6500);
+    return () => clearInterval(timer);
+  }, []);
+
   const handlePlanSelect = (planId: string) => {
     setSelectedPlanId(planId);
     setCurrentPage('cotizador');
@@ -42,134 +89,115 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
   ];
 
   return (
-    <div className="space-y-24 pb-20 overflow-x-hidden" id="colmedical-home-view">
+    <div className="space-y-24 pb-20 overflow-x-hidden" id="colmedikal-home-view">
       
-      {/* 1. HERO SECTION - NEW STUNNING BANNER PORTAL MATCHING THE CLIENT'S DESIGN */}
+      {/* 1. HERO SECTION - NEW STUNNING TRIPLE PORTAL SLIDING BANNER */}
       <section className="relative pt-6 md:pt-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" id="colmedikal-custom-hero-banner">
         
         {/* Banner Card Frame styled like a premium mock website window */}
-        <div className="relative w-full rounded-3xl border border-slate-200/95 bg-gradient-to-r from-slate-100 via-[#ecf3f8] to-[#f4f8fb] shadow-xl overflow-hidden min-h-[420px] lg:min-h-[480px] flex flex-col lg:flex-row items-stretch justify-between transition-all duration-300">
+        <div className="relative w-full rounded-3xl border border-slate-200 bg-[#EBF3F9] shadow-xl overflow-hidden flex flex-col md:flex-row items-stretch min-h-[460px] lg:min-h-[500px]">
           
-          {/* Subtle medical crosses watermarks on left/middle background matching draft */}
-          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-            {/* Top-left big subtle medical cross */}
-            <svg className="absolute -top-12 -left-12 w-60 h-60 text-[#dbe5f0] opacity-80" viewBox="0 0 100 100" fill="currentColor">
+          {/* Subtle medical crosses watermarks on background (Left Side) */}
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-30">
+            <svg className="absolute -top-12 -left-12 w-60 h-60 text-[#d2e2f1]" viewBox="0 0 100 100" fill="currentColor">
               <path d="M 38 10 H 62 V 38 H 90 V 62 H 62 V 90 H 38 V 62 H 10 V 38 H 38 Z" />
             </svg>
-            {/* Middle subtle medical cross */}
-            <svg className="absolute top-[20%] left-[32%] w-28 h-28 text-[#e3edf7] opacity-65" viewBox="0 0 100 100" fill="currentColor">
-              <path d="M 38 10 H 62 V 38 H 90 V 62 H 62 V 90 H 38 V 62 H 10 V 38 H 38 Z" />
-            </svg>
-            {/* Bottom subtle cross pointer */}
-            <svg className="absolute bottom-4 left-16 w-20 h-20 text-[#dae6f2] opacity-50" viewBox="0 0 100 100" fill="currentColor">
+            <svg className="absolute bottom-6 left-1/3 w-32 h-32 text-[#d2e2f1]" viewBox="0 0 100 100" fill="currentColor">
               <path d="M 38 10 H 62 V 38 H 90 V 62 H 62 V 90 H 38 V 62 H 10 V 38 H 38 Z" />
             </svg>
           </div>
 
-          {/* Left Column content: Branding identity, titles, buttons */}
-          <div className="relative z-10 flex-1 flex flex-col justify-between p-7 sm:p-10 lg:p-12 space-y-8 lg:space-y-0 max-w-2xl">
-            
-            {/* Dynamic Brand Logo Integration inside banner as per draft */}
-            <div className="flex items-center">
-              <Logo className="h-10 sm:h-12 w-auto" />
+          {/* LEFT CONTENT AREA */}
+          <div className="relative z-10 w-full md:w-[50%] lg:w-[55%] p-8 sm:p-12 flex flex-col justify-between gap-8 self-stretch">
+            <div className="space-y-6 sm:space-y-8">
+              {/* Logo (Matches image exactly but scaled safely) */}
+              <div>
+                <Logo className="h-9 sm:h-11 w-auto" />
+              </div>
+
+              {/* Slide text with beautiful animation transitions when changing slide */}
+              <div key={currentSlide} className="space-y-3 sm:space-y-5 animate-in fade-in slide-in-from-left-4 duration-500">
+                <span className="text-[10px] sm:text-xs font-black tracking-widest text-[#4597CA] uppercase font-mono block">
+                  {slides[currentSlide].badge}
+                </span>
+                
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#0C4169] tracking-tight leading-tight uppercase font-sans">
+                  {slides[currentSlide].title}
+                </h1>
+                
+                <p className="text-xs sm:text-sm font-black text-[#4597CA] tracking-wider uppercase font-sans">
+                  {slides[currentSlide].subtitle}
+                </p>
+                
+                <p className="text-xs sm:text-sm text-slate-500 max-w-md font-sans leading-relaxed">
+                  {slides[currentSlide].extraText}
+                </p>
+              </div>
             </div>
 
-            {/* Standard texts from client's mockup */}
-            <div className="space-y-3 sm:space-y-4 pt-4">
-              <p className="text-[10px] sm:text-[11px] font-black tracking-widest text-[#5d7c9a] uppercase font-sans">
-                BIENVENIDOS A COLMEDIKAL
-              </p>
-              
-              <h1 className="text-xl sm:text-2xl lg:text-[32px] font-bold text-[#143b67] tracking-normal leading-snug font-sans">
-                TRANQUILIDAD PARA TU VIDA, <br />
-                <span className="font-extrabold text-[#143b67]">SEGURIDAD PARA TU FAMILIA</span>
-              </h1>
-              
-              <p className="text-[10px] sm:text-xs font-bold text-[#143b67]/90 tracking-wide font-sans uppercase">
-                CUIDANDO DE TI Y TU FAMILIA, HOY Y SIEMPRE.
-              </p>
-            </div>
-
-            {/* Micro pills / buttons on bottom left */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 lg:pt-0">
+            {/* Slide Action Button ONLY (Removed "Ingresar al portal de pacientes" as requested!) */}
+            <div className="pt-2">
               <button
-                onClick={() => setCurrentPage('directorio')}
-                className="px-6 py-3 sm:py-3.5 rounded-full bg-[#10b981] hover:bg-[#059669] active:scale-97 text-white font-extrabold text-[10px] sm:text-xs uppercase tracking-widest shadow-md hover:shadow-lg transition-all duration-300 text-center cursor-pointer border border-[#34d399]"
-                id="banner-cta-directorio"
+                onClick={() => setCurrentPage(slides[currentSlide].targetPage)}
+                className={`px-8 py-3.5 rounded-full text-white font-extrabold text-xs uppercase tracking-wider text-center cursor-pointer shadow-md hover:scale-102 hover:shadow-lg transition-all flex items-center justify-center gap-2 ${slides[currentSlide].color}`}
+                id={`btn-hero-slide-${slides[currentSlide].id}`}
               >
-                AGENDAR CITA PREVENTIVA
-              </button>
-              
-              <button
-                onClick={() => setCurrentPage('portal')}
-                className="px-6 py-3 sm:py-3.5 rounded-full bg-[#11294a] hover:bg-[#091b34] active:scale-97 text-white font-extrabold text-[10px] sm:text-xs uppercase tracking-widest shadow-md hover:shadow-lg transition-all duration-300 text-center cursor-pointer border border-[#1e3a63]"
-                id="banner-cta-portal"
-              >
-                INGRESAR AL PORTAL DE PACIENTES
+                <span>{slides[currentSlide].buttonText}</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
-
           </div>
 
-          {/* Right Column Content - Integrated Doctor Family Graphic + Floating Side Control Tabs */}
-          <div className="relative flex-1 min-h-[320px] lg:min-h-full overflow-hidden bg-slate-100 flex flex-col lg:flex-row items-stretch">
+          {/* MIDDLE PHOTO / VISUAL CONTAINER (Using flex-1 and min-height to guarantee visibility) */}
+          <div className="relative w-full md:w-[35%] lg:w-[33%] min-h-[300px] md:min-h-0 self-stretch overflow-hidden shrink-0">
+            <div className="absolute inset-0 bg-[#0C4169]/5 mix-blend-multiply pointer-events-none z-10"></div>
             
-            {/* The beautiful generated doctor family illustration */}
-            <div className="relative flex-1 min-h-[300px] lg:min-h-full overflow-hidden">
-              <img 
-                src={heroBannerImg}
-                alt="Doctora Colmedikal y Familia Satisfecha"
-                className="absolute inset-0 w-full h-full object-cover z-0 object-center"
+            {/* Visual Slide Transitioning images */}
+            {slides.map((slide, idx) => (
+              <img
+                key={slide.id}
+                src={slide.image}
+                alt={slide.title}
                 referrerPolicy="no-referrer"
+                className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${
+                  idx === currentSlide 
+                    ? 'opacity-100 z-0 scale-100' 
+                    : 'opacity-0 -z-10 scale-105 pointer-events-none'
+                }`}
               />
-            </div>
+            ))}
+          </div>
+
+          {/* RIGHT SIDEBAR PANEL TRACKER (Matches the image sidebar perfectly!) */}
+          <div className="relative w-full md:w-[15%] lg:w-[12%] bg-[#1E4365] flex md:flex-col justify-stretch overflow-hidden divide-y divide-[#2A597E]/30 shrink-0 border-t md:border-t-0 md:border-l border-[#2A597E]/30" id="hero-slider-rail">
             
-            {/* Adaptive shortcuts panel:
-                On mobile and tablet, it sits horizontally below the graphic without cut-offs.
-                On desktop, it is a vertical panel next to the image.
-            */}
-            <div className="w-full lg:w-28 xl:w-32 bg-[#0C4169]/95 lg:bg-[#0C4169]/85 backdrop-blur-md border-t lg:border-t-0 lg:border-l border-white/10 flex flex-row lg:flex-col justify-around lg:justify-center items-stretch z-20 divide-x lg:divide-x-0 lg:divide-y divide-white/10">
-              
-              <button 
-                onClick={() => setCurrentPage('directorio')}
-                className="flex-1 lg:flex-none lg:py-8 flex flex-col items-center justify-center p-3 text-white hover:bg-white/10 transition-colors group cursor-pointer"
-                title="Ver Red de Afiliados"
-              >
-                <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-emerald-500/20 group-hover:scale-105 flex items-center justify-center transition-all shadow-sm">
-                  <Calendar className="w-4.5 h-4.5 text-[#10b981]" />
-                </div>
-                <span className="text-[10px] lg:text-[11px] mt-2 font-bold tracking-tight text-slate-200 text-center leading-tight">
-                  Red de <br className="hidden lg:block" /> Afiliados
-                </span>
-              </button>
-
-              <button 
-                onClick={() => setCurrentPage('cotizador')}
-                className="flex-1 lg:flex-none lg:py-8 flex flex-col items-center justify-center p-3 text-white hover:bg-white/10 transition-colors group cursor-pointer"
-                title="Cotizar tu plan de medicina prepagada"
-              >
-                <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-indigo-400/20 group-hover:scale-105 flex items-center justify-center transition-all shadow-sm">
-                  <FileText className="w-4.5 h-4.5 text-indigo-300" />
-                </div>
-                <span className="text-[10px] lg:text-[11px] mt-2 font-bold tracking-tight text-slate-200 text-center leading-tight">
-                  Cotizar <br className="hidden lg:block" /> Plan
-                </span>
-              </button>
-
-              <button 
-                onClick={() => setCurrentPage('contacto')}
-                className="flex-1 lg:flex-none lg:py-8 flex flex-col items-center justify-center p-3 text-white hover:bg-white/10 transition-colors group cursor-pointer"
-                title="Contacto y Soporte"
-              >
-                <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-rose-400/20 group-hover:scale-105 flex items-center justify-center transition-all shadow-sm">
-                  <Mail className="w-4.5 h-4.5 text-rose-400" />
-                </div>
-                <span className="text-[10px] lg:text-[11px] mt-2 font-bold tracking-tight text-slate-200 text-center leading-tight">
-                  Mensajes
-                </span>
-              </button>
-
-            </div>
+            {/* Slide Navigation Buttons */}
+            {slides.map((slide, idx) => {
+              const isActive = idx === currentSlide;
+              return (
+                <button
+                  key={slide.id}
+                  onClick={() => setCurrentSlide(idx)}
+                  className={`flex flex-col items-center justify-center gap-2 p-4 sm:p-5 text-center flex-1 transition-all duration-300 select-none cursor-pointer group ${
+                    isActive 
+                      ? 'bg-[#295479] text-white' 
+                      : 'bg-transparent text-[#97B8D6] hover:bg-[#20496E] hover:text-white'
+                  }`}
+                  id={`rail-tab-${slide.id}`}
+                >
+                  <div className="shrink-0 p-2 rounded-full bg-white/5 group-hover:scale-105 transition-transform">
+                    {slide.id === 'cotizador' && <FileText className={`w-5 h-5 ${isActive ? 'text-teal-400' : 'text-[#97B8D6]'}`} />}
+                    {slide.id === 'directorio' && <Activity className={`w-5 h-5 ${isActive ? 'text-sky-300' : 'text-[#97B8D6]'}`} />}
+                    {slide.id === 'agendamiento' && <Calendar className={`w-5 h-5 ${isActive ? 'text-rose-450' : 'text-[#97B8D6]'}`} />}
+                  </div>
+                  <span className="text-[9.5px] uppercase font-black tracking-wider leading-tight max-w-[80px] break-words">
+                    {slide.id === 'cotizador' && 'Cotizar Plan'}
+                    {slide.id === 'directorio' && 'Red Médica'}
+                    {slide.id === 'agendamiento' && 'Agendar Cita'}
+                  </span>
+                </button>
+              );
+            })}
 
           </div>
 
@@ -363,10 +391,10 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
           <div className="lg:col-span-5 space-y-6">
             <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">Testimonios Reales</span>
             <h2 className="text-3xl sm:text-4xl font-display font-black text-slate-900 tracking-tight leading-tight">
-              Personas que confían su salud a Colmedical
+              Personas que confían su salud a Colmedikal
             </h2>
             <p className="text-slate-600 text-sm leading-relaxed">
-              La cercanía y calidez de un plan prepagado se mide en momentos difíciles. Estuvimos ahí para nuestros clientes cuando más lo necesitaron. Conoce sus historias de tranquilidad con el respaldo médico de Colmedical.
+              La cercanía y calidez de un plan prepagado se mide en momentos difíciles. Estuvimos ahí para nuestros clientes cuando más lo necesitaron. Conoce sus historias de tranquilidad con el respaldo médico de Colmedikal.
             </p>
             
             <div className="flex gap-4 items-center pt-2">
@@ -381,7 +409,7 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
           <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:translate-y-[-4px] transition-transform flex flex-col justify-between space-y-4">
               <p className="text-xs italic text-slate-600 leading-relaxed">
-                "Como profesional de la salud corporal, sé lo valioso que es un soporte hospitalario veloz y confiable. Colmedical siempre me ha dado la mejor red de respuesta y el cotizador me permitió ver exactamente qué pagaría sin tarifas ocultas."
+                "Como profesional de la salud corporal, sé lo valioso que es un soporte hospitalario veloz y confiable. Colmedikal siempre me ha dado la mejor red de respuesta y el cotizador me permitió ver exactamente qué pagaría sin tarifas ocultas."
               </p>
               <div className="flex items-center gap-3">
                 <img 

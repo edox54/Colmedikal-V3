@@ -109,7 +109,7 @@ export const TESTIMONIALS: Testimonial[] = [
     id: 't1',
     name: 'Dra. Valentina Mendoza',
     role: 'Odontóloga / Afiliada Individual',
-    content: 'Como profesional de la salud corporal, sé lo valioso que es un soporte hospitalario veloz y confiable. Colmedical siempre me ha dado la mejor red de respuesta y el cotizador me permitió ver exactamente qué pagaría sin tarifas ocultas.',
+    content: 'Como profesional de la salud corporal, sé lo valioso que es un soporte hospitalario veloz y confiable. Colmedikal siempre me ha dado la mejor red de respuesta y el cotizador me permitió ver exactamente qué pagaría sin tarifas ocultas.',
     rating: 5,
     image: avatarValentina
   },

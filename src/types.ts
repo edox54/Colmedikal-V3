@@ -1,4 +1,4 @@
-export type Page = 'home' | 'servicios' | 'nosotros' | 'contacto' | 'cotizador' | 'directorio' | 'portal' | 'faqs' | 'admin' | 'blog' | 'blog-detalle';
+export type Page = 'home' | 'servicios' | 'nosotros' | 'contacto' | 'cotizador' | 'directorio' | 'tramites' | 'agendamiento' | 'faqs' | 'blog' | 'blog-detalle';
 
 export interface Author {
   id: string;

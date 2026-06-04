@@ -2,9 +2,10 @@ import React from 'react';
 
 interface LogoProps {
   className?: string;
+  isDarkBg?: boolean;
 }
 
-export default function Logo({ className = "h-8" }: LogoProps) {
+export default function Logo({ className = "h-8", isDarkBg = false }: LogoProps) {
   return (
     <svg 
       viewBox="0 0 350 100" 
@@ -26,7 +27,7 @@ export default function Logo({ className = "h-8" }: LogoProps) {
           fill="#4597CA" 
         />
         
-        {/* Dark Blue: Top and Right */}
+        {/* Dark Blue: Top and Right (White if dark background) */}
         <path 
           d="M 35 35 
              L 35 25 
@@ -36,7 +37,7 @@ export default function Logo({ className = "h-8" }: LogoProps) {
              A 15 15 0 0 1 75 65 
              L 65 65 
              Z" 
-          fill="#0C4169" 
+          fill={isDarkBg ? "#FFFFFF" : "#0C4169"} 
         />
       </g>
       
@@ -47,7 +48,7 @@ export default function Logo({ className = "h-8" }: LogoProps) {
         fontFamily="'Kumbh Sans', 'Open Sans', system-ui, sans-serif" 
         fontWeight="800" 
         fontSize="46" 
-        fill="#0C4169" 
+        fill={isDarkBg ? "#FFFFFF" : "#0C4169"} 
         letterSpacing="-1.5"
       >
         colmedikal

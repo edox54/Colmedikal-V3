@@ -35,8 +35,9 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     { label: 'Inicio', id: 'home' as Page },
     { label: 'Servicios', id: 'servicios' as Page, hasMega: true },
     { label: 'Directorio Médico', id: 'directorio' as Page, hasMega: true },
+    { label: 'Trámites en Línea', id: 'tramites' as Page },
+    { label: 'Agendar Cita', id: 'agendamiento' as Page },
     { label: 'Nosotros', id: 'nosotros' as Page },
-    { label: 'Blog', id: 'blog' as Page },
     { label: 'FAQs', id: 'faqs' as Page },
     { label: 'Contacto', id: 'contacto' as Page },
   ];
@@ -70,29 +71,18 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
 
   return (
     <div className="w-full flex flex-col z-50 sticky top-0 shadow-sm border-b border-teal-50">
-      {/* Top Bar for Portals */}
-      <div className="bg-slate-900 text-slate-200 py-1.5 px-4 sm:px-6 lg:px-8 flex justify-end items-center gap-4 text-[10px] sm:text-xs font-medium">
-        <button
-          onClick={() => handleNavClick('portal')}
-          className={`flex items-center gap-1.5 transition-colors ${
-            currentPage === 'portal' ? 'text-[#4597CA] font-bold' : 'hover:text-white'
-          }`}
-          id="topbar-nav-portal"
-        >
-          <User className="w-3.5 h-3.5" />
-          <span>Portal Cliente</span>
-        </button>
-        <div className="w-px h-3.5 bg-slate-700"></div>
-        <button
-          onClick={() => handleNavClick('admin')}
-          className={`flex items-center gap-1.5 transition-colors ${
-            currentPage === 'admin' ? 'text-[#4597CA] font-bold' : 'hover:text-white'
-          }`}
-          id="topbar-nav-admin"
-        >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Portal Admin</span>
-        </button>
+      {/* Top Info Bar */}
+      <div className="bg-slate-900 text-slate-300 py-2.5 px-4 sm:px-6 lg:px-8 flex justify-between items-center text-[10px] sm:text-xs font-medium">
+        <div className="flex items-center gap-3">
+          <span>🕒 Lunes a Viernes 08h00 - 18h00</span>
+          <span className="hidden sm:inline text-slate-700">|</span>
+          <span className="hidden sm:inline">📍 Presencia en UIO, GYE, CUE y todo el país</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <a href="tel:1800265633" className="hover:text-white transition-colors">📞 1800-COLMED (265633)</a>
+          <span className="text-slate-705 text-slate-700">|</span>
+          <a href="https://wa.me/593998765432" target="_blank" rel="noreferrer" className="hover:text-emerald-450 text-emerald-400 transition-colors">💬 WhatsApp Citas</a>
+        </div>
       </div>
 
       <header 
@@ -106,7 +96,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
             <div 
               onClick={() => handleNavClick('home')} 
               className="flex items-center gap-3 cursor-pointer group"
-              id="colmedical-brand-logo"
+              id="colmedikal-brand-logo"
             >
               <Logo className="w-auto h-10 sm:h-11 transition-transform duration-300 group-hover:scale-105" />
             </div>

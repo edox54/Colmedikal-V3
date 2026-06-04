@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, QuoteState } from '../types';
 
-interface ColmedicalContextType {
+interface ColmedikalContextType {
   doctors: Doctor[];
   refunds: RefundItem[];
   appointments: AppointmentItem[];
@@ -19,7 +19,7 @@ interface ColmedicalContextType {
   updateLeadStatus: (id: string, status: LeadQuote['status']) => void;
 }
 
-const ColmedicalContext = createContext<ColmedicalContextType | undefined>(undefined);
+const ColmedikalContext = createContext<ColmedikalContextType | undefined>(undefined);
 
 import { initialDoctors } from '../data/doctors';
 
@@ -104,50 +104,50 @@ const initialLeads: LeadQuote[] = [
   }
 ];
 
-export const ColmedicalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [doctors, setDoctors] = useState<Doctor[]>(() => {
-    const saved = localStorage.getItem('colmedical_doctors_v3');
+    const saved = localStorage.getItem('colmedikal_doctors_v3');
     return saved ? JSON.parse(saved) : initialDoctors;
   });
 
   const [refunds, setRefunds] = useState<RefundItem[]>(() => {
-    const saved = localStorage.getItem('colmedical_refunds');
+    const saved = localStorage.getItem('colmedikal_refunds');
     return saved ? JSON.parse(saved) : initialRefunds;
   });
 
   const [appointments, setAppointments] = useState<AppointmentItem[]>(() => {
-    const saved = localStorage.getItem('colmedical_appointments');
+    const saved = localStorage.getItem('colmedikal_appointments');
     return saved ? JSON.parse(saved) : initialAppointments;
   });
 
   const [authorizations, setAuthorizations] = useState<AuthorizationItem[]>(() => {
-    const saved = localStorage.getItem('colmedical_authorizations');
+    const saved = localStorage.getItem('colmedikal_authorizations');
     return saved ? JSON.parse(saved) : initialAuthorizations;
   });
 
   const [leads, setLeads] = useState<LeadQuote[]>(() => {
-    const saved = localStorage.getItem('colmedical_leads');
+    const saved = localStorage.getItem('colmedikal_leads');
     return saved ? JSON.parse(saved) : initialLeads;
   });
 
   useEffect(() => {
-    localStorage.setItem('colmedical_doctors_v3', JSON.stringify(doctors));
+    localStorage.setItem('colmedikal_doctors_v3', JSON.stringify(doctors));
   }, [doctors]);
 
   useEffect(() => {
-    localStorage.setItem('colmedical_refunds', JSON.stringify(refunds));
+    localStorage.setItem('colmedikal_refunds', JSON.stringify(refunds));
   }, [refunds]);
 
   useEffect(() => {
-    localStorage.setItem('colmedical_appointments', JSON.stringify(appointments));
+    localStorage.setItem('colmedikal_appointments', JSON.stringify(appointments));
   }, [appointments]);
 
   useEffect(() => {
-    localStorage.setItem('colmedical_authorizations', JSON.stringify(authorizations));
+    localStorage.setItem('colmedikal_authorizations', JSON.stringify(authorizations));
   }, [authorizations]);
 
   useEffect(() => {
-    localStorage.setItem('colmedical_leads', JSON.stringify(leads));
+    localStorage.setItem('colmedikal_leads', JSON.stringify(leads));
   }, [leads]);
 
   const addDoctor = (doctor: Doctor) => {
@@ -220,7 +220,7 @@ export const ColmedicalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   return (
-    <ColmedicalContext.Provider
+    <ColmedikalContext.Provider
       value={{
         doctors,
         refunds,
@@ -240,14 +240,14 @@ export const ColmedicalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }}
     >
       {children}
-    </ColmedicalContext.Provider>
+    </ColmedikalContext.Provider>
   );
 };
 
-export const useColmedical = () => {
-  const context = useContext(ColmedicalContext);
+export const useColmedikal = () => {
+  const context = useContext(ColmedikalContext);
   if (context === undefined) {
-    throw new Error('useColmedical must be used within a ColmedicalProvider');
+    throw new Error('useColmedikal must be used within a ColmedikalProvider');
   }
   return context;
 };

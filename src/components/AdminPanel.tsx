@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  useColmedical 
-} from '../context/ColmedicalContext';
+  useColmedikal 
+} from '../context/ColmedikalContext';
 import { 
   Building2, 
   Users, 
@@ -53,7 +53,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     updateAuthorizationStatus,
     updateAppointmentStatus,
     updateLeadStatus
-  } = useColmedical();
+  } = useColmedikal();
 
   const [activeTab, setActiveTab] = useState<'kpis' | 'refunds' | 'appointments' | 'auths' | 'leads' | 'doctors'>('kpis');
   
@@ -101,7 +101,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       specialty: newDoc.specialty,
       city: newDoc.city,
       phone: newDoc.phone || '02-500-0100',
-      email: newDoc.email || `${newDoc.name.toLowerCase().replace(/\s/g, '.')}@colmedical.center`,
+      email: newDoc.email || `${newDoc.name.toLowerCase().replace(/\s/g, '.')}@colmedikal.center`,
       clinic: newDoc.clinic,
       rating: '5.00 (Nuevo Ingreso)',
       availability: newDoc.availability,
@@ -135,7 +135,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   const activeAppointmentsCount = appointments.filter(a => a.status === 'Confirmada' || a.status === 'Pendiente').length;
 
   return (
-    <div className="space-y-12 py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedical-admin-portal">
+    <div className="space-y-12 py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-admin-portal">
       
       {/* 1. TOP HEADER & SWITCHING BACK TO USER SITE */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-200 pb-6">
@@ -145,7 +145,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xl sm:text-2xl font-display font-black text-slate-950 uppercase tracking-tight">Colmedical Corporativo</span>
+              <span className="text-xl sm:text-2xl font-display font-black text-slate-950 uppercase tracking-tight">Colmedikal Corporativo</span>
               <span className="bg-indigo-100 text-indigo-805 text-[9px] font-bold px-2 py-0.5 rounded font-mono uppercase tracking-wider">MODO EMPRESA</span>
             </div>
             <p className="text-xs text-slate-500">Módulo Administrativo Interno de Auditoría Médica y Gestión de Planes</p>
@@ -229,7 +229,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
           }`}
           id="admin-tab-leads"
         >
-          <span>Prospectos Web (Quotes)</span>
+          <span>Cotizaciones Recibidas</span>
           {totalLeadsUncontacted > 0 && (
             <span className="bg-emerald-500 text-slate-950 text-[9px] px-1.5 py-0.2 rounded-full font-mono">{totalLeadsUncontacted}</span>
           )}
@@ -276,9 +276,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                 <TrendingUp className="w-5 h-5" />
               </div>
               <div className="space-y-0.5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Prospectos (Leads) Activos</span>
-                <span className="text-2xl font-black text-slate-900 font-mono">{leads.length} Leads</span>
-                <span className="text-[10px] text-emerald-600 font-semibold block">{totalLeadsUncontacted} pendientes de llamada telefónica</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cotizaciones Recibidas Activas</span>
+                <span className="text-2xl font-black text-slate-900 font-mono">{leads.length} Unidades</span>
+                <span className="text-[10px] text-emerald-600 font-semibold block">{totalLeadsUncontacted} pendientes de revisión</span>
               </div>
             </div>
 
@@ -313,7 +313,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
             <div className="space-y-1 md:max-w-xl">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-teal-400 animate-pulse" />
-                <span>¿Cómo funciona el Control Conectado de Colmedical?</span>
+                <span>¿Cómo funciona el Control Conectado de Colmedikal?</span>
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Este panel manipula de forma exclusiva los datos del servidor central virtual (simulado en <code>localStorage</code>). Al autorizar un reembolso o agregar un doctor, los cambios se propagan de inmediato al Portal de Clientes y al cotizador web, simulando un entrono real de producción.
@@ -324,7 +324,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                 Auditar Facturas
               </button>
               <button onClick={() => setActiveTab('leads')} className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-teal-400 text-[11px] font-semibold rounded-lg border border-slate-700 cursor-pointer">
-                Analizar Leads del Cotizador
+                Analizar Cotizaciones
               </button>
             </div>
           </section>
@@ -336,7 +336,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h4 className="text-xs font-black text-slate-950 uppercase tracking-wider flex items-center gap-1.5">
                   <TrendingUp className="w-4 h-4 text-emerald-600" />
-                  <span>Últimos Prospects del Cotizador Virtual</span>
+                  <span>Últimas Cotizaciones del Portal</span>
                 </h4>
                 <button onClick={() => setActiveTab('leads')} className="text-[10px] font-bold text-teal-650 hover:underline cursor-pointer">
                   Ver todo
@@ -721,9 +721,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       {activeTab === 'leads' && (
         <div className="space-y-6 animate-in fade-in duration-200" id="admin-leads-panel">
           <div className="border-b border-slate-100 pb-4">
-            <h3 className="text-xl font-bold text-slate-950">Prospectos de Venta (Leads del Cotizador)</h3>
+            <h3 className="text-xl font-bold text-slate-950">Cotizaciones Emitidas desde el Panel</h3>
             <p className="text-xs text-slate-500 mt-1">
-              Visualiza en tiempo real las cotizaciones de seguros de salud realizadas en la web. Comunícate de inmediato por llamada o correo para cerrar conversiones comerciales.
+              Visualiza en tiempo real las cotizaciones de seguros de salud realizadas por tus usuarios. Comunícate para brindar asesoramiento.
             </p>
           </div>
 
@@ -1023,7 +1023,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`¿Hacer de baja al ${doc.name} de la red de clínicas de Colmedical?`)) {
+                          if (confirm(`¿Hacer de baja al ${doc.name} de la red de clínicas de Colmedikal?`)) {
                             deleteDoctor(doc.id);
                           }
                         }}
