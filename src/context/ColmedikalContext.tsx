@@ -1,16 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, QuoteState, AdminUser } from '../types';
-import { db, auth } from '../firebase';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  onSnapshot, 
-  getDocs, 
-  getDocFromServer
-} from 'firebase/firestore';
+// import { db, auth } from '../firebase';
+// import { 
+//   collection, 
+//   doc, 
+//   setDoc, 
+//   updateDoc, 
+//   deleteDoc, 
+//   onSnapshot, 
+//   getDocs, 
+//   getDocFromServer
+// } from 'firebase/firestore';
 
 interface ColmedikalContextType {
   doctors: Doctor[];
@@ -195,143 +195,25 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Validate Firestore Connection on initial boot (Critical Constraint)
   useEffect(() => {
-    const testConnection = async () => {
-      try {
-        await getDocFromServer(doc(db, 'test-connection-probe', 'probe-id'));
-      } catch (error) {
-        if (error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration.");
-        }
-      }
-    };
-    testConnection();
+    // Firebase disabled
   }, []);
 
   // Monitor Auth User to determine if it is the Corporate Administrator
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged(async (u) => {
-      setUser(u);
-      if (u && u.emailVerified && u.email) {
-        if (u.email === "edox54@gmail.com") {
-          setIsAdminUser(true);
-        } else {
-          try {
-            // Check in firestore
-            const adminDocRef = doc(db, 'admins', u.email);
-            const adminSnap = await getDocFromServer(adminDocRef);
-            if (adminSnap.exists() && adminSnap.data()?.active !== false) {
-              setIsAdminUser(true);
-            } else {
-              setIsAdminUser(false);
-            }
-          } catch (e) {
-            console.error("Error verifying admin role in Firestore: ", e);
-            setIsAdminUser(false);
-          }
-        }
-      } else {
-        setIsAdminUser(false);
-      }
-    });
+    // Firebase disabled
+    const unsub = () => {};
     return unsub;
   }, []);
 
   // Sync /doctors live for everyone (Public directory)
   useEffect(() => {
-    const seedDoctorsIfEmpty = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'doctors'));
-        if (querySnapshot.empty) {
-          console.log('Seeding doctors collection...');
-          for (const docItem of initialDoctors) {
-            await setDoc(doc(db, 'doctors', docItem.id), {
-              ...docItem,
-              active: docItem.active ?? true
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Initial check or seeding failed: ', error);
-      }
-    };
-
-    seedDoctorsIfEmpty().then(() => {
-      const unsub = onSnapshot(collection(db, 'doctors'), (snapshot) => {
-        const docsArr: Doctor[] = [];
-        snapshot.forEach((snapDoc) => {
-          docsArr.push(snapDoc.data() as Doctor);
-        });
-        setDoctors(docsArr);
-      }, (error) => {
-        handleFirestoreError(error, OperationType.GET, 'doctors');
-      });
-      return unsub;
-    });
+    // Firebase disabled
   }, []);
 
   // Synchronize all administration records in real-time once admin is authenticated
   useEffect(() => {
-    if (!isAdminUser) return;
-
-    console.log('Syncing administrative data feeds in real-time...');
-
-    const unsubRefunds = onSnapshot(collection(db, 'refunds'), (snapshot) => {
-      const arr: RefundItem[] = [];
-      snapshot.forEach((snapDoc) => {
-        arr.push(snapDoc.data() as RefundItem);
-      });
-      setRefunds(arr);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'refunds');
-    });
-
-    const unsubAuths = onSnapshot(collection(db, 'authorizations'), (snapshot) => {
-      const arr: AuthorizationItem[] = [];
-      snapshot.forEach((snapDoc) => {
-        arr.push(snapDoc.data() as AuthorizationItem);
-      });
-      setAuthorizations(arr);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'authorizations');
-    });
-
-    const unsubApts = onSnapshot(collection(db, 'appointments'), (snapshot) => {
-      const arr: AppointmentItem[] = [];
-      snapshot.forEach((snapDoc) => {
-        arr.push(snapDoc.data() as AppointmentItem);
-      });
-      setAppointments(arr);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'appointments');
-    });
-
-    const unsubLeads = onSnapshot(collection(db, 'leads'), (snapshot) => {
-      const arr: LeadQuote[] = [];
-      snapshot.forEach((snapDoc) => {
-        arr.push(snapDoc.data() as LeadQuote);
-      });
-      setLeads(arr);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'leads');
-    });
-
-    const unsubAdmins = onSnapshot(collection(db, 'admins'), (snapshot) => {
-      const arr: AdminUser[] = [];
-      snapshot.forEach((snapDoc) => {
-        arr.push(snapDoc.data() as AdminUser);
-      });
-      setAdmins(arr);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'admins');
-    });
-
-    return () => {
-      unsubRefunds();
-      unsubAuths();
-      unsubApts();
-      unsubLeads();
-      unsubAdmins();
-    };
+    // Firebase disabled
+    return () => {};
   }, [isAdminUser]);
 
   // Persist guest offline data to local storage for portal history fallback
