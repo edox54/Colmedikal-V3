@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { BlogPost, Page } from '../types';
 import { BLOG_POSTS, AUTHORS } from '../data/blogData';
 import { 
@@ -18,22 +19,27 @@ import {
 } from 'lucide-react';
 
 interface BlogProps {
-  currentPage: Page;
-  setCurrentPage: (page: Page) => void;
-  activeBlogPost: BlogPost | null;
-  setActiveBlogPost: (post: BlogPost | null) => void;
+  currentPage?: Page;
+  setCurrentPage?: (page: Page) => void;
+  activeBlogPost?: BlogPost | null;
+  setActiveBlogPost?: (post: BlogPost | null) => void;
   setSelectedPlanId?: (id: string) => void;
 }
 
 export default function Blog({ 
-  currentPage, 
-  setCurrentPage, 
-  activeBlogPost, 
-  setActiveBlogPost,
+  currentPage: propCurrentPage, 
+  setCurrentPage: propSetCurrentPage, 
+  activeBlogPost: propActiveBlogPost, 
+  setActiveBlogPost: propSetActiveBlogPost,
   setSelectedPlanId 
 }: BlogProps) {
+  const { '*': slug } = useParams();
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Determine active post from URL slug
+  const activeBlogPost = slug ? BLOG_POSTS.find(post => post.slug === slug || post.id === slug) : null;
 
   const categories = ['todos', 'Planes y Cobertura', 'Prevención y Bienestar', 'Salud Familiar'];
 
@@ -46,7 +52,11 @@ export default function Blog({
         setSelectedPlanId('esencial');
       }
     }
-    setCurrentPage('cotizador');
+    if (propSetCurrentPage) {
+      propSetCurrentPage('cotizador');
+    } else {
+      navigate('/cotizador');
+    }
   };
 
   // Filter logic for Blog List
@@ -113,7 +123,7 @@ export default function Blog({
   };
 
   // Rendering Individual Blog Article Detail
-  if (currentPage === 'blog-detalle' && activeBlogPost) {
+  if (activeBlogPost) {
     // Collect related blogs that aren't the current active one
     const relatedPosts = BLOG_POSTS.filter(post => post.id !== activeBlogPost.id).slice(0, 2);
 
@@ -123,8 +133,9 @@ export default function Blog({
         <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-500 mb-8 font-medium">
           <button 
             onClick={() => {
-              setActiveBlogPost(null);
-              setCurrentPage('home');
+              if (propSetActiveBlogPost) propSetActiveBlogPost(null);
+              if (propSetCurrentPage) propSetCurrentPage('home');
+              navigate('/');
             }} 
             className="hover:text-[#4597CA] transition-colors"
           >
@@ -133,8 +144,9 @@ export default function Blog({
           <ChevronRight className="w-3.5 h-3.5" />
           <button 
             onClick={() => {
-              setActiveBlogPost(null);
-              setCurrentPage('blog');
+              if (propSetActiveBlogPost) propSetActiveBlogPost(null);
+              if (propSetCurrentPage) propSetCurrentPage('blog');
+              navigate('/blog');
             }} 
             className="hover:text-[#4597CA] transition-colors"
           >
@@ -147,8 +159,9 @@ export default function Blog({
         {/* Back Arrow button */}
         <button
           onClick={() => {
-            setActiveBlogPost(null);
-            setCurrentPage('blog');
+            if (propSetActiveBlogPost) propSetActiveBlogPost(null);
+            if (propSetCurrentPage) propSetCurrentPage('blog');
+            navigate('/blog');
           }}
           className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 hover:text-[#4597CA] bg-white rounded-xl shadow-xs border border-slate-200 transition-all mb-8 hover:shadow-md cursor-pointer"
           id="btn-back-to-blogs"
@@ -352,7 +365,8 @@ export default function Blog({
               <div 
                 key={post.id}
                 onClick={() => {
-                  setActiveBlogPost(post);
+                  if (propSetActiveBlogPost) propSetActiveBlogPost(post);
+                  navigate(`/blog/${post.slug}`);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col md:flex-row gap-5 group"
@@ -445,8 +459,9 @@ export default function Blog({
             <div 
               key={post.id}
               onClick={() => {
-                setActiveBlogPost(post);
-                setCurrentPage('blog-detalle');
+                if (propSetActiveBlogPost) propSetActiveBlogPost(post);
+                if (propSetCurrentPage) propSetCurrentPage('blog-detalle');
+                navigate(`/blog/${post.slug}`);
               }}
               className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col group"
               id={`blog-card-${post.id}`}
