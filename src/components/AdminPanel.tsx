@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { auth } from '../firebase';
+// import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+// import { auth } from '../firebase';
 import { 
   useColmedikal 
 } from '../context/ColmedikalContext';
@@ -156,45 +156,14 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
   // Listen to Firebase Auth state for automatic session sync
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((u) => {
-      if (u && u.email === "edox54@gmail.com" && u.emailVerified) {
-        setIsAuthenticated(true);
-        sessionStorage.setItem('colmedikal_admin_auth', 'true');
-      } else {
-        // If they logged out of Firebase, clear session too (if they signed in with Google)
-        if (sessionStorage.getItem('colmedikal_admin_auth_google') === 'true') {
-          setIsAuthenticated(false);
-          sessionStorage.removeItem('colmedikal_admin_auth');
-          sessionStorage.removeItem('colmedikal_admin_auth_google');
-        }
-      }
-    });
-    return unsub;
+    // Firebase auth disabled
+    return () => {};
   }, []);
 
   const handleGoogleLogin = async () => {
     setIsLoggingIn(true);
-    setLoginError('');
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      if (user && user.email === "edox54@gmail.com") {
-        setIsAuthenticated(true);
-        sessionStorage.setItem('colmedikal_admin_auth', 'true');
-        sessionStorage.setItem('colmedikal_admin_auth_google', 'true');
-      } else {
-        // Not the verified admin email
-        await signOut(auth);
-        setLoginError('Acceso denegado. Este usuario de Google no tiene privilegios de Administrador.');
-      }
-    } catch (err: any) {
-      console.error(err);
-      setLoginError('Error de autenticación con Google.');
-    } finally {
-      setIsLoggingIn(false);
-    }
+    setLoginError('Autenticación con Google deshabilitada temporalmente.');
+    setIsLoggingIn(false);
   };
 
   // Secure Cryptographic Login Verification
@@ -256,7 +225,6 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     sessionStorage.removeItem('colmedikal_admin_auth_google');
     setUsername('');
     setPassword('');
-    signOut(auth).catch(err => console.error("Error signing out: ", err));
   };
 
   // Selected details modal/panel state

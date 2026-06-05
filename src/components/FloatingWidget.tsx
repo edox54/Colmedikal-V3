@@ -1,20 +1,20 @@
 import React from 'react';
-import { Page } from '../types';
 import { Calculator, PhoneCall, MessageCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-interface FloatingWidgetProps {
-  currentPage: Page;
-  setCurrentPage: (page: Page) => void;
-}
+export default function FloatingWidget() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-export default function FloatingWidget({ currentPage, setCurrentPage }: FloatingWidgetProps) {
   // WhatsApp Link for Colmedikal Ecuador
   const whatsappUrl = "https://wa.me/593900000000?text=Hola%20Colmedikal%2C%20quisiera%20asesoria%20sobre%20los%20planes%20de%20medicina%20prepagada.";
 
-  const handlePageChange = (page: Page) => {
-    setCurrentPage(page);
+  const handlePageChange = (path: string) => {
+    navigate(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <>
@@ -46,9 +46,9 @@ export default function FloatingWidget({ currentPage, setCurrentPage }: Floating
 
         {/* Cotizador Button */}
         <button
-          onClick={() => handlePageChange('cotizador')}
+          onClick={() => handlePageChange('/cotizador')}
           className={`group relative flex items-center justify-center w-14 h-14 rounded-full shadow-lg border transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer ${
-            currentPage === 'cotizador'
+            isActive('/cotizador')
               ? 'bg-teal-600 text-white border-teal-500 shadow-teal-600/25'
               : 'bg-white hover:bg-slate-50 text-[#1D3557] border-slate-200/80 shadow-slate-300/35'
           }`}
@@ -64,9 +64,9 @@ export default function FloatingWidget({ currentPage, setCurrentPage }: Floating
 
         {/* Contacto Button */}
         <button
-          onClick={() => handlePageChange('contacto')}
+          onClick={() => handlePageChange('/contacto')}
           className={`group relative flex items-center justify-center w-14 h-14 rounded-full shadow-lg border transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer ${
-            currentPage === 'contacto'
+            isActive('/contacto')
               ? 'bg-[#1D3557] text-white border-slate-800 shadow-[#1D3557]/20'
               : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200/80 shadow-slate-300/35'
           }`}
@@ -111,13 +111,13 @@ export default function FloatingWidget({ currentPage, setCurrentPage }: Floating
 
           {/* Cotizador Mobile Link */}
           <button
-            onClick={() => handlePageChange('cotizador')}
+            onClick={() => handlePageChange('/cotizador')}
             className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-transform active:scale-95 rounded-lg ${
-              currentPage === 'cotizador' ? 'bg-white/10 scale-105' : 'active:bg-white/5'
+              isActive('/cotizador') ? 'bg-white/10 scale-105' : 'active:bg-white/5'
             }`}
           >
-            <Calculator className={`w-5 h-5 ${currentPage === 'cotizador' ? 'text-teal-400 font-bold' : 'text-slate-300'}`} />
-            <span className={`text-[10px] mt-1 tracking-tight ${currentPage === 'cotizador' ? 'text-teal-400 font-extrabold' : 'text-slate-300 font-medium'}`}>
+            <Calculator className={`w-5 h-5 ${isActive('/cotizador') ? 'text-teal-400 font-bold' : 'text-slate-300'}`} />
+            <span className={`text-[10px] mt-1 tracking-tight ${isActive('/cotizador') ? 'text-teal-400 font-extrabold' : 'text-slate-300 font-medium'}`}>
               Cotizar
             </span>
           </button>
@@ -127,13 +127,13 @@ export default function FloatingWidget({ currentPage, setCurrentPage }: Floating
 
           {/* Contacto Mobile Link */}
           <button
-            onClick={() => handlePageChange('contacto')}
+            onClick={() => handlePageChange('/contacto')}
             className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-transform active:scale-95 rounded-lg ${
-              currentPage === 'contacto' ? 'bg-white/10 scale-105' : 'active:bg-white/5'
+              isActive('/contacto') ? 'bg-white/10 scale-105' : 'active:bg-whtie/5'
             }`}
           >
-            <PhoneCall className={`w-5 h-5 ${currentPage === 'contacto' ? 'text-orange-400 font-bold' : 'text-slate-300'}`} />
-            <span className={`text-[10px] mt-1 tracking-tight ${currentPage === 'contacto' ? 'text-orange-400 font-extrabold' : 'text-slate-300 font-medium'}`}>
+            <PhoneCall className={`w-5 h-5 ${isActive('/contacto') ? 'text-orange-400 font-bold' : 'text-slate-300'}`} />
+            <span className={`text-[10px] mt-1 tracking-tight ${isActive('/contacto') ? 'text-orange-400 font-extrabold' : 'text-slate-300 font-medium'}`}>
               Contacto
             </span>
           </button>

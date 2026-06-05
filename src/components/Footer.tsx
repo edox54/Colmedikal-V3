@@ -1,13 +1,10 @@
 import React from 'react';
 import { HeartPulse, Mail, Phone, MapPin, ShieldCheck, Clock, ArrowUpRight } from 'lucide-react';
-import { Page } from '../types';
+import { useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 
-interface FooterProps {
-  setCurrentPage: (page: Page) => void;
-}
-
-export default function Footer({ setCurrentPage }: FooterProps) {
+export default function Footer() {
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -18,7 +15,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
           {/* Logo & Vision Block */}
           <div className="md:col-span-1 space-y-4">
             <div 
-              onClick={() => setCurrentPage('home')} 
+              onClick={() => navigate('/')} 
               className="flex items-center gap-3 cursor-pointer group"
               id="footer-logo"
             >
@@ -39,7 +36,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
             <ul className="space-y-2.5 text-sm">
               <li>
                 <button 
-                  onClick={() => setCurrentPage('home')} 
+                  onClick={() => navigate('/')} 
                   className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left"
                 >
                   Inicio <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -47,7 +44,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li>
                 <button 
-                  onClick={() => setCurrentPage('servicios')} 
+                  onClick={() => navigate('/servicios')} 
                   className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left"
                 >
                   Servicios de Salud <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -55,7 +52,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li>
                 <button 
-                  onClick={() => setCurrentPage('directorio')} 
+                  onClick={() => navigate('/directorio')} 
                   className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left"
                 >
                   Directorio de Médicos <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -63,7 +60,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li>
                 <button 
-                  onClick={() => setCurrentPage('tramites')} 
+                  onClick={() => navigate('/tramites')} 
                   className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left"
                 >
                   Trámites y Reembolsos <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -71,7 +68,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li>
                 <button 
-                  onClick={() => setCurrentPage('agendamiento')} 
+                  onClick={() => navigate('/agendamiento')} 
                   className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left"
                 >
                   Agendar Cita Médica <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -79,7 +76,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li>
                 <button 
-                  onClick={() => setCurrentPage('faqs')} 
+                  onClick={() => navigate('/faqs')} 
                   className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left"
                 >
                   Preguntas Frecuentes (FAQs) <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -87,7 +84,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li>
                 <button 
-                  onClick={() => setCurrentPage('nosotros')} 
+                  onClick={() => navigate('/nosotros')} 
                   className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left"
                 >
                   Sobre Nosotros <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -95,7 +92,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li>
                 <button 
-                  onClick={() => setCurrentPage('blog')} 
+                  onClick={() => navigate('/blog')} 
                   className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left"
                 >
                   Blog de Salud <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -103,7 +100,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li className="pt-2 border-t border-slate-800">
                 <button 
-                  onClick={() => setCurrentPage('admin')} 
+                  onClick={() => navigate('/admin')} 
                   className="text-amber-450 hover:text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1"
                 >
                   🔒 Portal Administrativo <ArrowUpRight className="w-3.5 h-3.5" />
@@ -118,7 +115,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
             <ul className="space-y-2.5 text-sm text-slate-400">
               <li>
                 <button 
-                  onClick={() => setCurrentPage('cotizador')} 
+                  onClick={() => navigate('/cotizador')} 
                   className="hover:text-teal-400 transition-colors text-left"
                 >
                   Plan Colmedikal Basico
@@ -126,7 +123,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li>
                 <button 
-                  onClick={() => setCurrentPage('cotizador')} 
+                  onClick={() => navigate('/cotizador')} 
                   className="hover:text-teal-400 transition-colors text-left"
                 >
                   Plan Colmedikal Esencial
@@ -134,7 +131,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li>
                 <button 
-                  onClick={() => setCurrentPage('cotizador')} 
+                  onClick={() => navigate('/cotizador')} 
                   className="hover:text-teal-400 transition-colors text-left"
                 >
                   Plan Colmedikal Premium
@@ -142,7 +139,7 @@ export default function Footer({ setCurrentPage }: FooterProps) {
               </li>
               <li>
                 <button 
-                  onClick={() => setCurrentPage('cotizador')} 
+                  onClick={() => navigate('/cotizador')} 
                   className="hover:text-teal-400 transition-colors text-left"
                 >
                   Planes Corporativos para Pymes y Grandes Empresas
@@ -191,9 +188,12 @@ export default function Footer({ setCurrentPage }: FooterProps) {
             © {currentYear} Colmedikal S.A. Todos los derechos reservados. Inspirado en el diseño líder de Humana Medicina Prepagada.
           </div>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-slate-400">Políticas de Privacidad</a>
-            <a href="#" className="hover:text-slate-400">Términos del Servicio</a>
-            <a href="#" className="hover:text-slate-400">Defensor del Afiliado</a>
+            <button 
+              onClick={() => navigate('/privacy')} 
+              className="hover:text-slate-400"
+            >
+              Políticas de Privacidad
+            </button>
           </div>
         </div>
       </div>

@@ -30,6 +30,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const officeLocations = [
     {
@@ -54,6 +55,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
       tempErrors.phone = 'Ingrese un número válido de 7 a 10 dígitos';
     }
     if (!formData.message.trim()) tempErrors.message = 'Escriba brevemente su consulta';
+    if (!privacyAccepted) tempErrors.privacy = 'Debe aceptar las políticas de protección de datos';
     
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
@@ -293,6 +295,21 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                   id="contact-message"
                 />
                 {errors.message && <span className="text-[11px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.message}</span>}
+              </div>
+
+              <div className="pt-2 pb-1 text-left">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                    className="mt-0.5 rounded text-teal-600 border-slate-300 focus:ring-teal-500"
+                  />
+                  <span className="text-[11px] text-slate-500 leading-tight">
+                    Acepto las políticas de protección de datos personales.
+                  </span>
+                </label>
+                {errors.privacy && <span className="text-[11px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.privacy}</span>}
               </div>
 
               <div className="pt-2">

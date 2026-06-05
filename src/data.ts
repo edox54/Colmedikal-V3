@@ -12,7 +12,7 @@ export const MEDICAL_PLANS: Plan[] = [
     copayPercent: 0,
     hospitalNetwork: 'Red Colmedikal',
     features: [
-      'Consultas médicas con 0% de copago en la red',
+      'Consultas y Especialidades (Pediatría, Ginecología, Medicina Interna) con 100% de cobertura (Sin copago)',
       'Cobertura en Cuidados Intensivos hasta $2000',
       'Honorarios médicos cubiertos hasta $2000',
       'Exámenes de laboratorio e imagen elementales hasta $100',
@@ -30,7 +30,7 @@ export const MEDICAL_PLANS: Plan[] = [
     copayPercent: 0,
     hospitalNetwork: 'Red Colmedikal',
     features: [
-      'Consultas médicas con 0% de copago en la red',
+      'Consultas y Especialidades (Pediatría, Ginecología, Urología, Traumatología) con 100% de cobertura (Sin copago)',
       'Cobertura en Cuidados Intensivos hasta $3000',
       'Honorarios médicos cubiertos hasta $3000',
       'Exámenes de laboratorio e imagen elementales hasta $100',
@@ -48,7 +48,7 @@ export const MEDICAL_PLANS: Plan[] = [
     copayPercent: 0,
     hospitalNetwork: 'Red Colmedikal',
     features: [
-      'Consultas médicas con 0% de copago en la red',
+      'Consultas y Especialidades (Pediatría, Cardiología, M. Interna, Urología, etc.) con 100% de cobertura (Sin copago)',
       'Cobertura en Cuidados Intensivos hasta $5000',
       'Honorarios médicos cubiertos hasta $5000',
       'Exámenes de laboratorio e imagen elementales hasta $100',

@@ -23,6 +23,7 @@ interface PDFGeneratorOptions {
   dedHosp: string;
   signatureText?: string;
   features: string[];
+  especialidades?: Record<string, boolean>;
 }
 
 /**
@@ -180,7 +181,7 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
 
   doc.text('Límite General Hospitalario:', 20, 122);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${options.maxCoverage} por evento por asegurado`, 70, 122);
+  doc.text(`${options.maxCoverage} (Anual) por asegurado`, 70, 122);
 
   doc.setFont('helvetica', 'normal');
   doc.text('Red Clínicas Asociadas:', 20, 128);
@@ -193,9 +194,9 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
   doc.text(options.dedHosp, 70, 134);
 
   doc.setFont('helvetica', 'normal');
-  doc.text('Copago en Citas Médicas:', 20, 140);
+  doc.text('Cobertura de Citas Médicas:', 20, 140);
   doc.setFont('helvetica', 'bold');
-  doc.text('$15.00 USD pago de copago fijo directo en red ágil', 70, 140);
+  doc.text('Cobertura del 100% en consultas médicas (Sin copago)', 70, 140);
 
   doc.setFont('helvetica', 'normal');
   doc.text('Cobertura en Medicamentos:', 20, 146);
@@ -207,6 +208,8 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
   doc.setFontSize(10);
   doc.setTextColor(12, 65, 105);
   doc.text('Beneficios Claves de Cobertura Complementaria:', 15, 163);
+
+  doc.text('Especialidades Principales:', 110, 163);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
@@ -221,8 +224,24 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
     bulletY += 5.5;
   });
 
+  if (options.especialidades) {
+    let specY = 169;
+    let count = 0;
+    for (const [spec, inc] of Object.entries(options.especialidades)) {
+      if (count >= 5) break; // Limit to 5 specialties to fit
+      if (inc) {
+        doc.setFillColor(16, 185, 129);
+        doc.circle(112, specY - 1, 1.2, 'F');
+        doc.setTextColor(28, 46, 60);
+        doc.text(spec, 116, specY);
+        specY += 5.5;
+        count++;
+      }
+    }
+  }
+
   // Divider
-  doc.line(15, 195, pageWidth - 15, 195);
+  doc.line(15, 198, pageWidth - 15, 198);
 
   // 6. Cost summary Box
   doc.setFont('helvetica', 'bold');

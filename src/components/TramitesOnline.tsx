@@ -52,6 +52,7 @@ export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [submittedData, setSubmittedData] = useState<any>(null);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   // Drag & drop handlers
   const handleDragOver = (e: React.DragEvent) => {
@@ -98,6 +99,11 @@ export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!privacyAccepted) {
+      alert('Debe aceptar las políticas de protección de datos personales.');
+      return;
+    }
+
     if (!attachedFileName) {
       alert('Por favor adjunte el documento requerido.');
       return;
@@ -270,9 +276,15 @@ export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) 
               <p className="text-[11px] text-slate-300 leading-normal">
                 Nuestros auditores médicos ingresan la solicitud al sistema. Se crea automáticamente un ticket de seguimiento que le llegará por SMS y correo electrónico, notificando la aprobación y depósito.
               </p>
-              <div className="border-t border-slate-800 pt-3 flex items-center justify-between text-[11px] font-mono text-slate-400">
-                <span>Tránsito Promedio:</span>
-                <span className="text-teal-400 font-bold">2 - 4 Horas</span>
+              <div className="border-t border-slate-800 pt-3 space-y-3">
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Tiempos de Reembolso:</span>
+                  <span className="block text-[11px] text-teal-400 font-medium">Hasta 8 días después de haber recibido toda la documentación.</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Tiempos de Autorización:</span>
+                  <span className="block text-[11px] text-teal-400 font-medium">La autorización de exámenes toma hasta 24 horas.</span>
+                </div>
               </div>
             </div>
 
@@ -482,6 +494,20 @@ export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) 
               {/* Required Terms */}
               <div className="bg-slate-50 p-4 rounded-xl text-[11px] text-slate-500 leading-relaxed border border-slate-150">
                 Certifico bajo gravedad de juramento que la información y documentos adjuntados son auténticos y corresponden al expediente médico del asegurado. Autorizo el cruzamiento de datos de auditoría médica para verificar la cobertura establecida en el contrato de medicina prepagada.
+              </div>
+
+              <div className="pt-2 pb-1 text-left">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                    className="mt-0.5 rounded text-teal-600 border-slate-300 focus:ring-teal-500"
+                  />
+                  <span className="text-[11px] text-slate-500 leading-tight">
+                    Acepto las políticas de protección de datos personales.
+                  </span>
+                </label>
               </div>
 
               {/* Submit Button */}

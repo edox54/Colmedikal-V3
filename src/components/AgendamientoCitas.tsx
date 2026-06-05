@@ -40,9 +40,14 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [ticketDetails, setTicketDetails] = useState<any>(null);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!privacyAccepted) {
+      alert('Debe aceptar las políticas de protección de datos personales.');
+      return;
+    }
     if (!preferredDate) {
       alert('Por favor seleccione una fecha preferida.');
       return;
@@ -102,7 +107,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
             Solicitud de Cita Médica Tentativa
           </h1>
           <p className="text-sm text-slate-500 mt-2 max-w-2xl">
-            Complete los datos de la cita requerida. Su solicitud de cita pasará directamente al sistema CRM donde nuestros coordinadores verificarán la agenda del especialista de forma ágil.
+            Complete los datos de la cita requerida. Su solicitud de cita pasará directamente a nuestro sistema para que nuestros coordinadores verifiquen la agenda del especialista de forma ágil.
           </p>
         </div>
 
@@ -268,9 +273,23 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                 />
               </div>
 
-              {/* CRM note disclaimer */}
+              {/* Note disclaimer */}
               <div className="p-3 bg-slate-50 rounded-xl text-[11px] text-slate-500 leading-normal border border-slate-150">
                 ⚠️ <strong>Nota regulatoria:</strong> En cumplimiento con las políticas de medicina prepagada, la reserva de citas con especialistas de red en clínicas premium no requiere aprobación de un médico familiar. El agendamiento procesado a través de Colmedikal garantiza cobros con copagos directos del 15%.
+              </div>
+
+              <div className="pt-2 pb-1 text-left">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                    className="mt-0.5 rounded text-teal-600 border-slate-300 focus:ring-teal-500"
+                  />
+                  <span className="text-[11px] text-slate-500 leading-tight">
+                    Acepto las políticas de protección de datos personales.
+                  </span>
+                </label>
               </div>
 
               {/* Submit Buttons */}
@@ -285,7 +304,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    <span>Conectando CRM y Registrando Oportunidad...</span>
+                    <span>Procesando Solicitud...</span>
                   </span>
                 ) : (
                   <span>Solicitar Cita Médica Tentativa</span>
@@ -310,7 +329,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                 </li>
                 <li className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-[#4597CA] shrink-0">2</span>
-                  <span>El CRM crea instantáneamente tu oportunidad de agendamiento y enruta la solicitud al asesor correspondiente.</span>
+                  <span>El sistema crea instantáneamente tu solicitud de agendamiento y la enruta al asesor correspondiente.</span>
                 </li>
                 <li className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-[#4597CA] shrink-0">3</span>
@@ -339,7 +358,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
 
         </div>
       ) : (
-        /* SUCCESS PORTRAIT DISPLAYING CRM OPPORTUNITY INTEGRATION */
+        /* SUCCESS PORTRAIT DISPLAYING OPPORTUNITY INTEGRATION */
         <div className="max-w-3xl mx-auto space-y-8 animate-in zoom-in-95 duration-300">
           
           <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center space-y-4">
@@ -353,12 +372,12 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
               </span>
               <h2 className="text-2xl font-extrabold text-[#0C4169] tracking-tight">Solicitud de Cita Enviada</h2>
               <p className="text-xs text-slate-500">
-                Código de Seguimiento CRM: <strong className="text-slate-800 font-mono font-bold leading-none">{ticketDetails.opportunityId}</strong>
+                Código de Seguimiento: <strong className="text-slate-800 font-mono font-bold leading-none">{ticketDetails.opportunityId}</strong>
               </p>
             </div>
 
             <p className="text-xs text-slate-600 max-w-lg mx-auto">
-              Muchas gracias, Sr(a). <strong>{ticketDetails.fullName}</strong>. Su requerimiento para una cita de <strong>{ticketDetails.specialty}</strong> en <strong>{ticketDetails.facility}</strong> ha sido transmitido de manera inmediata al CRM corporativo de Colmedikal.
+              Muchas gracias, Sr(a). <strong>{ticketDetails.fullName}</strong>. Su requerimiento para una cita de <strong>{ticketDetails.specialty}</strong> en <strong>{ticketDetails.facility}</strong> ha sido recibido exitosamente por nuestro equipo de Colmedikal.
             </p>
 
             <div className="pt-4 flex flex-wrap gap-3 justify-center">
@@ -378,13 +397,13 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
             </div>
           </div>
 
-          {/* CRM Pipeline and assignment visualization */}
+          {/* Pipeline and assignment visualization */}
           <div className="bg-slate-950 text-slate-350 p-6 rounded-3xl shadow-xl space-y-5 border border-slate-800">
             <div className="flex justify-between items-center border-b border-slate-850 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping shrink-0" />
                 <h4 className="text-xs font-bold text-teal-400 uppercase tracking-widest font-mono">
-                  Sincronización Automática de Leads en CRM
+                  Sincronización Automática de la Solicitud
                 </h4>
               </div>
               <span className="text-[9px] font-bold text-slate-500 font-mono">ESTADO: TRANSMITIDO</span>
@@ -414,7 +433,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
               </div>
 
               <div className="space-y-2 select-none">
-                <span className="block text-[10px] text-slate-500">Historial de Eventos CRM (Logs de Negocio):</span>
+                <span className="block text-[10px] text-slate-500">Historial de Eventos del Sistema:</span>
                 <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 font-sans space-y-2">
                   <p className="flex items-center gap-2">
                     <span className="text-emerald-400">● [19:19:07]</span> 

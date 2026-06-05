@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   MapPin, 
@@ -21,21 +21,30 @@ import {
   Star,
   Navigation
 } from 'lucide-react';
-import { Page, Doctor } from '../types';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Doctor } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
 
-interface DirectorioMedicoProps {
-  setCurrentPage: (page: Page) => void;
-}
-
-export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoProps) {
+export default function DirectorioMedico() {
   const { doctors } = useColmedikal();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all');
+  const [doctorSpecialty, setDoctorSpecialty] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
+
+  useEffect(() => {
+    const specialtyParam = searchParams.get('especialidad');
+    if (specialtyParam) {
+      setDoctorSpecialty(specialtyParam);
+    } else {
+      setDoctorSpecialty('');
+    }
+  }, [searchParams]);
 
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address);
@@ -76,6 +85,9 @@ export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoPro
                           doc.clinic.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           doc.education.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           doc.city.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Doctor Specialty match
+    const matchesDoctorSpecialty = doctorSpecialty === '' || doc.education.toLowerCase().includes(doctorSpecialty.toLowerCase());
     
     // Specialty match
     let matchesSpecialty = true;
@@ -138,7 +150,7 @@ export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoPro
       }
     }
 
-    return matchesSearch && matchesSpecialty && matchesCity;
+    return matchesSearch && matchesSpecialty && matchesCity && matchesDoctorSpecialty;
   });
 
   return (
@@ -147,6 +159,11 @@ export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoPro
       {/* 1. HEADER */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">Red de Establecimientos en Convenio</span>
+        {doctorSpecialty && (
+          <div className="inline-block bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full mb-2">
+            Filtrando por: {doctorSpecialty}
+          </div>
+        )}
         <h1 className="text-4xl font-display font-extrabold text-slate-900 tracking-tight">
           Red Médica Nacional
         </h1>
@@ -274,7 +291,7 @@ export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoPro
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              setCurrentPage('agendamiento');
+                              navigate('/agendamiento');
                             }}
                             className="text-[10px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 inline-flex items-center gap-1.5 transition-all cursor-pointer"
                             title="Solicitar Cita Médica"
@@ -473,7 +490,7 @@ export default function DirectorioMedico({ setCurrentPage }: DirectorioMedicoPro
                       <button 
                         onClick={() => {
                           setSelectedDoctor(null);
-                          setCurrentPage('agendamiento');
+                          navigate('/agendamiento');
                         }}
                         className="w-full py-2.5 text-center bg-[#0C4169] hover:bg-slate-900 active:scale-98 text-white text-[11px] font-extrabold uppercase tracking-wide rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer animate-pulse"
                       >

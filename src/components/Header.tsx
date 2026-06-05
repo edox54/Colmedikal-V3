@@ -18,16 +18,13 @@ import {
   LogOut,
   Settings
 } from 'lucide-react';
-import { Page } from '../types';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 import { useColmedikal } from '../context/ColmedikalContext';
 
-interface HeaderProps {
-  currentPage: Page;
-  setCurrentPage: (page: Page) => void;
-}
-
-export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
+export default function Header() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout, isAdminUser } = useColmedikal();
   const [isOpen, setIsOpen] = useState(false);
   
@@ -36,14 +33,18 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
   const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const menuItems = [
-    { label: 'Inicio', id: 'home' as Page },
-    { label: 'Servicios', id: 'servicios' as Page, hasMega: true },
-    { label: 'Directorio Médico', id: 'directorio' as Page, hasMega: true },
-    { label: 'Trámites en Línea', id: 'tramites' as Page },
-    { label: 'Agendar Cita', id: 'agendamiento' as Page },
-    { label: 'Nosotros', id: 'nosotros' as Page },
-    { label: 'FAQs', id: 'faqs' as Page },
-    { label: 'Contacto', id: 'contacto' as Page },
+    { label: 'Inicio', id: 'inicio', items: [
+        { label: 'Nosotros', path: '/nosotros' },
+        { label: 'FAQ\'s', path: '/faqs' },
+    ]},
+    { label: 'Servicios', path: '/servicios', hasMega: true, id: 'servicios' },
+    { label: 'Directorio Médico', path: '/directorio', hasMega: true, id: 'directorio' },
+    { label: 'Trámites en línea', id: 'tramites_menu', items: [
+        { label: 'Trámites en línea (reembolsos y autorizaciones)', path: '/tramites' },
+        { label: 'Agendar Cita', path: '/agendamiento' },
+    ]},
+    { label: 'Blog', path: '/blog', id: 'blog' },
+    { label: 'Contacto', path: '/contacto', id: 'contacto' },
   ];
 
   const handleOpenMenu = (menu: 'servicios' | 'directorio') => {
@@ -67,8 +68,8 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
     }
   };
 
-  const handleNavClick = (pageId: Page) => {
-    setCurrentPage(pageId);
+  const handleNavClick = (path: string, specialty?: string) => {
+    navigate(specialty ? `${path}?especialidad=${encodeURIComponent(specialty)}` : path);
     setIsOpen(false);
     setActiveMegamenu(null);
   };
@@ -109,7 +110,8 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
             <nav className="hidden lg:flex space-x-4 xl:space-x-7 items-center h-full">
               {menuItems.map((item) => {
                 const isMega = item.hasMega;
-                const isCurrent = currentPage === item.id;
+                const hasDropdown = !!item.items;
+                const isCurrent = location.pathname === item.path;
                 
                 return (
                   <div
@@ -123,25 +125,45 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                       }
                     }}
                   >
-                    <button
-                      onClick={() => handleNavClick(item.id)}
-                      className={`relative flex items-center gap-1 px-1 py-2 text-xs xl:text-sm font-medium transition-colors duration-200 cursor-pointer ${
-                        isCurrent 
-                          ? 'text-[#4597CA] font-semibold' 
-                          : 'text-slate-600 hover:text-[#4597CA]'
-                      }`}
-                      id={`nav-${item.id}`}
-                    >
-                      <span>{item.label}</span>
-                      {isMega && (
-                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                          activeMegamenu === item.id ? 'transform rotate-180 text-[#4597CA]' : 'text-slate-400'
-                        }`} />
-                      )}
-                      {isCurrent && (
-                        <span className="absolute bottom-0 left-0 w-full h-[2.5px] bg-[#4597CA] rounded-full" />
-                      )}
-                    </button>
+                    {hasDropdown ? (
+                      <div className="relative group">
+                          <button className="flex items-center gap-1 px-1 py-2 text-xs xl:text-sm font-medium text-slate-600 hover:text-[#4597CA] cursor-pointer">
+                              <span>{item.label}</span>
+                              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                          </button>
+                          <div className="absolute top-full left-0 bg-white shadow-xl border border-slate-100 rounded-xl p-2 min-w-[180px] hidden group-hover:block z-50">
+                              {item.items?.map(subItem => (
+                                  <button
+                                    key={subItem.path}
+                                    onClick={() => handleNavClick(subItem.path)}
+                                    className="block w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 hover:text-[#4597CA] rounded-lg cursor-pointer"
+                                  >
+                                      {subItem.label}
+                                  </button>
+                              ))}
+                          </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleNavClick(item.path!)}
+                        className={`relative flex items-center gap-1 px-1 py-2 text-xs xl:text-sm font-medium transition-colors duration-200 cursor-pointer ${
+                          isCurrent 
+                            ? 'text-[#4597CA] font-semibold' 
+                            : 'text-slate-600 hover:text-[#4597CA]'
+                        }`}
+                        id={`nav-${item.id || item.label}`}
+                      >
+                        <span>{item.label}</span>
+                        {isMega && (
+                          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                            activeMegamenu === item.id ? 'transform rotate-180 text-[#4597CA]' : 'text-slate-400'
+                          }`} />
+                        )}
+                        {isCurrent && (
+                          <span className="absolute bottom-0 left-0 w-full h-[2.5px] bg-[#4597CA] rounded-full" />
+                        )}
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -155,7 +177,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                     <button
                       onClick={() => handleNavClick('admin')}
                       className={`p-2.5 rounded-full transition-all duration-300 border border-slate-200 ${
-                        currentPage === 'admin' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-50'
+                        location.pathname === '/admin' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-50'
                       }`}
                       title="Panel Administrativo"
                     >
@@ -177,7 +199,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               <button
                 onClick={() => handleNavClick('cotizador')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 shadow-md ${
-                  currentPage === 'cotizador'
+                  location.pathname === '/cotizador'
                     ? 'bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white shadow-[#0C4169]/20 scale-95'
                     : 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-[#4597CA]/10 hover:shadow-[#4597CA]/20 hover:scale-102 hover:-translate-y-0.5'
                 }`}
@@ -210,9 +232,9 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
               {menuItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => handleNavClick(item.id)}
+                  onClick={() => item.path ? handleNavClick(item.path) : void 0}
                   className={`block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                    currentPage === item.id
+                  location.pathname === item.path
                       ? 'bg-[#4597CA]/10 text-[#0C4169] font-semibold border-l-4 border-[#4597CA]'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-[#4597CA]'
                   }`}
@@ -414,7 +436,7 @@ export default function Header({ currentPage, setCurrentPage }: HeaderProps) {
                       ].map((specialty) => (
                         <button
                           key={specialty}
-                          onClick={() => handleNavClick('directorio')}
+                          onClick={() => handleNavClick('/directorio', specialty)}
                           className="text-left py-1.5 px-2.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors w-full cursor-pointer flex items-center gap-1.5"
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>

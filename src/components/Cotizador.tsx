@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Calculator, 
   User, 
@@ -31,9 +32,7 @@ import { generateQuotePDF } from '../utils/pdfGenerator';
 import { sendLeadToKommoCRM } from '../utils/crm';
 
 interface CotizadorProps {
-  currentPage: Page;
-  setCurrentPage: (page: Page) => void;
-  selectedPlanId: string;
+  selectedPlanId?: string;
 }
 
 interface Dependant {
@@ -71,7 +70,8 @@ const PROVINCES = [
   'Zamora Chinchipe'
 ];
 
-export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId }: CotizadorProps) {
+export default function Cotizador({ selectedPlanId }: CotizadorProps) {
+  const navigate = useNavigate();
   const { addLead } = useColmedikal();
   // 1. Selector of Plan Type: masivo | individual | corporativo
   const [planType, setPlanType] = useState<'masivo' | 'individual' | 'corporativo'>('masivo');
@@ -98,6 +98,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
   const [showResultScreen, setShowResultScreen] = useState(false);
   const [leadCode, setLeadCode] = useState('');
   const [assignedRep, setAssignedRep] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   // 6. Checkout & Hiring Flow states
   const [selectedPlanToBuy, setSelectedPlanToBuy] = useState<any | null>(null);
@@ -153,7 +154,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
       },
       caracteristicas: [
         'Entrega de medicina al 100% (Sin costo ni copago)',
-        'Especialidades básicas de Asistencia Médica',
+        'Especialidades: Medicina General, Familiar, Ginecología y Odontología',
         'Carencias preferenciales (30 días ambulatorio)',
         'Odontología (Consultas, profilaxis, restauraciones resina)'
       ]
@@ -183,7 +184,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
         'Odontología (6 proced./año)': true
       },
       caracteristicas: [
-        'Incluye Urología y Traumatología en red prestadores',
+        'Especialidades: Incluye Urología y Traumatología',
         'Bono de Maternidad de $500,00 para titular',
         'Entrega de medicina al 100% sin copago',
         'Soporte a cirugías programadas preautorizadas'
@@ -214,7 +215,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
         'Odontología (6 proced./año)': true
       },
       caracteristicas: [
-        'Cobertura total en Medicina Interna y Cardiología',
+        'Especialidades: Medicina Interna, Cardiología y Odontología premium',
         'Bono de Maternidad premium de $700,00 USD',
         'Límite de Gastos Hospitalarios de $5.000,00 USD',
         'Exámenes de diagnóstico complementarios con cobertura'
@@ -227,6 +228,10 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
     // Basic validation based on step
     if (quoteStep === 1) {
       // Validating Step 1 (Personal Data)
+      if (!privacyAccepted) {
+        alert('Debe aceptar las políticas de protección de datos personales.');
+        return;
+      }
       if (!firstName || !lastName || !email || !phone) {
         alert('Por favor complete todos sus datos personales obligatorios.');
         return;
@@ -397,7 +402,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
           </div>
 
           <button
-            onClick={() => setCurrentPage('home')}
+            onClick={() => navigate('/')}
             className="flex items-center gap-1.5 px-4 font-sans py-2 text-xs font-black text-slate-700 bg-white border border-slate-250 hover:bg-slate-50 rounded-xl transition duration-200 active:scale-97 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4 text-[#4597CA]" />
@@ -449,7 +454,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                       {activePhraseIndex === 0 && `Iniciando análisis multivariable de políticas de Colmedikal para ${firstName || 'beneficiario'} ${lastName || ''}...`}
                       {activePhraseIndex === 1 && (planType === 'corporativo' ? `Dimensionando tasas preferenciales y volumen técnico para ${numberOfPeople || '30'} personas...` : `Evaluando el grupo de ${dependants.length + 1} beneficiario(s) asegurables...`)}
                       {activePhraseIndex === 2 && `Localizando prestadores médicos acreditados en la provincia de ${province}...`}
-                      {activePhraseIndex === 3 && 'Calculando copagos de especialidades regulados por red médica ($15.00 USD)...'}
+                      {activePhraseIndex === 3 && 'Calculando cobertura al 100% en especialidades de nuestra red médica...'}
                       {activePhraseIndex === 4 && 'Aplicando descuentos de escala digital Colmedikal...'}
                       {activePhraseIndex === 5 && 'Estructurando cotización certificada segura autorizada...'}
                     </p>
@@ -722,6 +727,20 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                         </select>
                       </div>
 
+                      <div className="col-span-1 sm:col-span-2 pt-2">
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={privacyAccepted}
+                            onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                            className="mt-0.5 rounded text-teal-600 border-slate-300 focus:ring-teal-500"
+                          />
+                          <span className="text-[11px] text-slate-500 leading-tight">
+                            Acepto las políticas de protección de datos personales.
+                          </span>
+                        </label>
+                      </div>
+
                     </div>
                   </div>
                 )}
@@ -983,7 +1002,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                   </p>
                   <p className="inline-flex items-center gap-1.5 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-150 px-2.5 py-1 rounded-lg font-sans font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>📩 Se ha enviado una copia en PDF con esta propuesta formal al correo: <strong>{email}</strong></span>
+                    <span>📩 El correo con el resumen y PDF del plan será enviado una vez complete todos los datos y desees contratar alguno de los planes</span>
                   </p>
                 </div>
               </div>
@@ -1000,7 +1019,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                 </button>
                 
                 <button
-                  onClick={() => setCurrentPage('home')}
+                  onClick={() => navigate('/')}
                   className="px-4 py-2.5 bg-[#0C4169] text-white hover:bg-slate-900 text-xs font-bold rounded-xl transition duration-200 cursor-pointer"
                 >
                   Finalizar e Ir al Inicio
@@ -1072,264 +1091,142 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
 
                       <button
                         onClick={() => {
-                          setSelectedPlanToBuy(null);
-                          setCheckoutStep(1);
+                          import('../utils/pdfGenerator').then(({ generateQuotePDF }) => {
+                            generateQuotePDF({
+                              leadCode: leadCode,
+                              fullName: `${firstName} ${lastName}`,
+                              email: email,
+                              phone: phone,
+                              docNumber: docNumber || '1712345678',
+                              docType: docType || 'cedula',
+                              planName: selectedPlanToBuy.name,
+                              basePrice: selectedPlanToBuy.basePrice,
+                              finalPrice: calculateDynamicPrice(selectedPlanToBuy.basePrice),
+                              province: province,
+                              coverageStartDate: coverageStartDate,
+                              dependents: dependants.map(d => ({
+                                relation: getDependantAgeLabel(d.ageRange),
+                                age: d.ageRange === '0-17' ? 10 : d.ageRange === '18-35' ? 25 : d.ageRange === '36-49' ? 42 : d.ageRange === '50-64' ? 58 : 70
+                              })),
+                              hospitalNetwork: selectedPlanToBuy.cobertura ? 'Red Cobertura Directa Colmedikal' : 'Red Sede Principal',
+                              maxCoverage: selectedPlanToBuy.cobertura,
+                              dedHosp: selectedPlanToBuy.dedHosp,
+                              features: selectedPlanToBuy.caracteristicas || [],
+                              especialidades: selectedPlanToBuy.especialidades || {}
+                            });
+                          });
                         }}
-                        className="p-2 px-3 bg-white/10 hover:bg-white/20 hover:text-white rounded-xl text-xs font-bold text-slate-200 flex items-center gap-1.5 transition cursor-pointer"
+                        className="p-2 px-4 bg-white hover:bg-slate-50 text-[#0C4169] rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer shadow-sm"
                       >
-                        <X className="w-3.5 h-3.5" />
-                        <span>Volver a Planes</span>
+                        <Download className="w-4 h-4" />
+                        <span>Descargar PDF</span>
                       </button>
-                    </div>
-
-                    {/* Checkout Progress Steps Bar */}
-                    <div className="bg-slate-50 border-b border-slate-150 p-4 px-6 flex justify-between items-center text-xs text-slate-500 font-bold font-sans">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${checkoutStep === 2 ? 'bg-[#0c4169] text-white font-mono' : 'bg-emerald-100 text-emerald-800'}`}>1</span>
-                        <span className={checkoutStep === 2 ? 'text-[#0c4169]' : 'text-slate-500'}>1. Declaración y Firma Jurada</span>
-                      </div>
-                      <div className="w-16 sm:w-24 h-px bg-slate-300"></div>
-                      <div className="flex items-center gap-2">
-                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${checkoutStep === 3 ? 'bg-[#0c4169] text-white font-mono' : 'bg-slate-200 text-slate-500'}`}>2</span>
-                        <span className={checkoutStep === 3 ? 'text-[#0c4169]' : 'text-slate-500'}>2. Certificado & Descargas</span>
-                      </div>
                     </div>
 
                     {/* Step Body */}
                     <div className="p-6 sm:p-8">
                       {checkoutStep === 1 && (
-                        <div className="space-y-6 max-w-4xl mx-auto">
-                          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                        <div className="space-y-6 max-w-2xl mx-auto">
+                          <div className="bg-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-200 space-y-6">
+                            <div className="text-center space-y-2 pb-4 border-b border-slate-200">
+                              <h4 className="text-lg font-black uppercase tracking-wider text-[#0C4169] font-sans">Resumen de Contratación</h4>
+                              <p className="text-xs text-slate-500">Por favor revise los detalles de su plan antes de enviar la solicitud.</p>
+                            </div>
                             
-                            {/* Summary side */}
-                            <div className="md:col-span-5 bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                              <h4 className="text-xs font-black uppercase tracking-wider text-[#0C4169] font-mono">Resumen de Cobertura</h4>
-                              
-                              <div className="space-y-2 text-xs">
-                                <div className="flex justify-between border-b border-slate-200 pb-1.5">
-                                  <span className="text-slate-550">Plan Elegido:</span>
-                                  <span className="font-extrabold text-slate-900">{selectedPlanToBuy.name}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-slate-200 pb-1.5">
-                                  <span className="text-slate-550">Gastos Hosp.:</span>
-                                  <span className="font-extrabold text-slate-900">{selectedPlanToBuy.cobertura}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-slate-200 pb-1.5">
-                                  <span className="text-slate-550">Deducible Hospital:</span>
-                                  <span className="font-semibold text-slate-800">{selectedPlanToBuy.dedHosp}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-slate-200 pb-1.5">
-                                  <span className="text-slate-550">Maternidad Titular:</span>
-                                  <span className="font-semibold text-slate-800">{selectedPlanToBuy.maternidad}</span>
-                                </div>
-                                <div className="flex justify-between pb-1.5">
-                                  <span className="text-slate-550">Provincia:</span>
-                                  <span className="font-semibold text-slate-800">{province}</span>
-                                </div>
+                            <div className="space-y-3 text-sm">
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Afiliado Titular:</span>
+                                <span className="font-bold text-slate-900">{firstName} {lastName}</span>
                               </div>
-
-                              {/* Frequency Choice */}
-                              <div className="space-y-2 pt-2">
-                                <label className="block text-[11px] font-black text-[#0c4169] uppercase tracking-wide">Frecuencia de Recaudación:</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setPaymentFrequency('mensual')}
-                                    className={`p-2.5 rounded-xl border text-xs text-center font-bold tracking-tight transition cursor-pointer ${paymentFrequency === 'mensual' ? 'border-[#0C4169] bg-[#0c4169]/5 text-[#0C4169]' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
-                                  >
-                                    <span>Mensual Recurrente</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setPaymentFrequency('anual')}
-                                    className={`p-2.5 rounded-xl border text-xs text-center font-bold tracking-tight transition cursor-pointer ${paymentFrequency === 'anual' ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
-                                  >
-                                    <span className="block text-[8px] uppercase tracking-widest font-black text-emerald-600">Ahorra 10%</span>
-                                    <span>Pago Anual Único</span>
-                                  </button>
-                                </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Documento de Identidad:</span>
+                                <span className="font-semibold text-slate-800 uppercase">{docType} - {docNumber}</span>
                               </div>
-
-                              {/* Cost Calculations */}
-                              <div className="bg-white p-4 rounded-xl border border-slate-200 pt-3 shadow-inner">
-                                <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider font-bold block">Prima de Suscripción</span>
-                                <div className="flex items-baseline gap-1 mt-1">
-                                  <span className="text-3xl font-black text-slate-900 font-mono">
-                                    ${paymentFrequency === 'mensual' 
-                                      ? calculateDynamicPrice(selectedPlanToBuy.basePrice)
-                                      : Math.round(calculateDynamicPrice(selectedPlanToBuy.basePrice) * 12 * 0.9 * 100) / 100
-                                    }
-                                  </span>
-                                  <span className="text-xs text-slate-500 font-bold">USD</span>
-                                  <span className="text-slate-400 text-[10px] pl-1 font-sans">
-                                    {paymentFrequency === 'mensual' ? 'al mes' : 'única anual'}
-                                  </span>
-                                </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Correo Electrónico:</span>
+                                <span className="font-semibold text-slate-800">{email}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Teléfono Móvil:</span>
+                                <span className="font-semibold text-slate-800">{phone}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Provincia:</span>
+                                <span className="font-semibold text-slate-800">{province}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Total de Beneficiarios:</span>
+                                <span className="font-semibold text-slate-800">{dependants.length > 0 ? `${dependants.length + 1} Personas` : 'Solo Titular'}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2 mt-4 pt-2 border-t">
+                                <span className="text-slate-550">Plan Elegido:</span>
+                                <span className="font-extrabold text-[#0C4169]">{selectedPlanToBuy.name}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Límite Gastos Hosp.:</span>
+                                <span className="font-semibold text-slate-900">{selectedPlanToBuy.cobertura}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Deducible Hospitalario:</span>
+                                <span className="font-semibold text-slate-800">{selectedPlanToBuy.dedHosp}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Bono de Maternidad:</span>
+                                <span className="font-semibold text-slate-800">{selectedPlanToBuy.maternidad}</span>
                               </div>
                             </div>
 
-                            {/* Payment Inputs */}
-                            <div className="md:col-span-7 space-y-5">
-                              <div className="space-y-2">
-                                <label className="block text-xs font-bold text-slate-800">Canal de Débito Bancario de la Red:</label>
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                  <button
-                                    type="button"
-                                    onClick={() => setPaymentMethod('cuenta')}
-                                    className={`flex-1 p-3.5 border rounded-2xl flex items-center gap-2.5 transition text-left cursor-pointer ${paymentMethod === 'cuenta' ? 'border-[#0C4169] bg-[#0c4169]/5 font-bold ring-2 ring-[#0c4169]/10' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
-                                  >
-                                    <input
-                                      type="radio"
-                                      checked={paymentMethod === 'cuenta'}
-                                      readOnly
-                                      className="w-4 h-4 text-[#0C4169]"
-                                    />
-                                    <div className="flex flex-col">
-                                      <span className="text-xs text-slate-800 font-bold">Débito Bancario Directo</span>
-                                      <span className="text-[10px] text-slate-400 font-normal">Soporte Ahorros / Corriente (Sin Costo)</span>
-                                    </div>
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => setPaymentMethod('tarjeta')}
-                                    className={`flex-1 p-3.5 border rounded-2xl flex items-center gap-2.5 transition text-left cursor-pointer ${paymentMethod === 'tarjeta' ? 'border-[#0C4169] bg-[#0c4169]/5 font-bold ring-2 ring-[#0c4169]/10' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
-                                  >
-                                    <input
-                                      type="radio"
-                                      checked={paymentMethod === 'tarjeta'}
-                                      readOnly
-                                      className="w-4 h-4 text-[#0C4169]"
-                                    />
-                                    <div className="flex flex-col">
-                                      <span className="text-xs text-slate-800 font-bold">Tarjeta de Crédito</span>
-                                      <span className="text-[10px] text-slate-400 font-normal">Visa, Mastercard, Amex, Diners</span>
-                                    </div>
-                                  </button>
-                                </div>
+                            {/* Cost Calculations */}
+                            <div className="bg-white p-5 rounded-xl border border-slate-200 pt-4 shadow-inner mt-4">
+                              <span className="text-xs text-slate-400 uppercase font-mono tracking-wider font-bold block text-center">Prima Mensual de Suscripción</span>
+                              <div className="flex items-baseline justify-center gap-1 mt-2">
+                                <span className="text-4xl font-black text-[#0C4169] font-mono">
+                                  ${calculateDynamicPrice(selectedPlanToBuy.basePrice)}
+                                </span>
+                                <span className="text-sm text-slate-500 font-bold">USD</span>
                               </div>
-
-                              {paymentMethod === 'cuenta' ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-200 animate-in fade-in duration-200">
-                                  <div className="col-span-1 sm:col-span-2 space-y-1">
-                                    <label className="block text-xs font-bold text-slate-700">Banco del Afiliado: <span className="text-rose-500">*</span></label>
-                                    <select
-                                      value={bankName}
-                                      onChange={(e) => setBankName(e.target.value)}
-                                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-[#0C4169]"
-                                    >
-                                      <option value="">-- Seleccionar Institución Financiera --</option>
-                                      <option value="Banco Pichincha">Banco Pichincha</option>
-                                      <option value="Banco Guayaquil">Banco Guayaquil</option>
-                                      <option value="Produbanco">Produbanco (Promerica)</option>
-                                      <option value="Banco del Pacífico">Banco del Pacífico</option>
-                                      <option value="Banco Internacional">Banco Internacional</option>
-                                      <option value="Banco Bolivariano">Banco Bolivariano</option>
-                                      <option value="Cooperativa JEP">Cooperativa JEP</option>
-                                    </select>
-                                  </div>
-
-                                  <div className="space-y-1">
-                                    <label className="block text-xs font-bold text-slate-700">Tipo de Cuenta: <span className="text-rose-500">*</span></label>
-                                    <select
-                                      value={accountType}
-                                      onChange={(e) => setAccountType(e.target.value as any)}
-                                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-[#0C4169]"
-                                    >
-                                      <option value="ahorros">Cuenta de Ahorros</option>
-                                      <option value="corriente">Cuenta Corriente</option>
-                                    </select>
-                                  </div>
-
-                                  <div className="space-y-1">
-                                    <label className="block text-xs font-bold text-slate-700">Número de Cuenta Bancaria: <span className="text-rose-500">*</span></label>
-                                    <input
-                                      type="text"
-                                      placeholder="Ej. 2200481234"
-                                      value={accountNumber}
-                                      onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
-                                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none font-mono focus:ring-1 focus:ring-[#0C4169]"
-                                    />
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-200 animate-in fade-in duration-200">
-                                  <div className="space-y-1">
-                                    <label className="block text-xs font-bold text-slate-700">Titular impreso en la tarjeta: <span className="text-rose-500">*</span></label>
-                                    <input
-                                      type="text"
-                                      placeholder="Ej. JUAN A PEREZ DELGADO"
-                                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none uppercase focus:ring-1 focus:ring-[#0C4169]"
-                                    />
-                                  </div>
-
-                                  <div className="grid grid-cols-3 gap-3">
-                                    <div className="col-span-2 space-y-1">
-                                      <label className="block text-xs font-bold text-slate-700">Número de Tarjeta de Crédito: <span className="text-rose-500">*</span></label>
-                                      <input
-                                        type="text"
-                                        maxLength={16}
-                                        placeholder="4111 2222 3333 4444"
-                                        value={cardNumber}
-                                        onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, ''))}
-                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none font-mono focus:ring-1 focus:ring-[#0C4169]"
-                                      />
-                                    </div>
-
-                                    <div className="space-y-1">
-                                      <label className="block text-xs font-bold text-slate-700">Vence (MM/AA): <span className="text-rose-500">*</span></label>
-                                      <input
-                                        type="text"
-                                        placeholder="12/29"
-                                        value={cardExpiry}
-                                        onChange={(e) => setCardExpiry(e.target.value)}
-                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none text-center font-mono focus:ring-1 focus:ring-[#0C4169]"
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="space-y-1.5">
-                                <label className="block text-xs font-bold text-slate-800">Fecha de Inicio de Cobertura de Salud:</label>
-                                <input
-                                  type="date"
-                                  value={coverageStartDate}
-                                  onChange={(e) => setCoverageStartDate(e.target.value)}
-                                  className="px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none font-mono bg-white focus:ring-1 focus:ring-[#0C4169] cursor-pointer"
-                                />
-                                <p className="text-[10px] text-slate-400">Los 30 días reglamentarios de carencia asistencial ambulatoria se computarán desde esta fecha calendarizada.</p>
-                              </div>
-
                             </div>
-
                           </div>
 
-                          <div className="border-t border-slate-150 pt-6 flex justify-between">
+                          <div className="pt-2 flex flex-col sm:flex-row justify-between gap-4">
                             <button
                               type="button"
-                              onClick={() => setSelectedPlanToBuy(null)}
-                              className="px-5 py-2.5 bg-slate-150 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                              onClick={() => {
+                                generateQuotePDF({
+                                  leadCode: leadCode,
+                                  fullName: `${firstName} ${lastName}`,
+                                  email: email,
+                                  phone: phone,
+                                  docNumber: docNumber || '1712345678',
+                                  docType: docType || 'cedula',
+                                  planName: selectedPlanToBuy.name,
+                                  basePrice: selectedPlanToBuy.basePrice,
+                                  finalPrice: calculateDynamicPrice(selectedPlanToBuy.basePrice),
+                                  province: province,
+                                  coverageStartDate: coverageStartDate,
+                                  dependents: dependants.map(d => ({
+                                    relation: getDependantAgeLabel(d.ageRange),
+                                    age: d.ageRange === '0-17' ? 10 : d.ageRange === '18-35' ? 25 : d.ageRange === '36-49' ? 42 : d.ageRange === '50-64' ? 58 : 70
+                                  })),
+                                  hospitalNetwork: selectedPlanToBuy.cobertura ? 'Red Cobertura Directa Colmedikal' : 'Red Sede Principal',
+                                  maxCoverage: selectedPlanToBuy.cobertura,
+                                  dedHosp: selectedPlanToBuy.dedHosp,
+                                  features: selectedPlanToBuy.caracteristicas || [],
+                                  especialidades: selectedPlanToBuy.especialidades || {}
+                                });
+                              }}
+                              className="px-6 py-3 bg-white border border-slate-205 hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center justify-center gap-2 transition rounded-xl cursor-pointer w-full sm:w-auto"
                             >
-                              Volver a la Comparativa
+                              <Download className="w-4 h-4 text-[#4597CA]" />
+                              <span>Descargar Resumen (PDF)</span>
                             </button>
 
                             <button
                               type="button"
-                              onClick={() => {
-                                if (paymentMethod === 'cuenta' && (!bankName || !accountNumber)) {
-                                  alert('Por favor complete la selección de su Entidad Bancaria y el Número de Cuenta.');
-                                  return;
-                                }
-                                if (paymentMethod === 'tarjeta' && (!cardNumber || cardNumber.length < 15)) {
-                                  alert('Por favor complete los datos válidos de su Tarjeta de Crédito de Red.');
-                                  return;
-                                }
-                                setCheckoutStep(2);
-                              }}
-                              className="px-6 py-2.5 bg-[#0C4169] text-white hover:bg-slate-900 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                              onClick={() => setCheckoutStep(2)}
+                              className="px-6 py-3 bg-[#0C4169] text-white hover:bg-slate-900 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
                             >
-                              <span>Confirmar Cuenta de Pago</span>
+                              <span>Enviar Solicitud de Contratación</span>
                               <ArrowRight className="w-4 h-4 text-[#4597CA]" />
                             </button>
                           </div>
@@ -1337,135 +1234,51 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                       )}
 
                       {checkoutStep === 2 && (
-                        <div className="space-y-6 max-w-2xl mx-auto">
-                          <div className="p-5 bg-teal-50/40 border border-teal-200 rounded-2xl space-y-4">
-                            <h4 className="text-xs font-black text-teal-900 uppercase tracking-wide flex items-center gap-2 font-mono">
-                              <ShieldCheck className="w-4 h-4 text-emerald-600 animate-pulse" />
-                              <span>Consentimiento y Declaración Médica</span>
-                            </h4>
-
-                            <div className="space-y-3 text-xs text-slate-700 leading-relaxed font-sans">
-                              
-                              <label className="flex items-start gap-3 p-3 bg-white border border-teal-100 rounded-xl cursor-pointer hover:bg-teal-50/20 transition">
-                                <input
-                                  type="checkbox"
-                                  checked={carenciasAccepted}
-                                  onChange={(e) => setCarenciasAccepted(e.target.checked)}
-                                  className="w-4 h-4 mt-0.5 rounded text-teal-600 border-teal-300 focus:ring-teal-500 cursor-pointer"
-                                />
-                                <div className="space-y-0.5">
-                                  <span className="font-bold text-slate-800 block">Suscripción y Periodos de Carencia:</span>
-                                  <p className="text-[10.5px] text-slate-500 leading-normal">
-                                    Acepto expresamente el periodo de <strong>30 días de carencia</strong> para consultas de medicina externa y red ágil, así como <strong>90 días</strong> para cirugías programadas, hospitalización y el desembolso del bono de maternidad.
-                                  </p>
-                                </div>
-                              </label>
-
-                              <label className="flex items-start gap-3 p-3 bg-white border border-teal-100 rounded-xl cursor-pointer hover:bg-teal-50/20 transition">
-                                <input
-                                  type="checkbox"
-                                  checked={healthDeclaration}
-                                  onChange={(e) => setHealthDeclaration(e.target.checked)}
-                                  className="w-4 h-4 mt-0.5 rounded text-teal-600 border-teal-300 focus:ring-teal-500 cursor-pointer"
-                                />
-                                <div className="space-y-0.5">
-                                  <span className="font-bold text-slate-800 block">Condición Preexistente:</span>
-                                  <p className="text-[10.5px] text-slate-500 leading-normal">
-                                    Declaro no contar con cirugías mayores pendientes u hospitalización activa para patologías crónicas no notificadas en mi expediente. Las dolencias previas se cubren tras 24 meses de aportes continuos.
-                                  </p>
-                                </div>
-                              </label>
-
-                              <label className="flex items-start gap-3 p-3 bg-white border border-teal-100 rounded-xl cursor-pointer hover:bg-teal-50/20 transition">
-                                <input
-                                  type="checkbox"
-                                  checked={signatureAccepted}
-                                  onChange={(e) => setSignatureAccepted(e.target.checked)}
-                                  className="w-4 h-4 mt-0.5 rounded text-teal-600 border-teal-300 focus:ring-teal-500 cursor-pointer"
-                                />
-                                <div className="space-y-0.5">
-                                  <span className="font-bold text-slate-800 block">Autorización de Recaudación y Vademécum:</span>
-                                  <p className="text-[10.5px] text-slate-500 leading-normal">
-                                    Autorizo a efectuar el débito bancario correspondiente y ratifico que conozco que el 100% de cobertura en medicamentos requiere prescripción médica de red y retiro en Fybeca, Medicity, Sana Sana o Económicas.
-                                  </p>
-                                </div>
-                              </label>
-
-                            </div>
+                        <div className="space-y-6 max-w-2xl mx-auto text-center py-12 animate-in zoom-in-95 duration-500">
+                          <div className="w-20 h-20 mx-auto bg-emerald-50 rounded-full flex items-center justify-center mb-6">
+                            <Check className="w-10 h-10 text-emerald-500" />
                           </div>
-
-                          {/* Digital Signature Panel */}
-                          <div className="space-y-2 bg-slate-50 p-5 rounded-2xl border border-slate-200">
-                            <label className="block text-xs font-black text-slate-800 uppercase tracking-wider font-mono">Firma Autógrafa Autorizada:</label>
-                            
-                            <div className="bg-white border border-slate-250 rounded-2xl p-4 flex flex-col items-center justify-center space-y-3 shadow-inner min-h-[140px] relative overflow-hidden">
-                              {signatureText ? (
-                                <div className="text-center font-serif text-3xl text-[#0C4169] border-b border-sky-200 pb-2 w-full max-w-xs italic opacity-90 select-none antialiased">
-                                  {signatureText}
-                                </div>
-                              ) : (
-                                <p className="text-slate-400 text-xs italic">Escriba su firma digital colocando su nombre completo abajo</p>
-                              )}
-                              <div className="absolute bottom-2 right-3 flex items-center gap-1 text-[8.5px] font-mono text-slate-405 uppercase">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                                <span>SECURE KEY: {leadCode}</span>
-                              </div>
+                          <h3 className="text-2xl font-black text-[#0C4169] tracking-tight">¡Solicitud Registrada con Éxito!</h3>
+                          <div className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto space-y-4">
+                            <p>
+                              Su solicitud de suscripción para el plan <strong className="text-[#0C4169]">{selectedPlanToBuy.name}</strong> ha sido enviada exitosamente.
+                            </p>
+                            <div className="bg-sky-50 p-4 rounded-xl border border-sky-100 text-sky-800">
+                              <p>Hemos enviado un resumen detallado con los beneficios de su plan al correo electrónico: <strong>{email}</strong></p>
                             </div>
-
-                            <div className="space-y-1">
-                              <span className="text-[10px] text-slate-450 uppercase font-mono tracking-wider font-bold">Firma Digital (Escriba su Nombre y Apellido):</span>
-                              <input
-                                type="text"
-                                placeholder="Coloque su firma aquí"
-                                value={signatureText}
-                                onChange={(e) => setSignatureText(e.target.value)}
-                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none font-bold text-slate-800"
-                              />
-                            </div>
+                            <p className="text-xs text-slate-400">
+                              Un asesor especializado de Colmedikal se comunicará con usted en breve para finalizar su proceso de afiliación.
+                            </p>
                           </div>
-
-                          <div className="flex justify-between items-center pt-2">
+                          <div className="pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
                             <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedPlanToBuy(null);
-                                setCheckoutStep(1);
-                              }}
-                              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                               onClick={() => {
+                                 window.scrollTo(0,0);
+                                 navigate('/blog');
+                               }}
+                               className="px-6 py-3 bg-white border border-slate-205 hover:bg-slate-50 text-sm font-bold text-slate-700 flex items-center justify-center gap-2 transition rounded-xl cursor-pointer w-full sm:w-auto"
                             >
-                              Volver a Planes
+                               Ir al Blog
                             </button>
-
                             <button
-                              type="button"
-                              disabled={isContracting || !signatureAccepted || !carenciasAccepted || !healthDeclaration || !signatureText}
-                              onClick={() => {
-                                setIsContracting(true);
-                                setTimeout(() => {
-                                  setIsContracting(false);
-                                  setCheckoutStep(3);
-                                }, 1800);
-                              }}
-                              className="px-6 py-3 bg-[#0C4169] disabled:bg-slate-300 disabled:cursor-not-allowed text-white hover:bg-slate-900 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                               onClick={() => {
+                                 window.scrollTo(0,0);
+                                 navigate('/servicios');
+                               }}
+                               className="px-6 py-3 bg-white border border-slate-205 hover:bg-slate-50 text-sm font-bold text-slate-700 flex items-center justify-center gap-2 transition rounded-xl cursor-pointer w-full sm:w-auto"
                             >
-                              {isContracting ? (
-                                <>
-                                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                  </svg>
-                                  <span>Procesando Contrato...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span>Legalizar y Firmar Contrato</span>
-                                  <Check className="w-4 h-4 text-emerald-400" />
-                                </>
-                              )}
+                               Ver Servicios
+                            </button>
+                            <button
+                              onClick={() => window.location.reload()}
+                              className="px-6 py-3 bg-[#0C4169] text-white hover:bg-slate-900 rounded-xl text-sm font-bold transition shadow-md cursor-pointer w-full sm:w-auto"
+                            >
+                              Finalizar y Volver al Inicio
                             </button>
                           </div>
                         </div>
                       )}
+
 
                       {checkoutStep === 3 && (
                         <div className="space-y-8 max-w-3xl mx-auto animate-in zoom-in-95 duration-500">
@@ -1501,7 +1314,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                               <div className="space-y-2 bg-slate-950/40 p-4 rounded-xl border border-white/10 font-sans text-sky-100">
                                 <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Suscripción CUC:</strong> <span className="font-mono text-yellow-350">{leadCode}-AF-SECURE</span></p>
                                 <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Inicio de Cobertura de Plan:</strong> {new Date(coverageStartDate).toLocaleDateString('es-EC', {day: '2-digit', month: 'long', year: 'numeric'})}</p>
-                                <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Límite Global de Gastos Hospitalarios:</strong> {selectedPlanToBuy.cobertura} por evento</p>
+                                <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Límite Global de Gastos Hospitalarios:</strong> {selectedPlanToBuy.cobertura}</p>
                                 <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Frecuencia Débito:</strong> {paymentFrequency === 'mensual' ? 'Mensual Recurrente' : 'Anual pagado completo'}</p>
                               </div>
                             </div>
@@ -1554,7 +1367,8 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                                     maxCoverage: selectedPlanToBuy.cobertura,
                                     dedHosp: selectedPlanToBuy.dedHosp,
                                     signatureText: signatureText,
-                                    features: selectedPlanToBuy.caracteristicas || []
+                                    features: selectedPlanToBuy.caracteristicas || [],
+                                    especialidades: selectedPlanToBuy.especialidades || {}
                                   });
                                 }}
                                 className="flex items-center gap-2 p-3 px-5 bg-[#0C4169] text-white hover:bg-slate-900 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer shadow transition"
@@ -1586,7 +1400,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                               <div className="space-y-2">
                                 <h5 className="font-extrabold text-[#0C4169] text-xs">🩺 Coordinación de Consultas del Plan</h5>
                                 <p>
-                                  Goza de 8 consultas de medicina general y especialidades al año por asegurado abonando solamente su copago directo de <strong>$15,00 USD</strong>. Llame o escriba para agendar consultas dentro de la red:
+                                  Goza de consultas de medicina general y especialidades ilimitadas con cobertura del <strong>100% (sin copago)</strong> para el asegurado. Llame o escriba para agendar consultas dentro de la red:
                                 </p>
                                 <div className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-1 mt-1 font-bold text-slate-800 text-[10.5px]">
                                   <p>📞 Central Fija: 022 567191</p>
@@ -1670,7 +1484,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                           {/* Coverages table details */}
                           <div className="space-y-2 text-[11px] text-slate-700 font-sans border-b border-slate-100 pb-3">
                             <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
-                              <span className="text-slate-450 text-[10px]">Límite por Evento:</span>
+                              <span className="text-slate-450 text-[10px]">Límite Anual:</span>
                               <span className="font-extrabold text-slate-800 text-right">{plan.cobertura}</span>
                             </div>
                             <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
@@ -1695,7 +1509,7 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                             </div>
                             <div className="flex justify-between items-center py-1 font-sans">
                               <span className="text-[#4597CA] text-[10px] font-bold">Exámenes al Año (Lab/Img):</span>
-                              <span className="font-semibold text-slate-850 text-right">Hasta ${parseInt(plan.laboratorio.replace(/\D/g, '')) + parseInt(plan.imagen.replace(/\D/g, ''))}.00</span>
+                              <span className="font-semibold text-slate-850 text-right">Hasta $100.00</span>
                             </div>
                           </div>
 
@@ -1751,41 +1565,11 @@ export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId 
                           <button
                             onClick={() => {
                               setSelectedPlanToBuy(plan);
-                              setCheckoutStep(2); // Skip Step 1 (payment) and go directly to Step 2 (Declaration)
+                              setCheckoutStep(1);
                             }}
                             className="w-full py-3 rounded-xl bg-[#0C4169] hover:bg-slate-900 text-xs font-black uppercase tracking-wider text-center cursor-pointer shadow hover:shadow-md transition active:scale-97 text-white"
                           >
                             Contratar Este Plan
-                          </button>
-                          
-                          <button
-                            onClick={() => {
-                              generateQuotePDF({
-                                leadCode: 'PRE-' + Math.floor(Math.random() * 900000 + 100000),
-                                fullName: `${firstName} ${lastName}`,
-                                email: email,
-                                phone: phone,
-                                docNumber: docNumber || '1712345678',
-                                docType: docType || 'cedula',
-                                planName: plan.name,
-                                basePrice: plan.basePrice,
-                                finalPrice: calculateDynamicPrice(plan.basePrice),
-                                province: province,
-                                coverageStartDate: coverageStartDate,
-                                dependents: dependants.map(d => ({
-                                  relation: getDependantAgeLabel(d.ageRange),
-                                  age: d.ageRange === '0-17' ? 10 : d.ageRange === '18-35' ? 25 : d.ageRange === '36-49' ? 42 : d.ageRange === '50-64' ? 58 : 70
-                                })),
-                                hospitalNetwork: plan.cobertura ? 'Red Cobertura Directa Colmedikal' : 'Red Sede Principal',
-                                maxCoverage: plan.cobertura,
-                                dedHosp: plan.dedHosp,
-                                features: plan.caracteristicas || []
-                              });
-                            }}
-                            className="w-full py-2 cursor-pointer bg-white border border-slate-205 hover:bg-slate-50 text-[11px] font-bold text-slate-700 flex items-center justify-center gap-1.5 transition rounded-xl"
-                          >
-                            <Download className="w-3.5 h-3.5 text-[#4597CA]" />
-                            <span>Descargar Cotización (PDF)</span>
                           </button>
                         </div>
 

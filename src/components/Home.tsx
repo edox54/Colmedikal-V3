@@ -15,22 +15,18 @@ import {
   FileText,
   Mail
 } from 'lucide-react';
-import { Plan, Page } from '../types';
+import { Plan } from '../types';
 import { MEDICAL_PLANS } from '../data';
 import Logo from './Logo';
+import { useNavigate } from 'react-router-dom';
 import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.png';
 import heroBuildingImg from '../assets/images/sede_principal_building_1780025281820.png';
 import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.png';
 import avatarValentina from '../assets/images/avatar_valentina_1780025241348.png';
 import avatarCarlosElena from '../assets/images/avatar_carlos_elena_1780025264251.png';
 
-interface HomeProps {
-  setCurrentPage: (page: Page) => void;
-  setSelectedPlanId: (id: string) => void;
-}
-
-export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
-  
+export default function Home() {
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = React.useState(0);
 
   const slides = [
@@ -42,7 +38,7 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
       extraText: 'Calcula tu propuesta médica prepagada 100% personalizada en 2 minutos.',
       buttonText: 'COTIZAR MI PLAN DE SALUD',
       image: heroBannerImg,
-      targetPage: 'cotizador' as Page,
+      targetPath: '/cotizador',
       color: 'bg-emerald-500 hover:bg-emerald-600',
     },
     {
@@ -53,7 +49,7 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
       extraText: 'Accede a nuestro directorio de clínicas premium y especialistas certificados.',
       buttonText: 'EXPLORAR RED MÉDICA',
       image: heroBuildingImg,
-      targetPage: 'directorio' as Page,
+      targetPath: '/directorio',
       color: 'bg-[#4597CA] hover:bg-sky-600',
     },
     {
@@ -64,7 +60,7 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
       extraText: 'Indica la fecha, ciudad o especialidad y recibe confirmación directa en línea.',
       buttonText: 'AGENDAR MI CITA AHORA',
       image: heroAppointmentImg,
-      targetPage: 'agendamiento' as Page,
+      targetPath: '/agendamiento',
       color: 'bg-teal-600 hover:bg-teal-700',
     }
   ];
@@ -77,8 +73,9 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
   }, []);
 
   const handlePlanSelect = (planId: string) => {
-    setSelectedPlanId(planId);
-    setCurrentPage('cotizador');
+    // Note: I'll need to pass the planId to cotizador if I want to "select" it there. 
+    // For now, I'll just navigate.
+    navigate('/cotizador');
   };
 
   const stats = [
@@ -138,7 +135,7 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
             {/* Slide Action Button ONLY (Removed "Ingresar al portal de pacientes" as requested!) */}
             <div className="pt-2">
               <button
-                onClick={() => setCurrentPage(slides[currentSlide].targetPage)}
+                onClick={() => navigate(slides[currentSlide].targetPath)}
                 className={`px-8 py-3.5 rounded-full text-white font-extrabold text-xs uppercase tracking-wider text-center cursor-pointer shadow-md hover:scale-102 hover:shadow-lg transition-all flex items-center justify-center gap-2 ${slides[currentSlide].color}`}
                 id={`btn-hero-slide-${slides[currentSlide].id}`}
               >
@@ -463,8 +460,7 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={() => {
-                  setSelectedPlanId('esencial');
-                  setCurrentPage('cotizador');
+                  navigate('/cotizador');
                 }}
                 className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-[#4597CA] to-[#0C4169] hover:from-[#0C4169] hover:to-[#4597CA] text-white font-bold transition-all shadow-md group cursor-pointer"
                 id="footer-cta-quote"
@@ -472,7 +468,7 @@ export default function Home({ setCurrentPage, setSelectedPlanId }: HomeProps) {
                 Ingresar al Cotizador
               </button>
               <button
-                onClick={() => setCurrentPage('contacto')}
+                onClick={() => navigate('/contacto')}
                 className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-slate-850 hover:bg-slate-800 text-white font-medium border border-slate-750 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 id="footer-cta-support"
               >
