@@ -1,22 +1,24 @@
 import React, { useState, useRef } from 'react';
-import { 
-  FileText, 
-  DollarSign, 
-  Upload, 
-  CheckCircle, 
-  FileCheck, 
-  Send, 
-  Eye, 
-  File, 
-  MapPin, 
-  Phone, 
+import {
+  FileText,
+  DollarSign,
+  Upload,
+  CheckCircle,
+  FileCheck,
+  Send,
+  Eye,
+  File,
+  MapPin,
+  Phone,
   ArrowLeft,
   Mail,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Info
 } from 'lucide-react';
 import { Page } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
+import { validators, validateForm } from '../utils/validation';
 
 interface TramitesOnlineProps {
   setCurrentPage: (page: Page) => void;
@@ -53,6 +55,8 @@ export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) 
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [submittedData, setSubmittedData] = useState<any>(null);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState('');
 
   // Drag & drop handlers
   const handleDragOver = (e: React.DragEvent) => {
@@ -96,16 +100,66 @@ export default function TramitesOnline({ setCurrentPage }: TramitesOnlineProps) 
     setSubmittedData(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!privacyAccepted) {
-      alert('Debe aceptar las políticas de protección de datos personales.');
-      return;
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    // Validate common fields
+    const nameValidation = validators.name(fullName);
+    if (!nameValidation.valid) {
+      errors.fullName = nameValidation.error || 'Nombre inválido';
+    }
+
+    const cedulaValidation = validators.cedula(cedula);
+    if (!cedulaValidation.valid) {
+      errors.cedula = cedulaValidation.error || 'Cédula inválida';
+    }
+
+    const phoneValidation = validators.phone(phone);
+    if (!phoneValidation.valid) {
+      errors.phone = phoneValidation.error || 'Teléfono inválido';
+    }
+
+    const emailValidation = validators.email(email);
+    if (!emailValidation.valid) {
+      errors.email = emailValidation.error || 'Email inválido';
+    }
+
+    // Form-specific validations
+    if (activeForm === 'reembolso') {
+      const amountValidation = validators.amount(invoiceAmount);
+      if (!amountValidation.valid) {
+        errors.invoiceAmount = amountValidation.error || 'Monto inválido';
+      }
+
+      const invoiceValidation = validators.invoiceNumber(invoiceNumber);
+      if (!invoiceValidation.valid) {
+        errors.invoiceNumber = invoiceValidation.error || 'Factura inválida';
+      }
+    } else if (activeForm === 'autorizacion') {
+      if (!authProcedure.trim()) {
+        errors.authProcedure = 'Procedimiento médico es requerido';
+      } else if (authProcedure.length > 200) {
+        errors.authProcedure = 'Procedimiento muy largo (máx. 200 caracteres)';
+      }
     }
 
     if (!attachedFileName) {
-      alert('Por favor adjunte el documento requerido.');
+      errors.attachment = 'Debe adjuntar un documento de soporte';
+    }
+
+    if (!privacyAccepted) {
+      errors.privacy = 'Debe aceptar las políticas de protección de datos';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError('');
+
+    if (!validateForm()) {
       return;
     }
 
