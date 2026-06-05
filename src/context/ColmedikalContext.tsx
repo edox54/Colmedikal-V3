@@ -129,7 +129,10 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [doctors, setDoctors] = useState<Doctor[]>(initialDoctors);
+  const [doctors, setDoctors] = useState<Doctor[]>(() => {
+    const saved = localStorage.getItem('colmedikal_doctors');
+    return saved ? JSON.parse(saved) : initialDoctors;
+  });
   
   const [refunds, setRefunds] = useState<RefundItem[]>(() => {
     const saved = localStorage.getItem('colmedikal_refunds');
@@ -183,6 +186,10 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [isAdminUser]);
 
   // Persist guest offline data to local storage for portal history fallback
+  useEffect(() => {
+    localStorage.setItem('colmedikal_doctors', JSON.stringify(doctors));
+  }, [doctors]);
+
   useEffect(() => {
     localStorage.setItem('colmedikal_refunds', JSON.stringify(refunds));
   }, [refunds]);
