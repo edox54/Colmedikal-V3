@@ -29,8 +29,10 @@ export default function Contact({ setCurrentPage }: ContactProps) {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [ticketId, setTicketId] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const officeLocations = [
     {
@@ -43,31 +45,85 @@ export default function Contact({ setCurrentPage }: ContactProps) {
 
   const validate = () => {
     const tempErrors: Record<string, string> = {};
-    if (!formData.fullName.trim()) tempErrors.fullName = 'El nombre completo es requerido';
+
+    // Validate name
+    if (!formData.fullName.trim()) {
+      tempErrors.fullName = 'El nombre completo es requerido';
+    } else if (formData.fullName.trim().length < 3) {
+      tempErrors.fullName = 'El nombre debe tener al menos 3 caracteres';
+    } else if (formData.fullName.length > 100) {
+      tempErrors.fullName = 'El nombre es muy largo';
+    }
+
+    // Validate email
     if (!formData.email.trim()) {
       tempErrors.email = 'El correo electrónico es requerido';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       tempErrors.email = 'El correo electrónico no es válido';
     }
+
+    // Validate phone
     if (!formData.phone.trim()) {
       tempErrors.phone = 'El teléfono es requerido';
-    } else if (!/^\d{7,10}$/.test(formData.phone.replace(/[\s-]/g, ''))) {
-      tempErrors.phone = 'Ingrese un número válido de 7 a 10 dígitos';
+    } else if (!/^(\+593|0)?[0-9]{9,10}$/.test(formData.phone.replace(/[-\s]/g, ''))) {
+      tempErrors.phone = 'Teléfono inválido. Use formato: 0 9 XXXXXXXX';
     }
-    if (!formData.message.trim()) tempErrors.message = 'Escriba brevemente su consulta';
-    if (!privacyAccepted) tempErrors.privacy = 'Debe aceptar las políticas de protección de datos';
-    
+
+    // Validate message
+    if (!formData.message.trim()) {
+      tempErrors.message = 'Escriba brevemente su consulta';
+    } else if (formData.message.trim().length < 10) {
+      tempErrors.message = 'El mensaje debe tener al menos 10 caracteres';
+    } else if (formData.message.length > 1000) {
+      tempErrors.message = 'El mensaje no puede exceder 1000 caracteres';
+    }
+
+    if (!privacyAccepted) {
+      tempErrors.privacy = 'Debe aceptar las políticas de protección de datos';
+    }
+
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      // Simulate ticket generation with random index
-      const randomTickets = Math.floor(100000 + Math.random() * 900000);
-      setTicketId(`CLM-${randomTickets}`);
+    setSubmitError('');
+
+    if (!validate()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Store contact submission in localStorage for now (until backend is ready)
+      const contactsList = JSON.parse(localStorage.getItem('colmedikal_contacts') || '[]');
+      const timestamp = new Date().toISOString();
+      const generatedTicketId = `CLM-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+
+      const submission = {
+        id: generatedTicketId,
+        ...formData,
+        timestamp,
+        status: 'Nuevo',
+      };
+
+      contactsList.push(submission);
+      localStorage.setItem('colmedikal_contacts', JSON.stringify(contactsList));
+
+      // In production, this would send to backend API
+      // await fetch('/api/contacts', { method: 'POST', body: JSON.stringify(submission) });
+
+      setTicketId(generatedTicketId);
       setIsSubmitted(true);
+
+      // Simulate email sending notification
+      console.log('✓ Contacto registrado. Ticket:', generatedTicketId);
+    } catch (error) {
+      setSubmitError('Error al registrar tu contacto. Por favor intenta nuevamente.');
+      console.error('Contact submission error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -312,14 +368,35 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                 {errors.privacy && <span className="text-[11px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.privacy}</span>}
               </div>
 
+              {submitError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-700">{submitError}</p>
+                </div>
+              )}
+
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 text-white font-bold text-xs shadow-md shadow-teal-500/10 hover:shadow-teal-500/25 transition-all text-center flex items-center justify-center gap-2 group cursor-pointer"
+                  disabled={isSubmitting}
+                  className={`w-full py-3.5 rounded-xl text-white font-bold text-xs shadow-md transition-all text-center flex items-center justify-center gap-2 group ${
+                    isSubmitting
+                      ? 'bg-slate-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-teal-500 to-indigo-600 hover:shadow-teal-500/25 cursor-pointer'
+                  }`}
                   id="btn-contact-submit"
                 >
-                  <span>Enviar Mensaje de Soporte</span>
-                  <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-0.5 transition-transform" />
+                  {isSubmitting ? (
+                    <>
+                      <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-r-transparent rounded-full"></span>
+                      <span>Enviando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Enviar Mensaje de Soporte</span>
+                      <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-0.5 transition-transform" />
+                    </>
+                  )}
                 </button>
               </div>
 
