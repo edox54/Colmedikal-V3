@@ -30,25 +30,14 @@ export default function Contact({ setCurrentPage }: ContactProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const officeLocations = [
     {
       city: 'Sede Principal - Quito',
-      address: 'Av. Amazonas N34-219 y Atahualpa, Edificio Colmedical Center',
+      address: 'Av. de la República E6-447, 170102 Quito, Ecuador',
       phones: '02-3951000 / 02-3998000',
       email: 'quito@colmedikal.com'
-    },
-    {
-      city: 'Sucursal - Guayaquil',
-      address: 'Av. Francisco de Orellana, Edificio Trade Building, Of. 405',
-      phones: '04-2289600 / 04-2583300',
-      email: 'guayaquil@colmedikal.com'
-    },
-    {
-      city: 'Oficina - Cuenca',
-      address: 'Av. Florencia Astudillo, Edificio Cámara de Industrias, Local 3',
-      phones: '07-2815500',
-      email: 'cuenca@colmedikal.com'
     }
   ];
 
@@ -66,6 +55,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
       tempErrors.phone = 'Ingrese un número válido de 7 a 10 dígitos';
     }
     if (!formData.message.trim()) tempErrors.message = 'Escriba brevemente su consulta';
+    if (!privacyAccepted) tempErrors.privacy = 'Debe aceptar las políticas de protección de datos';
     
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
@@ -96,7 +86,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
   };
 
   return (
-    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedical-contact-view">
+    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-contact-view">
       
       {/* 1. HEADER SECTION */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
@@ -187,7 +177,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-slate-950">¡Mensaje Enviado con Éxito!</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Gracias por comunicarte con Colmedical. Hemos registrado tu solicitud bajo el código de atención:
+                  Gracias por comunicarte con Colmedikal. Hemos registrado tu solicitud bajo el código de atención:
                 </p>
                 <div className="bg-slate-100 px-4 py-2 rounded-xl text-sm font-mono font-bold text-slate-800 tracking-wide border border-slate-200 w-fit mx-auto">
                   {ticketId}
@@ -307,6 +297,21 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                 {errors.message && <span className="text-[11px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.message}</span>}
               </div>
 
+              <div className="pt-2 pb-1 text-left">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                    className="mt-0.5 rounded text-teal-600 border-slate-300 focus:ring-teal-500"
+                  />
+                  <span className="text-[11px] text-slate-500 leading-tight">
+                    Acepto las políticas de protección de datos personales.
+                  </span>
+                </label>
+                {errors.privacy && <span className="text-[11px] text-red-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.privacy}</span>}
+              </div>
+
               <div className="pt-2">
                 <button
                   type="submit"
@@ -319,7 +324,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
               </div>
 
               <span className="block text-[10px] text-center text-slate-400">
-                Al enviar autorizas el uso de tus datos exclusivamente para responder y brindarte asesoramiento médico por Colmedical S.A.
+                Al enviar autorizas el uso de tus datos exclusivamente para responder y brindarte asesoramiento médico por Colmedikal S.A.
               </span>
             </form>
           )}
@@ -331,33 +336,64 @@ export default function Contact({ setCurrentPage }: ContactProps) {
       {/* 4. PHYSICAL OFFICES GRID SECTION */}
       <section className="bg-slate-50 p-8 sm:p-12 rounded-3xl border border-slate-200">
         <div className="max-w-2xl text-center md:text-left space-y-2 mb-8">
-          <h3 className="text-xl font-bold font-display text-slate-900">Oficinas Físicas de Atención Regional</h3>
+          <h3 className="text-xl font-bold font-display text-slate-900">Ubicación y Sede Principal</h3>
           <p className="text-xs text-slate-500">
-            Visítanos para resolver aclaraciones presenciales sobre reembolsos o entrega de cheques.
+            Visítanos en nuestra oficina central para atención comercial, trámites corporativos y asesoramiento personalizado.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {officeLocations.map((loc, i) => (
-            <div key={i} className="bg-white p-5 rounded-2xl border border-slate-150 space-y-3 shadow-sm hover:border-indigo-100 transition-colors" id={`office-${i}`}>
-              <span className="text-xs font-bold text-teal-600 block">{loc.city}</span>
-              
-              <div className="space-y-2.5 text-xs text-slate-600 leading-normal">
-                <p className="flex items-start gap-2">
-                  <MapPin className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                  <span>{loc.address}</span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <Phone className="w-4.5 h-4.5 text-indigo-500 shrink-0 mt-0.5" />
-                  <span className="font-mono">{loc.phones}</span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <Mail className="w-4.5 h-4.5 text-indigo-500 shrink-0 mt-0.5" />
-                  <span>{loc.email}</span>
-                </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+          {/* Left: Office Card info */}
+          <div className="lg:col-span-5 bg-white p-6 sm:p-8 rounded-2xl border border-slate-150 space-y-6 shadow-sm flex flex-col justify-between">
+            <div className="space-y-4">
+              <span className="text-xs font-bold text-teal-650 bg-teal-50 border border-teal-100 px-3 py-1 rounded-full w-fit block tracking-wider uppercase">
+                {officeLocations[0].city}
+              </span>
+              <h4 className="text-lg font-black text-slate-900">Edificio Sede Central</h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Nuestras modernas instalaciones cuentan con personal calificado, salas de reuniones corporativas y atención directa para todos nuestros afiliados.
+              </p>
+            </div>
+            
+            <div className="space-y-4 text-xs text-slate-650 leading-normal border-t border-slate-100 pt-5">
+              <div className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="block font-bold text-slate-800">Dirección</span>
+                  <span>{officeLocations[0].address}</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Phone className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="block font-bold text-slate-800">Teléfono Regional</span>
+                  <span className="font-mono">{officeLocations[0].phones}</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="block font-bold text-slate-800">Canal Comercial</span>
+                  <span>{officeLocations[0].email}</span>
+                </div>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Right: Embedded Interactive Map */}
+          <div className="lg:col-span-7 bg-white p-3 rounded-2xl border border-slate-150 shadow-sm overflow-hidden min-h-[350px] flex">
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3989.7960771186235!2d-78.48824092483996!3d-0.1913198998067952!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91d59a7ab997494d%3A0x96170303f777b745!2sColmedikal!5e0!3m2!1ses!2sve!4v1780589706224!5m2!1ses!2sve" 
+              width="100%" 
+              height="100%" 
+              style={{ border: 0 }} 
+              allowFullScreen={true}
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade"
+              className="w-full h-full min-h-[350px] rounded-xl border-0 flex-1"
+              title="Mapa de Ubicación de Colmedikal Sede Principal"
+            ></iframe>
+          </div>
         </div>
       </section>
 

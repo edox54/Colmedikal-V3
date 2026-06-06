@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
-import { Page } from './types';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './components/Home';
@@ -13,86 +13,77 @@ import About from './components/About';
 import Contact from './components/Contact';
 import Cotizador from './components/Cotizador';
 import DirectorioMedico from './components/DirectorioMedico';
-import PortalAfiliados from './components/PortalAfiliados';
+import TramitesOnline from './components/TramitesOnline';
+import AgendamientoCitas from './components/AgendamientoCitas';
 import PreguntasFrecuentes from './components/PreguntasFrecuentes';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import Blog from './components/Blog';
+import FloatingWidget from './components/FloatingWidget';
+import SEOController from './seo/SEOController';
+import { ColmedikalProvider } from './context/ColmedikalContext';
 import AdminPanel from './components/AdminPanel';
-import { ColmedicalProvider } from './context/ColmedicalContext';
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('esencial');
-
-  const renderContent = () => {
-    switch (currentPage) {
-      case 'home':
-        return (
-          <Home 
-            setCurrentPage={handlePageChange} 
-            setSelectedPlanId={(id) => {
-              setSelectedPlanId(id);
-              handlePageChange('cotizador');
-            }} 
-          />
-        );
-      case 'servicios':
-        return <Services setCurrentPage={handlePageChange} />;
-      case 'directorio':
-        return <DirectorioMedico setCurrentPage={handlePageChange} />;
-      case 'portal':
-        return <PortalAfiliados setCurrentPage={handlePageChange} />;
-      case 'faqs':
-        return <PreguntasFrecuentes setCurrentPage={handlePageChange} />;
-      case 'nosotros':
-        return <About setCurrentPage={handlePageChange} />;
-      case 'contacto':
-        return <Contact setCurrentPage={handlePageChange} />;
-      case 'admin':
-        return <AdminPanel setCurrentPage={handlePageChange} />;
-      case 'cotizador':
-        return (
-          <Cotizador 
-            currentPage={currentPage}
-            setCurrentPage={handlePageChange}
-            selectedPlanId={selectedPlanId}
-          />
-        );
-      default:
-        return (
-          <Home 
-            setCurrentPage={handlePageChange} 
-            setSelectedPlanId={setSelectedPlanId} 
-          />
-        );
+function useSetCurrentPageMapper() {
+  const navigate = useNavigate();
+  return (page: string) => {
+    switch (page) {
+      case 'home': navigate('/'); break;
+      case 'blog-detalle': navigate('/blog'); break;
+      default: navigate('/' + page); break;
     }
   };
+}
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [currentPage]);
-
-  const handlePageChange = (page: Page) => {
-    setCurrentPage(page);
-  };
-
+export default function App() {
   return (
-    <ColmedicalProvider>
-      <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id="colmedical-portal-root">
-        
-        {/* 1. Header Banner */}
-        <Header currentPage={currentPage} setCurrentPage={handlePageChange} />
+    <ColmedikalProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomeLayout component={Home} />} />
+          <Route path="/servicios" element={<HomeLayout component={Services} />} />
+          <Route path="/directorio" element={<HomeLayout component={DirectorioMedico} />} />
+          <Route path="/tramites" element={<HomeLayout component={TramitesOnline} />} />
+          <Route path="/agendamiento" element={<HomeLayout component={AgendamientoCitas} />} />
+          <Route path="/faqs" element={<HomeLayout component={PreguntasFrecuentes} />} />
+          <Route path="/privacy" element={<HomeLayout component={PrivacyPolicy} />} />
+          <Route path="/nosotros" element={<HomeLayout component={About} />} />
+          <Route path="/contacto" element={<HomeLayout component={Contact} />} />
+          <Route path="/blog/*" element={<HomeLayout component={Blog} />} />
+          <Route path="/cotizador" element={<AdminLayout component={Cotizador} />} />
+          <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ColmedikalProvider>
+  );
+}
 
-        {/* 2. Main content container */}
-        <main className="flex-grow pt-4">
-          <div className="animate-in fade-in duration-500">
-            {renderContent()}
-          </div>
-        </main>
+function HomeLayout({ component: Component }: { component: React.ElementType }) {
+  const setCurrentPage = useSetCurrentPageMapper();
+  return (
+    <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id="colmedikal-portal-root">
+      <Header />
+      <main className="flex-grow pt-4">
+        <div className="animate-in fade-in duration-500">
+          <Component setCurrentPage={setCurrentPage} />
+        </div>
+      </main>
+      <Footer />
+      <FloatingWidget />
+    </div>
+  );
+}
 
-        {/* 3. Footer content */}
-        <Footer setCurrentPage={handlePageChange} />
-        
-      </div>
-    </ColmedicalProvider>
+function AdminLayout({ component: Component }: { component: React.ElementType }) {
+  const setCurrentPage = useSetCurrentPageMapper();
+  return (
+    <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id="colmedikal-portal-layout-root">
+      <main className="flex-grow">
+        <div className="animate-in fade-in duration-300">
+          <Component setCurrentPage={setCurrentPage} />
+        </div>
+      </main>
+    </div>
   );
 }
 

@@ -1,788 +1,1596 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Calculator, 
   User, 
   Users, 
   Briefcase, 
-  HeartHandshake, 
   ArrowRight, 
   ArrowLeft, 
-  Sparkles, 
-  ShieldCheck, 
-  Info, 
+  Check, 
   MapPin, 
-  CheckCircle,
+  Mail, 
+  Phone, 
+  FileText, 
   HelpCircle,
-  BadgePercent,
-  Download,
-  Send,
-  Smartphone,
-  Check,
-  AlertCircle
+  Clock,
+  ShieldCheck,
+  Building,
+  Plus,
+  Trash2,
+  Calendar,
+  CreditCard,
+  Lock,
+  X,
+  FileCheck,
+  Download
 } from 'lucide-react';
-import { Page, Plan, QuoteState } from '../types';
-import { MEDICAL_PLANS, PROVINCIAS_EC } from '../data';
-import { useColmedical } from '../context/ColmedicalContext';
+import { Page } from '../types';
+import Logo from './Logo';
+import { useColmedikal } from '../context/ColmedikalContext';
+import { generateQuotePDF } from '../utils/pdfGenerator';
+import { sendLeadToKommoCRM } from '../utils/crm';
 
 interface CotizadorProps {
-  currentPage: Page;
-  setCurrentPage: (page: Page) => void;
-  selectedPlanId: string;
+  selectedPlanId?: string;
 }
 
-export default function Cotizador({ currentPage, setCurrentPage, selectedPlanId }: CotizadorProps) {
-  const { addLead } = useColmedical();
+interface Dependant {
+  id: string;
+  gender: string;
+  ageRange: string;
+  birthDate: string;
+  isPrimary: boolean;
+}
 
-  // Wizard steps: 1 = Tipo de afiliación, 2 = Información Demográfica, 3 = Plan y Adicionales, 4 = Resumen y Envío
-  const [step, setStep] = useState(1);
-  const [couponCode, setCouponCode] = useState('');
-  const [couponApplied, setCouponApplied] = useState(false);
-  const [couponError, setCouponError] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0);
+const PROVINCES = [
+  'Pichincha (Quito, etc.)',
+  'Guayas (Guayaquil, etc.)',
+  'Azuay (Cuenca, etc.)',
+  'Manabí (Manta, Portoviejo)',
+  'Loja',
+  'Tungurahua (Ambato)',
+  'El Oro (Machala)',
+  'Imbabura (Ibarra)',
+  'Santo Domingo de los Tsáchilas',
+  'Santa Elena',
+  'Los Ríos',
+  'Esmeraldas',
+  'Chimborazo (Riobamba)',
+  'Cotopaxi (Latacunga)',
+  'Carchi',
+  'Bolívar',
+  'Cañar',
+  'Galápagos',
+  'Morona Santiago',
+  'Napo',
+  'Orellana',
+  'Pastaza',
+  'Sucumbíos',
+  'Zamora Chinchipe'
+];
 
-  // Quote State Setup
-  const [state, setState] = useState<QuoteState>({
-    fullName: '',
-    email: '',
-    phone: '',
-    type: 'individual',
-    primaryAge: 30,
-    partnerAge: 30,
-    childrenCount: 0,
-    childrenAges: [],
-    basePlanId: selectedPlanId || 'esencial',
+export default function Cotizador({ selectedPlanId }: CotizadorProps) {
+  const navigate = useNavigate();
+  const { addLead } = useColmedikal();
+  // 1. Selector of Plan Type: masivo | individual | corporativo
+  const [planType, setPlanType] = useState<'masivo' | 'individual' | 'corporativo'>('masivo');
+  const [quoteStep, setQuoteStep] = useState(1); // Steps count varies depending on flow
+
+  // 2. Personal & Identity state (Shared)
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [province, setProvince] = useState(PROVINCES[0]);
+  const [docType, setDocType] = useState<'cedula' | 'pasaporte'>('cedula');
+  const [docNumber, setDocNumber] = useState('');
+
+  // 3. Dependents block state (For Individual plan only)
+  const [dependants, setDependants] = useState<Dependant[]>([]);
+  const [isPrimaryTitular, setIsPrimaryTitular] = useState(true);
+
+  // 4. Volume block state (For Corporate plans only)
+  const [numberOfPeople, setNumberOfPeople] = useState('');
+
+  // 5. Finishing & CRM states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showResultScreen, setShowResultScreen] = useState(false);
+  const [leadCode, setLeadCode] = useState('');
+  const [assignedRep, setAssignedRep] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+
+  // 6. Checkout & Hiring Flow states
+  const [selectedPlanToBuy, setSelectedPlanToBuy] = useState<any | null>(null);
+  const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1);
+
+  // Billing and debit details
+  const [paymentMethod, setPaymentMethod] = useState<'cuenta' | 'tarjeta'>('cuenta');
+  const [bankName, setBankName] = useState('');
+  const [accountType, setAccountType] = useState<'ahorros' | 'corriente'>('ahorros');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [paymentFrequency, setPaymentFrequency] = useState<'mensual' | 'anual'>('mensual');
+  const [coverageStartDate, setCoverageStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1); // tomorrow
+    return d.toISOString().split('T')[0];
   });
 
-  // Client-side validations
-  const [topicErrors, setTopicErrors] = useState<Record<string, string>>({});
-  const [isHandoffSubmitted, setIsHandoffSubmitted] = useState(false);
-  const [leadTicket, setLeadTicket] = useState('');
-  const [province, setProvince] = useState('Pichincha (Quito, etc.)');
+  // Verification & signature checkboxes
+  const [signatureAccepted, setSignatureAccepted] = useState(false);
+  const [carenciasAccepted, setCarenciasAccepted] = useState(false);
+  const [healthDeclaration, setHealthDeclaration] = useState(false);
+  const [signatureText, setSignatureText] = useState('');
+  const [isContracting, setIsContracting] = useState(false);
 
-  // Adjust child count dynamically
-  const handleChildCountChange = (count: number) => {
-    const updatedAges = [...state.childrenAges];
-    if (count > state.childrenCount) {
-      for (let i = state.childrenCount; i < count; i++) {
-        updatedAges.push(8); // Default child age
-      }
-    } else {
-      updatedAges.splice(count);
+  // Static Plan Comparativos - exact match with provided specifications
+  const plansComparativo = [
+    {
+      id: 'plan1',
+      name: 'Plan 1',
+      basePrice: 8,
+      cobertura: '$2.000,00 USD Anual',
+      dedHosp: '$40,00 USD Anual',
+      maternidad: '$250,00 USD',
+      muerteAccidente: '$1.500,00 USD',
+      sepelio: '$500,00 USD',
+      ambulancia: '$200,00 USD',
+      evacuacion: '$200,00 USD',
+      laboratorio: '$100,00 USD/Año',
+      imagen: '$100,00 USD/Año',
+      especialidades: {
+        'Medicina General': true,
+        'Medicina Familiar': true,
+        'Ginecología': true,
+        'Gastroenterología': true,
+        'Urología': false,
+        'Traumatología': false,
+        'Medicina Interna': false,
+        'Cardiología': false,
+        'Odontología (6 proced./año)': true
+      },
+      caracteristicas: [
+        'Entrega de medicina al 100% (Sin costo ni copago)',
+        'Especialidades: Medicina General, Familiar, Ginecología y Odontología',
+        'Carencias preferenciales (30 días ambulatorio)',
+        'Odontología (Consultas, profilaxis, restauraciones resina)'
+      ]
+    },
+    {
+      id: 'plan2',
+      name: 'Plan 2 (Recomendado)',
+      basePrice: 12,
+      cobertura: '$3.000,00 USD Anual',
+      dedHosp: '$40,00 USD Anual',
+      maternidad: '$500,00 USD',
+      muerteAccidente: '$2.500,00 USD',
+      sepelio: '$500,00 USD',
+      ambulancia: '$200,00 USD',
+      evacuacion: '$200,00 USD',
+      laboratorio: '$100,00 USD/Año',
+      imagen: '$100,00 USD/Año',
+      especialidades: {
+        'Medicina General': true,
+        'Medicina Familiar': true,
+        'Ginecología': true,
+        'Gastroenterología': true,
+        'Urología': true,
+        'Traumatología': true,
+        'Medicina Interna': false,
+        'Cardiología': false,
+        'Odontología (6 proced./año)': true
+      },
+      caracteristicas: [
+        'Especialidades: Incluye Urología y Traumatología',
+        'Bono de Maternidad de $500,00 para titular',
+        'Entrega de medicina al 100% sin copago',
+        'Soporte a cirugías programadas preautorizadas'
+      ]
+    },
+    {
+      id: 'plan3',
+      name: 'Plan 3 Platinum',
+      basePrice: 22,
+      cobertura: '$5.000,00 USD Anual',
+      dedHosp: '$40,00 USD Anual',
+      maternidad: '$700,00 USD',
+      muerteAccidente: '$3.500,00 USD',
+      sepelio: '$800,00 USD',
+      ambulancia: '$200,00 USD',
+      evacuacion: '$200,00 USD',
+      laboratorio: '$100,00/Año',
+      imagen: '$100,00/Año',
+      especialidades: {
+        'Medicina General': true,
+        'Medicina Familiar': true,
+        'Ginecología': true,
+        'Gastroenterología': true,
+        'Urología': true,
+        'Traumatología': true,
+        'Medicina Interna': true,
+        'Cardiología': true,
+        'Odontología (6 proced./año)': true
+      },
+      caracteristicas: [
+        'Especialidades: Medicina Interna, Cardiología y Odontología premium',
+        'Bono de Maternidad premium de $700,00 USD',
+        'Límite de Gastos Hospitalarios de $5.000,00 USD',
+        'Exámenes de diagnóstico complementarios con cobertura'
+      ]
     }
-    setState({ ...state, childrenCount: count, childrenAges: updatedAges });
-  };
+  ];
 
-  const handleChildAgeChange = (index: number, age: number) => {
-    const updatedAges = [...state.childrenAges];
-    updatedAges[index] = age;
-    setState({ ...state, childrenAges: updatedAges });
-  };
-
-  // Age Factor calculations
-  const getAgeFactor = (age: number): number => {
-    if (age < 25) return 0.85;  // Young discount
-    if (age <= 34) return 1.0;   // General subscriber age
-    if (age <= 44) return 1.15;
-    if (age <= 54) return 1.35;
-    if (age <= 64) return 1.65;
-    return 2.10;                 // Veteran age coverage
-  };
-
-  // Core Math Calculation Engine
-  const calculateQuote = () => {
-    const activePlan = MEDICAL_PLANS.find(p => p.id === state.basePlanId) || MEDICAL_PLANS[1];
-    let totalPeopleCount = 1;
-    
-    // 1. Primary subscriber price
-    const primaryFactor = getAgeFactor(state.primaryAge);
-    let subscriberPart = activePlan.basePrice * primaryFactor;
-
-    // 2. Spouse / partner calculation
-    let partnerPart = 0;
-    if (state.type === 'pareja' || state.type === 'familiar') {
-      totalPeopleCount += 1;
-      const partnerFactor = getAgeFactor(state.partnerAge || 30);
-      partnerPart = activePlan.basePrice * partnerFactor;
-    }
-
-    // 3. Children calculations
-    let childrenPart = 0;
-    const childFlat = state.basePlanId === 'basico' ? 5.0 : state.basePlanId === 'esencial' ? 8.0 : 12.0;
-    if (state.type === 'familiar' && state.childrenCount > 0) {
-      totalPeopleCount += state.childrenCount;
-      childrenPart = state.childrenCount * childFlat;
-    }
-
-    // Math aggregates
-    const subtotalRaw = subscriberPart + partnerPart + childrenPart;
-    const finalPremium = subtotalRaw;
-
-    return {
-      subscriberCost: subscriberPart,
-      partnerCost: partnerPart,
-      childrenCost: childrenPart,
-      subtotalPlan: subtotalRaw,
-      totalMonthly: finalPremium,
-      peopleCount: totalPeopleCount
-    };
-  };
-
-  const totals = calculateQuote();
-  const selectedPlanObj = MEDICAL_PLANS.find(p => p.id === state.basePlanId) || MEDICAL_PLANS[1];
-
-  // Code verification & validation helpers
+  // Form step navigation helpers
   const handleNextStep = () => {
-    const errorList: Record<string, string> = {};
-    
-    if (step === 2) {
-      if (state.primaryAge < 18 || state.primaryAge > 68) {
-        errorList.primaryAge = 'La edad de afiliación principal debe estar entre 18 y 68 años.';
+    // Basic validation based on step
+    if (quoteStep === 1) {
+      // Validating Step 1 (Personal Data)
+      if (!privacyAccepted) {
+        alert('Debe aceptar las políticas de protección de datos personales.');
+        return;
       }
-      if ((state.type === 'pareja' || state.type === 'familiar') && (state.partnerAge && (state.partnerAge < 18 || state.partnerAge > 68))) {
-        errorList.partnerAge = 'La edad de tu cónyuge debe estar entre 18 y 68 años.';
+      if (!firstName || !lastName || !email || !phone) {
+        alert('Por favor complete todos sus datos personales obligatorios.');
+        return;
       }
-      if (state.type === 'familiar' && state.childrenCount > 0) {
-        state.childrenAges.forEach((age, index) => {
-          if (age < 0 || age > 25) {
-            errorList[`childAge-${index}`] = 'Las edades de hijos permitidos son de 0 a 25 años.';
-          }
-        });
+      if (!email.includes('@')) {
+        alert('Por favor ingrese un correo electrónico válido.');
+        return;
+      }
+      setQuoteStep(2);
+    } else if (quoteStep === 2) {
+      // Validating Step 2 (Document Identification Data)
+      if (!docNumber) {
+        alert('Por favor ingrese su número de documento de identificación.');
+        return;
+      }
+      if (docType === 'cedula' && docNumber.length < 10) {
+        alert('Una cédula ecuatoriana válida contiene al menos 10 dígitos.');
+        return;
+      }
+
+      // Decide routing depending on plan type
+      if (planType === 'masivo') {
+        // Massive goes directly to Results! Let's submit data to generateQuoteReceipt first
+        generateQuoteReceipt();
+      } else if (planType === 'individual') {
+        // Individual goes to Step 3 (Dependants)
+        setQuoteStep(3);
+      } else if (planType === 'corporativo') {
+        // Corporate goes to Volume Input
+        setQuoteStep(3);
+      }
+    } else if (quoteStep === 3) {
+      // If we are individual, we advance to results. Let's submit to generateQuoteReceipt!
+      if (planType === 'individual') {
+        generateQuoteReceipt();
+      } else if (planType === 'corporativo') {
+        // Validate volume
+        if (!numberOfPeople) {
+          alert('Por favor ingrese el número proyectado de colaboradores.');
+          return;
+        }
+        generateQuoteReceipt();
       }
     }
-
-    if (Object.keys(errorList).length > 0) {
-      setTopicErrors(errorList);
-      return;
-    }
-
-    setTopicErrors({});
-    setStep(prev => prev + 1);
   };
 
   const handlePrevStep = () => {
-    setTopicErrors({});
-    setStep(prev => Math.max(1, prev - 1));
+    if (quoteStep > 1) {
+      setQuoteStep(quoteStep - 1);
+    }
   };
 
-  // Submit quotation to agent simulation
-  const handleFormalSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const listErr: Record<string, string> = {};
-    if (!state.fullName.trim()) listErr.fullName = 'Tu nombre completo es requerido';
-    if (!state.email.trim() || !/\S+@\S+\.\S+/.test(state.email)) listErr.email = 'El correo electrónico no es válido';
-    if (!state.phone.trim() || !/^\d{7,12}$/.test(state.phone.replace(/[\s-]/g, ''))) listErr.phone = 'Ingrese un teléfono de contacto válido';
+  const addDependant = () => {
+    const newDep: Dependant = {
+      id: 'dep-' + Date.now(),
+      gender: 'masculino',
+      ageRange: '18-35',
+      birthDate: '',
+      isPrimary: false
+    };
+    setDependants([...dependants, newDep]);
+  };
 
-    if (Object.keys(listErr).length > 0) {
-      setTopicErrors(listErr);
-      return;
+  const removeDependant = (id: string) => {
+    setDependants(dependants.filter(d => d.id !== id));
+  };
+
+  const updateDependantField = (id: string, field: keyof Dependant, value: any) => {
+    setDependants(dependants.map(d => d.id === id ? { ...d, [field]: value } : d));
+  };
+
+  // 5. Finishing & Quotation status states
+  const [activePhraseIndex, setActivePhraseIndex] = useState(0);
+
+  // Simulate Quote Generation
+  const generateQuoteReceipt = () => {
+    setIsSubmitting(true);
+    setActivePhraseIndex(0);
+
+    const intervalId = setInterval(() => {
+      setActivePhraseIndex((prev) => {
+        if (prev < 5) return prev + 1;
+        return prev;
+      });
+    }, 1100);
+
+    setTimeout(() => {
+      clearInterval(intervalId);
+      // Assign executive based on plan type and region
+      let repName = 'Ing. Carolina Delgado (Asesor Corporativo)';
+      if (planType === 'masivo') repName = 'Lcdo. Francisco Meza (Atención Canales)';
+      else if (planType === 'individual') repName = 'Dra. Patricia Franco (Asesor de Afiliación)';
+
+      const code = 'COT-' + Math.floor(Math.random() * 900000 + 100000);
+      setLeadCode(code);
+      setAssignedRep(repName);
+
+      // Save lead inside central context and send to Kommo CRM
+      const estimatedPrice = planType === 'corporativo' ? Number(numberOfPeople || 10) * 18 : calculateDynamicPrice(45);
+      addLead({
+        fullName: `${firstName} ${lastName}`,
+        email: email,
+        phone: phone,
+        type: planType === 'masivo' ? 'individual' : 'familiar',
+        primaryAge: 35,
+        childrenCount: dependants.length,
+        childrenAges: dependants.map(d => d.ageRange === '0-17' ? 10 : 25),
+        basePlanId: planType === 'masivo' ? 'esencial' : 'premium'
+      }, estimatedPrice);
+
+      sendLeadToKommoCRM({
+        name: `${firstName} ${lastName}`,
+        email: email,
+        phone: phone,
+        subject: `Cotización Web: Plan ${planType.toUpperCase()}`,
+        amount: estimatedPrice,
+        province: province,
+        details: `Propuesta de Plan de salud ${planType.toUpperCase()}. Provincia de cobertura: ${province}. Código de Cotización: ${code}. Dependientes: ${dependants.length || 0} familiares.`,
+        leadCode: code,
+        planName: `Plan ${planType.toUpperCase()}`
+      });
+
+      setIsSubmitting(false);
+      setShowResultScreen(true);
+    }, 6600); // 6 phrases * 1100ms
+  };
+
+  const calculateDynamicPrice = (basePrice: number) => {
+    // Add logic to charge for titular and dependants
+    let total = basePrice;
+    
+    // Add charges for dependants
+    dependants.forEach(dep => {
+      if (dep.ageRange === '0-17') total += basePrice * 0.5; // Kids get 50% discount
+      else if (dep.ageRange === '18-35') total += basePrice * 0.9; // 10% youth discount
+      else if (dep.ageRange === '36-49') total += basePrice * 1.0; // standard price
+      else if (dep.ageRange === '50-64') total += basePrice * 1.25; // 25% age loading
+      else total += basePrice * 1.6; // elderly
+    });
+
+    return Math.round(total * 100) / 100;
+  };
+
+  const getDependantAgeLabel = (range: string) => {
+    switch (range) {
+      case '0-17': return 'Menor de edad (0 a 17 años)';
+      case '18-35': return 'Adulto Joven (18 a 35 años)';
+      case '36-49': return 'Adulto General (36 a 49 años)';
+      case '50-64': return 'Adulto Mayor (50 a 64 años)';
+      case '65+': return 'Tercera Edad (Más de 65 años)';
+      default: return '18-35';
     }
-
-    setTopicErrors({});
-    const randomLead = Math.floor(250000 + Math.random() * 749000);
-    setLeadTicket(`PRE-${randomLead}`);
-    addLead(state, totals.totalMonthly);
-    setIsHandoffSubmitted(true);
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8" id="colmedical-quote-calculator">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-between" id="cotizador-dedicated-view">
       
-      {/* 1. SECTION HEADLINE */}
-      <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
-        <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">Cotizador Inteligente</span>
-        <h1 className="text-4xl font-display font-extrabold text-slate-900 tracking-tight">
-          Cotiza tu Plan de Medicina Prepagada
-        </h1>
-        <p className="text-slate-600">
-          Usa nuestro motor interactivo automatizado para simular las tarifas de tus planes médicos en tiempo real. Inspirado en el flujo ágil de Humana Ecuador.
-        </p>
-      </div>
-
-      {/* 2. PROGRESS STEP BAR */}
-      <div className="max-w-4xl mx-auto mb-12">
-        <div className="flex justify-between items-center relative">
-          {/* Progress baseline */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-200 z-0" />
+      {/* Visual, Distraction-Free Header inside Cotizador (No Header Navigation to distract user) */}
+      <header className="bg-white border-b border-slate-205 py-4 px-4 sm:px-6 lg:px-8 shadow-xs">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           
-          {/* Progress fill */}
-          <div 
-            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-teal-500 transition-all duration-300 z-0" 
-            style={{ width: `${((step - 1) / 3) * 100}%` }}
-          />
+          <div className="flex items-center gap-3">
+            <Logo className="h-9 sm:h-11 w-auto" />
+            <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+            <span className="text-[11px] font-bold text-[#4597CA] uppercase tracking-wider font-sans select-none hidden sm:inline">
+              Módulo de Cotización Premium
+            </span>
+          </div>
 
-          {[
-            { s: 1, title: 'Afiliación' },
-            { s: 2, title: 'Información' },
-            { s: 3, title: 'Planes' },
-            { s: 4, title: 'Precios' }
-          ].map((item) => (
-            <div key={item.s} className="relative z-10 flex flex-col items-center">
-              <div 
-                className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
-                  step === item.s 
-                    ? 'bg-teal-500 text-white ring-4 ring-teal-100 scale-108' 
-                    : step > item.s 
-                      ? 'bg-teal-600 text-white' 
-                      : 'bg-slate-250 text-slate-500'
-                }`}
-                id={`progress-dot-${item.s}`}
-              >
-                {step > item.s ? <Check className="w-5.5 h-5.5" /> : item.s}
-              </div>
-              <span className={`text-[10px] sm:text-xs font-semibold mt-2 ${
-                step === item.s ? 'text-teal-600 font-bold' : 'text-slate-400'
-              }`}>
-                {item.title}
-              </span>
-            </div>
-          ))}
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-1.5 px-4 font-sans py-2 text-xs font-black text-slate-700 bg-white border border-slate-250 hover:bg-slate-50 rounded-xl transition duration-200 active:scale-97 cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#4597CA]" />
+            <span>Volver a la Página de Inicio</span>
+          </button>
+
         </div>
-      </div>
+      </header>
 
-      {/* 3. CORE ADAPTIVE WORKSPACE GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Main wizard contents */}
+      <main className="flex-grow py-8 sm:py-12 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Left Interactive Wizard Forms (7 cols) */}
-        <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-8 min-h-[480px] flex flex-col justify-between">
-          
-          {/* STEP 1: Modalidad / TIPO DE AFILIACION */}
-          {step === 1 && (
-            <div className="space-y-6" id="cotizador-step-1">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">1. Selecciona tu modalidad de afiliación</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Adaptamos la cotización de acuerdo con el perfil del grupo familiar o empresarial de destino.
-                </p>
-              </div>
+        {isSubmitting ? (
+          <div className="bg-[#093556] rounded-3xl border border-sky-900/40 shadow-2xl p-8 sm:p-12 text-white flex flex-col items-center justify-center min-h-[520px] relative overflow-hidden text-center animate-in fade-in duration-300">
+             {/* Decorative radial lighting */}
+             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                {/* Individual Card */}
-                <div 
-                  onClick={() => setState({ ...state, type: 'individual' })}
-                  className={`p-6 rounded-2xl border-2 cursor-pointer transition-all space-y-3 relative ${
-                    state.type === 'individual' 
-                      ? 'border-teal-500 bg-teal-50/20 shadow-md' 
-                      : 'border-slate-200 hover:border-slate-350 bg-white'
-                  }`}
-                  id="choice-individual"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
-                      <User className="w-5 h-5" />
-                    </div>
-                    {state.type === 'individual' && <span className="w-2.5 h-2.5 rounded-full bg-teal-500 ring-4 ring-teal-100" />}
+             <div className="relative z-10 max-w-xl mx-auto space-y-8">
+                {/* Modern visual scanner / radar loop */}
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute w-36 h-36 rounded-full border border-sky-500/10 animate-ping"></div>
+                  <div className="absolute w-28 h-28 rounded-full border border-sky-400/20 animate-pulse"></div>
+                  <div className="absolute w-20 h-20 rounded-full bg-sky-950/45 border border-sky-800 flex items-center justify-center shadow-lg">
+                    <Logo className="h-6 w-auto text-white" isDarkBg={true} />
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">Individual</h4>
-                    <p className="text-[11px] text-slate-500 leading-normal">
-                      Protección únicamente para ti. Cotiza basados exclusivamente en tu rango de edad.
+                  
+                  {/* Outer spinning radar circle */}
+                  <div className="w-24 h-24 rounded-full border-t-2 border-r-2 border-[#4597CA] animate-spin duration-1000"></div>
+                </div>
+
+                <div className="space-y-3">
+                  <span className="inline-block bg-teal-500/15 text-teal-350 font-mono text-[10px] font-bold px-3.5 py-1 rounded-full tracking-widest uppercase border border-teal-500/20">
+                    Motor de Precios e Inteligencia Actuarial
+                  </span>
+                  <h3 className="text-xl sm:text-3xl font-black font-sans tracking-tight leading-tight">
+                    Estructurando y Calculando tu Propuesta
+                  </h3>
+                  <p className="text-xs text-sky-200/70 max-w-md mx-auto leading-relaxed">
+                    Estamos procesando las cotizaciones en tiempo real, aplicando descuentos grupales y validando prestadores médicos en la red de {province}.
+                  </p>
+                </div>
+
+                {/* Progress bar and phrase loading area */}
+                <div className="bg-sky-950/45 p-5 sm:p-7 rounded-2xl border border-sky-900/40 space-y-5 shadow-2xl">
+                  
+                  {/* Dynamic loading messages sequence */}
+                  <div className="min-h-[44px] flex items-center justify-center p-1 bg-sky-950/20 rounded-lg">
+                    <p key={activePhraseIndex} className="text-xs sm:text-[13px] font-bold font-sans text-teal-300 animate-in slide-in-from-bottom-2 duration-300">
+                      {activePhraseIndex === 0 && `Iniciando análisis multivariable de políticas de Colmedikal para ${firstName || 'beneficiario'} ${lastName || ''}...`}
+                      {activePhraseIndex === 1 && (planType === 'corporativo' ? `Dimensionando tasas preferenciales y volumen técnico para ${numberOfPeople || '30'} personas...` : `Evaluando el grupo de ${dependants.length + 1} beneficiario(s) asegurables...`)}
+                      {activePhraseIndex === 2 && `Localizando prestadores médicos acreditados en la provincia de ${province}...`}
+                      {activePhraseIndex === 3 && 'Calculando cobertura al 100% en especialidades de nuestra red médica...'}
+                      {activePhraseIndex === 4 && 'Aplicando descuentos de escala digital Colmedikal...'}
+                      {activePhraseIndex === 5 && 'Estructurando cotización certificada segura autorizada...'}
                     </p>
                   </div>
-                </div>
 
-                {/* Pareja Card */}
-                <div 
-                  onClick={() => setState({ ...state, type: 'pareja' })}
-                  className={`p-6 rounded-2xl border-2 cursor-pointer transition-all space-y-3 relative ${
-                    state.type === 'pareja' 
-                      ? 'border-teal-500 bg-teal-50/20 shadow-md' 
-                      : 'border-slate-200 hover:border-slate-350 bg-white'
-                  }`}
-                  id="choice-couple"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                      <Users className="w-5 h-5" />
+                  {/* Percentage Bar */}
+                  <div className="space-y-2">
+                    <div className="h-2 bg-sky-950/80 rounded-full overflow-hidden border border-sky-900/20 p-0.5">
+                      <div 
+                        className="h-full bg-gradient-to-r from-teal-405 via-sky-400 to-[#4597CA] rounded-full transition-all duration-355" 
+                        style={{ width: `${Math.min(100, Math.round(((activePhraseIndex + 1) / 6) * 100))}%` }}
+                      ></div>
                     </div>
-                    {state.type === 'pareja' && <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-indigo-100" />}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">En Pareja</h4>
-                    <p className="text-[11px] text-slate-500 leading-normal">
-                      Tú y tu cónyuge o conviviente. Cobertura complementaria para ambos.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Familiar Card */}
-                <div 
-                  onClick={() => setState({ ...state, type: 'familiar' })}
-                  className={`p-6 rounded-2xl border-2 cursor-pointer transition-all space-y-3 relative ${
-                    state.type === 'familiar' 
-                      ? 'border-teal-500 bg-teal-50/20 shadow-md' 
-                      : 'border-slate-200 hover:border-slate-350 bg-white'
-                  }`}
-                  id="choice-family"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
-                      <Users className="w-5.5 h-5.5" />
-                    </div>
-                    {state.type === 'familiar' && <span className="w-2.5 h-2.5 rounded-full bg-teal-500 ring-4 ring-teal-100" />}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">Familiar Completo</h4>
-                    <p className="text-[11px] text-slate-500 leading-normal">
-                      Soporte integral para Ti, Pareja e Hijos. Las tarifas de los menores son planas y muy reducidas.
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-100 flex items-center gap-3">
-                <Info className="w-5 h-5 text-teal-600 shrink-0" />
-                <span className="text-xs text-slate-600">
-                  ¿Sabías qué? El 76% de las personas que ingresan eligen su plan en la modalidad <strong>Familiar Completo</strong> para extender la tranquilidad a los más pequeños del hogar.
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: DATOS DE AFILIACION */}
-          {step === 2 && (
-            <div className="space-y-6" id="cotizador-step-2">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">2. Completa los rangos de edad</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Las primas de medicina prepagada se calculan basados en las edades de los suscriptores activos.
-                </p>
-              </div>
-
-              <div className="space-y-5">
-                
-                {/* Primary subscriber age slider */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs font-semibold">
-                    <label className="text-slate-700">Edad del Titular:</label>
-                    <span className="font-mono bg-teal-50 text-teal-700 font-bold px-2.5 py-0.5 rounded-md">
-                      {state.primaryAge} Años
-                    </span>
-                  </div>
-                  <input 
-                    type="range"
-                    min="18"
-                    max="68"
-                    value={state.primaryAge}
-                    onChange={(e) => setState({ ...state, primaryAge: Number(e.target.value) })}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-500"
-                    id="slider-primary-age"
-                  />
-                  <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                    <span>Mín: 18</span>
-                    <span>Máx: 68</span>
-                  </div>
-                  {topicErrors.primaryAge && <span className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {topicErrors.primaryAge}</span>}
-                </div>
-
-                {/* Partner Age slider (Conditional) */}
-                {(state.type === 'pareja' || state.type === 'familiar') && (
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <div className="flex justify-between text-xs font-semibold">
-                      <label className="text-slate-700">Edad del Cónyuge o Conviviente:</label>
-                      <span className="font-mono bg-indigo-50 text-indigo-700 font-bold px-2.5 py-0.5 rounded-md">
-                        {state.partnerAge || 30} Años
+                    <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 font-bold">
+                      <span className="tracking-wider">AUTOMATED CALCULATIONS</span>
+                      <span className="text-teal-400 font-black">
+                        {Math.min(100, Math.round(((activePhraseIndex + 1) / 6) * 100))}%
                       </span>
                     </div>
-                    <input 
-                      type="range"
-                      min="18"
-                      max="68"
-                      value={state.partnerAge || 30}
-                      onChange={(e) => setState({ ...state, partnerAge: Number(e.target.value) })}
-                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                      id="slider-partner-age"
-                    />
-                    <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                      <span>Mín: 18</span>
-                      <span>Máx: 68</span>
-                    </div>
-                    {topicErrors.partnerAge && <span className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {topicErrors.partnerAge}</span>}
                   </div>
-                )}
 
-                {/* Familiar Child counter (Conditional) */}
-                {state.type === 'familiar' && (
-                  <div className="space-y-4 pt-4 border-t border-slate-100">
-                    <div className="flex justify-between items-center text-xs">
-                      <label className="font-semibold text-slate-700">Número de Hijos dependientes:</label>
-                      
-                      <div className="flex border border-slate-200 rounded-lg overflow-hidden shrink-0">
-                        {[0, 1, 2, 3, 4, 5].map((num) => (
-                          <button
-                            key={num}
-                            type="button"
-                            onClick={() => handleChildCountChange(num)}
-                            className={`px-3 py-1.5 text-xs font-semibold font-mono ${
-                              state.childrenCount === num
-                                ? 'bg-teal-500 text-white'
-                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                            }`}
-                          >
-                            {num}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                </div>
 
-                    {/* Render children age inputs */}
-                    {state.childrenCount > 0 && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/80 p-4 rounded-2xl border border-slate-150 animate-in fade-in">
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider col-span-full">Indica la edad de tus hijos:</span>
-                        {state.childrenAges.map((age, childIdx) => (
-                          <div key={childIdx} className="space-y-1">
-                            <label className="block text-[11px] font-semibold text-slate-600">Hijo #{childIdx + 1} (Años):</label>
-                            <input 
-                              type="number"
-                              min="0"
-                              max="25"
-                              value={age}
-                              onChange={(e) => handleChildAgeChange(childIdx, Number(e.target.value))}
-                              className="w-full px-3.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono text-center focus:ring-1 focus:ring-teal-500"
-                              id={`child-age-input-${childIdx}`}
-                            />
-                            {topicErrors[`childAge-${childIdx}`] && <span className="text-[10px] text-red-500">{topicErrors[`childAge-${childIdx}`]}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                <div className="text-[10px] text-slate-400 font-medium font-sans">
+                  🔒 Conexión segura SSL de 256 bits • Datos encriptados de extremo a extremo
+                </div>
+             </div>
+          </div>
+        ) : !showResultScreen ? (
+          <div className="bg-white rounded-3xl border border-slate-205 shadow-md overflow-hidden grid grid-cols-1 md:grid-cols-12 items-stretch min-h-[500px]">
+            
+            {/* Left Column: Live Virtual Assistant Panel */}
+            <div className="md:col-span-4 bg-gradient-to-b from-[#093556] to-[#0A2640] p-7 sm:p-8 text-white flex flex-col justify-between space-y-8 relative overflow-hidden" id="cotizador-assistant-panel">
+              
+              {/* Dynamic decorative backdrop light */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-3xl -mr-12 -mt-12 pointer-events-none"></div>
+              
+              <div className="space-y-6 relative z-10">
+                {/* Assistant Virtual Greeting Badge */}
+                <div className="flex items-center justify-between">
+                  <span className="inline-block bg-sky-500/15 text-sky-300 font-mono text-[9px] font-bold px-2.5 py-0.5 rounded-full tracking-wider uppercase border border-sky-400/20">
+                    Asistencia en Vivo
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="text-[10px] text-emerald-400 font-bold font-mono uppercase tracking-wider">En línea</span>
                   </div>
-                )}
+                </div>
 
-                {/* Coverage Province Selector */}
-                <div className="space-y-1.5 pt-3 border-t border-slate-100">
-                  <label className="block text-xs font-semibold text-slate-700">Provincia / Región de cobertura preferida:</label>
-                  <select 
-                    value={province}
-                    onChange={(e) => setProvince(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                    id="quote-province-selector"
-                  >
-                    {PROVINCIAS_EC.map((p, pIdx) => (
-                      <option key={pIdx} value={p}>{p}</option>
-                    ))}
-                  </select>
+                {/* Avatar Card */}
+                <div className="flex items-center gap-3.5 bg-sky-950/40 p-3.5 rounded-2xl border border-sky-900/40 shadow-inner">
+                  <div className="relative shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#4597CA] to-sky-400 flex items-center justify-center font-black text-white text-base shadow-md border-2 border-sky-900">
+                      S
+                    </div>
+                    <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#093556] flex items-center justify-center shadow-sm">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                    </span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="text-sm font-black tracking-tight text-white leading-none">Sofía Delgado</h4>
+                    <span className="inline-block text-[9.5px] text-sky-300 font-bold uppercase tracking-wider">Asesora Virtual Activa</span>
+                    <p className="text-[9px] text-slate-400 font-medium">Colmedikal Red Digital</p>
+                  </div>
+                </div>
+
+                {/* Live Message Bubble */}
+                <div className="relative bg-white text-slate-800 p-4 rounded-2xl shadow-xl border border-slate-100 animate-in fade-in duration-300">
+                  {/* Decorative bubble tail pointing to avatar */}
+                  <div className="absolute -top-1.5 left-6 w-3 h-3 bg-white transform rotate-45 border-t border-l border-slate-100/80"></div>
+                  
+                  <div className="relative z-10 space-y-2 font-sans leading-relaxed">
+                    <p className="text-[10.5px] font-bold text-[#0C4169] flex items-center gap-1">
+                      <span>Sofía Delgado escribe:</span>
+                    </p>
+                    <p className="text-[11px] text-slate-600 font-medium font-sans leading-normal">
+                      {quoteStep === 1 && (
+                        <>¡Hola! Qué gusto saludarte. Soy Sofía, tu asesora virtual de Colmedikal. Para empezar, indícame tu información de contacto y selecciona si cotizas un plan de salud <strong>Individual</strong>, <strong>Familiar</strong> o <strong>Corporativo</strong>. ¡Me encargaré de diseñar tu propuesta ideal!</>
+                      )}
+                      {quoteStep === 2 && (
+                        <>¡Perfecto, {firstName || 'estimado(a)'}! He registrado tus datos de contacto iniciales. Ahora necesitaremos que indiques tu documento de identidad para realizar el pre-registro digital en Colmedikal de manera 100% segura y confidencial.</>
+                      )}
+                      {quoteStep === 3 && planType === 'individual' && (
+                        <>Excelente, {firstName}. ¿Deseas añadir cónyuge o hijos? El Plan Colectivo Llave en Mano ofrece tarifas muy reducidas cuando se consolida para un grupo familiar de 3 o más personas.</>
+                      )}
+                      {quoteStep === 3 && planType === 'corporativo' && (
+                        <>Excelente decisión empresarial, {firstName}. El volumen corporativo nos permite aplicar importantes descuentos de escala grupal. Indícame cuántas personas conformarán el colectivo.</>
+                      )}
+                    </p>
+                    
+                    {/* Micro indicators like typing dots for dynamic feedback */}
+                    <div className="flex gap-1 pt-0.5 items-center">
+                      <span className="w-1.2 h-1.2 bg-teal-500 rounded-full animate-bounce"></span>
+                      <span className="w-1.2 h-1.2 bg-teal-500 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                      <span className="w-1.2 h-1.2 bg-teal-500 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                      <span className="text-[9px] text-slate-400 font-mono ml-1 font-medium select-none">Pensando...</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Steps Navigator */}
+                <div className="bg-sky-950/25 p-4 rounded-2xl border border-sky-900/30 space-y-3">
+                  <span className="block text-[9px] font-black uppercase tracking-wider text-sky-300/80 font-mono">Progreso de la Asesoría</span>
+                  
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-300 font-medium">Formulación Digital</span>
+                      <span className="font-mono text-[9.5px] text-sky-300 font-bold animate-pulse">
+                        Paso {quoteStep} de {planType === 'masivo' ? '2' : '3'}
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-sky-950/60 rounded-full overflow-hidden border border-sky-900/20">
+                      <div 
+                        className="h-full bg-gradient-to-r from-teal-400 via-sky-400 to-[#4597CA] transition-all duration-500 rounded-full" 
+                        style={{ width: quoteStep === 1 ? '33%' : quoteStep === 2 ? '66%' : '100%' }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-[9.5px] text-slate-400 font-medium pt-0.5">
+                      <span>Proceso Activo</span>
+                      <span>{Math.round((quoteStep / (planType === 'masivo' ? 2 : 3)) * 100)}% Completado</span>
+                    </div>
+                  </div>
                 </div>
 
               </div>
-            </div>
-          )}
+              
+              {/* Trust Footer Note */}
+              <div className="text-[9.5px] text-slate-350/90 leading-normal border-t border-sky-900/40 pt-4 font-sans space-y-1.5 relative z-10">
+                <div className="flex items-center gap-1.5 text-sky-300 font-bold text-[10px]">
+                  <Lock className="w-3.5 h-3.5 shrink-0 text-teal-400" />
+                  <span>Conexión de Datos Protegida</span>
+                </div>
+                <p className="leading-relaxed">Tus datos médicos y de afiliación están amparados bajo la Ley Orgánica de Protección de Datos Personales de la República de Ecuador.</p>
+              </div>
 
-          {/* STEP 3: BASE PLAN & OPTIONAL ADDONS */}
-          {step === 3 && (
-            <div className="space-y-6" id="cotizador-step-3">
+            </div>
+
+            {/* Right Column: Form interactive contents */}
+            <div className="md:col-span-8 p-6 sm:p-10 flex flex-col justify-between">
               <div>
-                <h3 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">3. Elige tu Plan y Coberturas Adicionales</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Revisa cuál de nuestros planes base responde mejor a tus necesidades técnicas de hospitalización o añade complementos de bienestar.
-                </p>
-              </div>
-
-              {/* Base plan selection */}
-              <div className="space-y-3">
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Seleccionar Plan Médico Base:</span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {MEDICAL_PLANS.map((plan) => (
-                    <div
-                      key={plan.id}
-                      onClick={() => setState({ ...state, basePlanId: plan.id })}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer text-center transition-all ${
-                        state.basePlanId === plan.id
-                          ? 'border-teal-500 bg-teal-50/30'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
-                      id={`plan-choice-${plan.id}`}
-                    >
-                      <span className="block text-xs font-bold text-slate-800">{plan.name}</span>
-                      <span className="block text-[10px] text-slate-500 italic mt-0.5">Soporte ${plan.maxCoverage.toLocaleString()}</span>
-                      <span className="block text-sm font-mono font-bold text-slate-900 mt-2">${plan.basePrice}/m</span>
-                    </div>
-                  ))}
-                </div>
                 
-                {/* Selected Plan Details */}
-                <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-150">
-                  <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-teal-500" /> Coberturas Principales de {selectedPlanObj.name}
-                  </h4>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {selectedPlanObj.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
-                        <Check className="w-3.5 h-3.5 text-teal-500 shrink-0 mt-0.5" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
+                {/* INITIAL PLAN TYPE CHOICE selector (Only visible in step 1) */}
+                {quoteStep === 1 && (
+                  <div className="space-y-4 mb-8">
+                    <span className="block text-[10px] font-black tracking-wider text-[#4597CA] uppercase font-mono">
+                      Selección del Segmento de Afiliación
+                    </span>
+                    <div className="grid grid-cols-3 gap-3">
+                      
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlanType('masivo');
+                          setDependants([]);
+                          setNumberOfPeople('');
+                        }}
+                        className={`p-3 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                          planType === 'masivo'
+                            ? 'bg-gradient-to-br from-white to-[#4597CA]/5 border-[#4597CA] shadow-sm font-bold ring-2 ring-[#4597CA]/10'
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <Calculator className={`w-5 h-5 mb-1 ${planType === 'masivo' ? 'text-[#4597CA]' : 'text-slate-400'}`} />
+                        <span className="text-[10px] uppercase font-sans tracking-tight text-slate-800 font-bold">Plan Masivo</span>
+                      </button>
 
-          {/* STEP 4: SOLICITUD / REGISTRO FORMULARIO AGENT HANDOFF */}
-          {step === 4 && (
-            <div className="space-y-6" id="cotizador-step-4">
-              {isHandoffSubmitted ? (
-                <div className="text-center py-12 space-y-6 max-w-md mx-auto" id="handoff-success-screen">
-                  <div className="w-16 h-16 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mx-auto">
-                    <ShieldCheck className="w-10 h-10" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-slate-950">¡Propuesta Reservada!</h3>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      La cotización ha sido calculada y bloqueada en nuestro sistema de agentes autorizados Colmedical bajo el código:
-                    </p>
-                    <div className="bg-slate-100 px-5 py-2 rounded-xl text-base font-mono font-bold text-slate-800 tracking-wide border border-slate-200 w-fit mx-auto">
-                      {leadTicket}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlanType('individual');
+                          setNumberOfPeople('');
+                        }}
+                        className={`p-3 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                          planType === 'individual'
+                            ? 'bg-gradient-to-br from-white to-teal-50/5 border-teal-500 shadow-sm font-bold ring-2 ring-teal-500/10'
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <User className={`w-5 h-5 mb-1 ${planType === 'individual' ? 'text-teal-600' : 'text-slate-400'}`} />
+                        <span className="text-[10px] uppercase tracking-tight text-slate-800 font-bold">Plan Individual</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlanType('corporativo');
+                          setDependants([]);
+                        }}
+                        className={`p-3 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                          planType === 'corporativo'
+                            ? 'bg-gradient-to-br from-white to-indigo-50/5 border-indigo-500 shadow-sm font-bold ring-2 ring-indigo-500/10'
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <Briefcase className={`w-5 h-5 mb-1 ${planType === 'corporativo' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                        <span className="text-[10px] uppercase tracking-tight text-slate-800 font-bold">Corporativo</span>
+                      </button>
+
                     </div>
                   </div>
-                  <p className="text-[11px] text-slate-400">
-                    Hemos enviado formalmente los folios de información técnica, el tarifario desglosado y la nómina de clínicas aprobadas a tu dirección de correo electrónico <strong>{state.email}</strong>.
-                  </p>
-                  <div className="pt-4 flex gap-3 justify-center">
-                    <button
-                      onClick={() => {
-                        setIsHandoffSubmitted(false);
-                        setStep(1);
-                      }}
-                      className="px-6 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-                    >
-                      Cotizar Otro Plan
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage('home')}
-                      className="px-6 py-2.5 bg-teal-500 text-white hover:bg-teal-600 text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
-                    >
-                      Volver al Inicio
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleFormalSubmit} className="space-y-6" id="handoff-form">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-2">4. Solicita tu cotización formal firmada</h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Ingresa tus datos comerciales y de contacto a continuación para bloquear esta tarifa especial por los próximos 15 días calendario de manera formal.
-                    </p>
-                  </div>
+                )}
 
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="block text-xs font-semibold text-slate-700">Nombre Completo del Titular *</label>
-                      <input 
-                        type="text"
-                        value={state.fullName}
-                        onChange={(e) => setState({ ...state, fullName: e.target.value })}
-                        placeholder="Ej. Sofia Andrade"
-                        className={`w-full px-4.5 py-2.5 bg-slate-50 border rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none ${topicErrors.fullName ? 'border-red-500' : 'border-slate-300'}`}
-                        id="handoff-name"
-                      />
-                      {topicErrors.fullName && <span className="text-[11px] text-red-500 mt-1 block">{topicErrors.fullName}</span>}
-                    </div>
+                {/* STEP 1: PERSONAL DATA FIELDS FORM */}
+                {quoteStep === 1 && (
+                  <div className="space-y-4 animate-in fade-in duration-350">
+                    <span className="block text-xs font-bold text-[#0C4169] uppercase tracking-wider border-b border-slate-105 pb-1">
+                      Paso 1: Datos de Contacto
+                    </span>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       
                       <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-slate-700">Correo Electrónico *</label>
-                        <input 
-                          type="email"
-                          value={state.email}
-                          onChange={(e) => setState({ ...state, email: e.target.value })}
-                          placeholder="sofia@ejemplo.com"
-                          className={`w-full px-4.5 py-2.5 bg-slate-50 border rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none ${topicErrors.email ? 'border-red-500' : 'border-slate-300'}`}
-                          id="handoff-email"
+                        <label className="block text-xs font-bold text-slate-700">Nombre: <span className="text-rose-500">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ej. Juan Andrés"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs focus:ring-1 focus:ring-[#4597CA] outline-none"
                         />
-                        {topicErrors.email && <span className="text-[11px] text-red-500 mt-1 block">{topicErrors.email}</span>}
                       </div>
 
                       <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-slate-700">Teléfono Celular *</label>
-                        <input 
-                          type="tel"
-                          value={state.phone}
-                          onChange={(e) => setState({ ...state, phone: e.target.value })}
-                          placeholder="Ej. 0998877665"
-                          className={`w-full px-4.5 py-2.5 bg-slate-50 border rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none ${topicErrors.phone ? 'border-red-500' : 'border-slate-300'}`}
-                          id="handoff-phone"
+                        <label className="block text-xs font-bold text-slate-700">Apellido: <span className="text-rose-500">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ej. Pérez Delgado"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs focus:ring-1 focus:ring-[#4597CA] outline-none"
                         />
-                        {topicErrors.phone && <span className="text-[11px] text-red-500 mt-1 block">{topicErrors.phone}</span>}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-xs font-bold text-slate-700">Correo Electrónico: <span className="text-rose-500">*</span></label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="Ej. juan.perez@ecuador.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs focus:ring-1 focus:ring-[#4597CA] outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-xs font-bold text-slate-700">WhatsApp / Teléfono: <span className="text-rose-500">*</span></label>
+                        <input
+                          type="tel"
+                          required
+                          placeholder="Ej. 0994452211"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs focus:ring-1 focus:ring-[#4597CA] outline-none font-mono"
+                        />
+                      </div>
+
+                      <div className="col-span-1 sm:col-span-2 space-y-1">
+                        <label className="block text-xs font-bold text-slate-700">Provincia de Residencia / Proyecto: <span className="text-rose-500">*</span></label>
+                        <select
+                          value={province}
+                          onChange={(e) => setProvince(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"
+                        >
+                          {PROVINCES.map((prov, i) => (
+                            <option key={i} value={prov}>{prov}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="col-span-1 sm:col-span-2 pt-2">
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={privacyAccepted}
+                            onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                            className="mt-0.5 rounded text-teal-600 border-slate-300 focus:ring-teal-500"
+                          />
+                          <span className="text-[11px] text-slate-500 leading-tight">
+                            Acepto las políticas de protección de datos personales.
+                          </span>
+                        </label>
                       </div>
 
                     </div>
                   </div>
+                )}
 
-                  <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 flex items-start gap-2.5 text-xs text-emerald-900 leading-normal">
-                    <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <span>
-                      <strong>Beneficios del Registro:</strong> Te asignaremos una ejecutiva de cuenta experta que validará la exención de periodos de carencia si traes certificado de vigencia de planes de otra entidad como Humana, Cruz Blanca o similares.
+                {/* STEP 2: DOC IDENTIFICATION DATA FORM */}
+                {quoteStep === 2 && (
+                  <div className="space-y-4 animate-in fade-in duration-350">
+                    <span className="block text-xs font-bold text-[#0C4169] uppercase tracking-wider border-b border-slate-105 pb-1">
+                      Paso 2: Confirmar Documento de Identidad
                     </span>
-                  </div>
 
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs shadow-md shadow-[#0C4169]/10 hover:shadow-[#0C4169]/25 transition-all text-center flex items-center justify-center gap-2 group cursor-pointer"
-                      id="btn-handoff-submit"
-                    >
-                      <span>Lock & Enviar Cotización</span>
-                      <Send className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </button>
-                    <span className="block text-center text-[10px] text-slate-400 mt-2">
-                      Sin compromisos financieros. Tus datos están 100% seguros con encriptación SSL.
+                    <div className="space-y-5">
+                      
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-slate-700">Seleccionar el Tipo de Documento: <span className="text-rose-500">*</span></label>
+                        <div className="flex gap-6 items-center">
+                          <label className="flex items-center gap-2 text-xs font-semibold text-slate-755 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="docTypeCheck"
+                              checked={docType === 'cedula'}
+                              onChange={() => setDocType('cedula')}
+                              className="w-4 h-4 text-[#4597CA] focus:ring-[#4597CA] cursor-pointer"
+                            />
+                            <span>Cédula de Identidad Nacional (Ecuador)</span>
+                          </label>
+
+                          <label className="flex items-center gap-2 text-xs font-semibold text-slate-755 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="docTypeCheck"
+                              checked={docType === 'pasaporte'}
+                              onChange={() => setDocType('pasaporte')}
+                              className="w-4 h-4 text-[#4597CA] focus:ring-[#4597CA] cursor-pointer"
+                            />
+                            <span>Pasaporte Regular / Diplomático</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 max-w-md">
+                        <label className="block text-xs font-bold text-slate-700">Número de Identificación: <span className="text-rose-500">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          placeholder={docType === 'cedula' ? 'Cédula (Ej. 1729004812)' : 'Nro Pasaporte (Ej. AA129033)'}
+                          value={docNumber}
+                          onChange={(e) => setDocNumber(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs focus:ring-1 focus:ring-[#4597CA] outline-none font-mono"
+                        />
+                        <span className="block text-[10px] text-slate-400 mt-1">Este dato es requerido por auditoría médica de Colmedikal para corroborar compatibilidad legal.</span>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3 (FOR INDIVIDUAL ONLY): FAMILY DEPENDANT CONFIG */}
+                {quoteStep === 3 && planType === 'individual' && (
+                  <div className="space-y-4 animate-in fade-in duration-350">
+                    <div className="flex justify-between items-center border-b border-slate-105 pb-1">
+                      <span className="block text-xs font-bold text-[#0C4169] uppercase tracking-wider">
+                        Paso 3: Grupo Familiar Adicional
+                      </span>
+                      
+                      <button
+                        type="button"
+                        onClick={addDependant}
+                        className="flex items-center gap-1 bg-teal-50 text-teal-700 hover:bg-teal-100/70 border border-teal-200 px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wide cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Agregar Familiar</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      
+                      {/* Titular check box selector */}
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <label className="text-xs font-bold text-slate-800">¿El cotizante {firstName} es el titular del plan?</label>
+                          <p className="text-[10px] text-slate-500">Marque sí para consolidar el precio unitario preferente.</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={isPrimaryTitular}
+                          onChange={(e) => setIsPrimaryTitular(e.target.checked)}
+                          className="w-4 h-4 text-[#4597CA] rounded focus:ring-1 focus:ring-[#4597CA] cursor-pointer"
+                        />
+                      </div>
+
+                      {dependants.length === 0 ? (
+                        <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                          <p className="text-xs text-slate-500 font-medium">No ha agregado dependientes a su cotización regular.</p>
+                          <p className="text-[10.5px] text-slate-400 mt-0.5">Haga clic en "Agregar Familiar" para cotizar a su cónyuge o hijos.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3.5 max-h-[220px] overflow-y-auto pr-1">
+                          {dependants.map((dep, index) => (
+                            <div key={dep.id} className="p-4 rounded-xl bg-teal-50/30 border border-teal-500/10 grid grid-cols-1 md:grid-cols-12 gap-3 items-center animate-in zoom-in-95 duration-150">
+                              
+                              <div className="md:col-span-3">
+                                <span className="block text-[10px] font-bold text-[#0C4169] uppercase">Familiar #{index + 1}</span>
+                              </div>
+
+                              {/* Gender dropdown */}
+                              <div className="md:col-span-3">
+                                <label className="block text-[10px] text-slate-500">Género:</label>
+                                <select
+                                  value={dep.gender}
+                                  onChange={(e) => updateDependantField(dep.id, 'gender', e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs bg-white outline-none"
+                                >
+                                  <option value="masculino">Masculino</option>
+                                  <option value="femenino">Femenino</option>
+                                </select>
+                              </div>
+
+                              {/* Age Bracket */}
+                              <div className="md:col-span-3">
+                                <label className="block text-[10px] text-slate-500">Rango de Edad:</label>
+                                <select
+                                  value={dep.ageRange}
+                                  onChange={(e) => updateDependantField(dep.id, 'ageRange', e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs bg-white outline-none"
+                                >
+                                  <option value="0-17">0 a 17 años</option>
+                                  <option value="18-35">18 a 35 años</option>
+                                  <option value="36-49">36 a 49 años</option>
+                                  <option value="50-64">50 a 64 años</option>
+                                  <option value="65+">Más de 65 años</option>
+                                </select>
+                              </div>
+
+                              {/* Date of Birth input */}
+                              <div className="md:col-span-2">
+                                <label className="block text-[10px] text-slate-500">F. Nacimiento:</label>
+                                <input
+                                  type="date"
+                                  value={dep.birthDate}
+                                  required
+                                  onChange={(e) => updateDependantField(dep.id, 'birthDate', e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-200 rounded-lg text-xs bg-white outline-none text-center font-mono"
+                                />
+                              </div>
+
+                              <div className="md:col-span-1 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => removeDependant(dep.id)}
+                                  className="p-1 text-rose-500 hover:text-rose-700 bg-white hover:bg-rose-50 border border-slate-200 rounded-lg transition duration-150 shadow-xs cursor-pointer inline-flex items-center justify-center"
+                                  title="Remover"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3 (FOR CORPORATIVE ONLY): VOLUME COLLABORATOR REQUIRED INPUT */}
+                {quoteStep === 3 && planType === 'corporativo' && (
+                  <div className="space-y-4 animate-in fade-in duration-350">
+                    <span className="block text-xs font-bold text-[#0C4169] uppercase tracking-wider border-b border-slate-105 pb-1">
+                      Paso 3: Proyección del Colectivo Institucional
                     </span>
+
+                    <div className="p-5 bg-indigo-50/25 border border-indigo-500/10 rounded-2xl space-y-6">
+                      
+                      <div className="space-y-1.5 max-w-sm">
+                        <label className="block text-xs font-bold text-slate-800">Número de personas para la cotización: <span className="text-rose-500">*</span></label>
+                        <input
+                          type="number"
+                          required
+                          min="3"
+                          placeholder="Ej. 15"
+                          value={numberOfPeople}
+                          onChange={(e) => setNumberOfPeople(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-white border border-slate-250 rounded-xl text-xs font-mono font-bold focus:ring-1 focus:ring-indigo-500 outline-none"
+                        />
+                        <span className="block text-[10px] text-slate-400 leading-tight">Mínimo legal de 3 beneficiarios o dependientes para consolidar tasas de Plan Colectivo Llave en Mano.</span>
+                      </div>
+
+                      <div className="text-xs text-slate-600 leading-relaxed space-y-2">
+                        <p className="font-bold text-[#0C4169]">Beneficios corporativos de red unificados:</p>
+                        <ul className="list-disc list-inside space-y-1 pl-1 text-[11px]">
+                          <li>Financiamiento corporativo con tasas deducibles de Impuesto a la Renta.</li>
+                          <li>Exclusiones preexistentes negociables según volumen de la cuenta.</li>
+                          <li>Precios diferenciados estables por encima de los 10 inscritos directos.</li>
+                        </ul>
+                      </div>
+
+                    </div>
                   </div>
-                </form>
-              )}
-            </div>
-          )}
+                )}
 
-          {/* Core Navigation Controls */}
-          {!isHandoffSubmitted && (
-            <div className="flex justify-between items-center pt-6 mt-6 border-t border-slate-100">
-              
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                disabled={step === 1}
-                className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg transition-colors ${
-                  step === 1 ? 'opacity-0 cursor-not-allowed pointer-events-none' : 'hover:bg-slate-100'
-                }`}
-                id="btn-step-prev"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Anterior</span>
-              </button>
-
-              <div className="text-[10px] text-slate-400 font-mono">
-                Paso {step} de 4
               </div>
 
-              {step < 4 ? (
+              {/* Progress Wizard Controls */}
+              <div className="flex justify-between items-center border-t border-slate-150 pt-6 mt-6 shrink-0">
+                
+                {quoteStep > 1 ? (
+                  <button
+                    type="button"
+                    onClick={handlePrevStep}
+                    className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-xs font-bold font-sans cursor-pointer py-2 px-3 hover:bg-slate-100 rounded-xl"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Atrás</span>
+                  </button>
+                ) : (
+                  <div></div> /* Balance placeholder */
+                )}
+
                 <button
                   type="button"
                   onClick={handleNextStep}
-                  className="flex items-center gap-2 px-6 py-2 bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold rounded-lg transition-all shadow-md group"
-                  id="btn-step-next"
+                  disabled={isSubmitting}
+                  className="flex items-center gap-1 px-5 py-3 text-xs bg-[#0C4169] text-white hover:bg-slate-900 font-extrabold uppercase tracking-wider rounded-xl shadow-md cursor-pointer transition-all active:scale-97 disabled:opacity-50"
                 >
-                  <span>Siguiente</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  {isSubmitting ? (
+                    <span>Generando Cotización...</span>
+                  ) : (
+                    <>
+                      <span>{
+                        (quoteStep === 2 && planType === 'masivo') || (quoteStep === 3)
+                          ? 'Finalizar y Ver Comparativa' 
+                          : 'Siguiente Paso'
+                      }</span>
+                      <ArrowRight className="w-4 h-4 text-[#4597CA]" />
+                    </>
+                  )}
                 </button>
-              ) : (
-                <div className="w-24 h-5" /> /* Placeholder space on step 4 */
-              )}
 
-            </div>
-          )}
-
-        </div>
-
-        {/* Right Dynamic Live Invoice Card (5 cols) */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 to-slate-950 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl overflow-hidden relative" id="print-invoice-area">
-          
-          <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-2xl pointer-events-none"></div>
-
-          {/* Invoice Header */}
-          <div className="border-b border-slate-800 pb-5 space-y-2 relative z-10">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] bg-teal-900/60 text-teal-300 px-2.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
-                Desglose en Vivo
-              </span>
-              <span className="text-[10px] text-slate-400 font-mono">Simulado en {province.split(' ')[0]}</span>
-            </div>
-            
-            <h3 className="text-xl font-display font-extrabold tracking-tight">
-              Pre-Factura Estimada
-            </h3>
-            
-            <div className="flex items-center gap-2 text-xs text-slate-400 pt-1">
-              <HeartHandshake className="w-4 h-4 text-teal-400" />
-              <span>Base: Plan <strong>{selectedPlanObj.name}</strong></span>
-            </div>
-
-            {/* Print Button */}
-            <button
-              onClick={() => window.print()}
-              className="mt-3 flex items-center justify-center gap-2 w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-colors print:hidden"
-            >
-              <Download className="w-4 h-4" />
-              Descargar como PDF
-            </button>
-          </div>
-
-          {/* Pricing Details */}
-          <div className="py-6 border-b border-slate-800 divide-y divide-slate-800/60 space-y-4 relative z-10 text-xs">
-            
-            {/* Primary person breakdown */}
-            <div className="flex justify-between items-start pt-1">
-              <div className="space-y-0.5 text-left">
-                <span className="block font-semibold">Titular (Edad {state.primaryAge})</span>
-                <span className="block text-[10px] text-slate-400 font-mono">Factor edad: x{getAgeFactor(state.primaryAge).toFixed(2)}</span>
               </div>
-              <span className="font-mono font-semibold">${totals.subscriberCost.toFixed(2)}</span>
             </div>
-
-            {/* Spouse partner detail */}
-            {(state.type === 'pareja' || state.type === 'familiar') && (
-              <div className="flex justify-between items-start pt-3">
-                <div className="space-y-0.5 text-left">
-                  <span className="block font-semibold">Cónyuge o Familiar (Edad {state.partnerAge})</span>
-                  <span className="block text-[10px] text-slate-400 font-mono">Factor edad: x{getAgeFactor(state.partnerAge || 30).toFixed(2)}</span>
-                </div>
-                <span className="font-mono font-semibold">${totals.partnerCost.toFixed(2)}</span>
-              </div>
-            )}
-
-            {/* Children billing detail */}
-            {state.type === 'familiar' && state.childrenCount > 0 && (
-              <div className="flex justify-between items-center pt-3">
-                <span className="font-semibold text-slate-350 text-left">Hijos Dependientes ({state.childrenCount} menores)</span>
-                <span className="font-mono font-semibold">${totals.childrenCost.toFixed(2)}</span>
-              </div>
-            )}
 
           </div>
-
-          {/* Monthly Grand Total Display */}
-          <div className="py-6 space-y-4 relative z-10">
+        ) : (
+          /* RESULT DISPLAY SCREEN GRID MODULE WITH DYNAMIC CRM FEEDBACK LOGS */
+          <div className="space-y-8 animate-in zoom-in-95 duration-400" id="cotizador-results-module">
             
-            <div className="flex justify-between items-baseline">
-              <div className="text-left">
-                <span className="text-sm font-bold uppercase tracking-wider text-slate-400 block">Mensualidad Calculada</span>
-                <span className="text-[10px] text-slate-500">Impuestos y tasas clínicas incluidas</span>
-              </div>
-              <div className="text-right">
-                <span className="text-4xl font-mono font-extrabold text-teal-400" id="live-total-quote-valuation">
-                  ${totals.totalMonthly.toFixed(2)}
+            {/* Header top banner */}
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-205 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="space-y-1 font-sans">
+                <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-[#0C4169] bg-sky-50 border border-sky-100 px-2.5 py-0.5 rounded-full">
+                  Cotización Generada Exitosamente
                 </span>
-                <span className="block text-[10px] text-slate-400">/ mes por grupo</span>
+                <h2 className="text-2xl font-extrabold text-[#0C4169] tracking-tight">Comparativa de Planes Diseñada para Ti</h2>
+                <div className="space-y-1.5 mt-1">
+                  <p className="text-xs text-slate-500 font-sans">
+                    Estimación formal registrada en Colmedikal bajo el código de cotización <strong>{leadCode}</strong>
+                  </p>
+                  <p className="inline-flex items-center gap-1.5 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-150 px-2.5 py-1 rounded-lg font-sans font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>📩 El correo con el resumen y PDF del plan será enviado una vez complete todos los datos y desees contratar alguno de los planes</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowResultScreen(false);
+                    setQuoteStep(1);
+                  }}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition duration-200 cursor-pointer"
+                >
+                  Nueva Cotización
+                </button>
+                
+                <button
+                  onClick={() => navigate('/')}
+                  className="px-4 py-2.5 bg-[#0C4169] text-white hover:bg-slate-900 text-xs font-bold rounded-xl transition duration-200 cursor-pointer"
+                >
+                  Finalizar e Ir al Inicio
+                </button>
               </div>
             </div>
 
-          </div>
+            {/* If it was corporate plan type, display corporate call to action */}
+            {planType === 'corporativo' ? (
+              <div className="bg-[#0C4169] p-8 rounded-3xl text-white space-y-6 shadow-xl border border-white/5 relative overflow-hidden">
+                <div className="absolute right-0 top-0 pointer-events-none z-0 opacity-15 overflow-hidden translate-x-12 -translate-y-12">
+                  <svg className="w-72 h-72 text-white" fill="currentColor" viewBox="0 0 100 100">
+                    <path d="M 38 10 H 62 V 38 H 90 V 62 H 62 V 90 H 38 V 62 H 10 V 38 H 38 Z" />
+                  </svg>
+                </div>
 
-          {/* Quick Specifications Card footer */}
-          <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-900 text-[11px] text-slate-400 text-left space-y-1 relative z-10">
-            <span className="block text-slate-355 font-bold uppercase tracking-wider text-[9px]">Especificaciónes Técnicas Base:</span>
-            <p>• Copago del afiliado reducido al {selectedPlanObj.copayPercent}% directo.</p>
-            <p>• Tope hospitalario en red clínica: <strong className="font-mono text-white">${selectedPlanObj.maxCoverage.toLocaleString()} USD</strong>.</p>
-            <p>• Acceso directo a {selectedPlanObj.hospitalNetwork}.</p>
-          </div>
+                <div className="relative z-10 space-y-3 max-w-2xl">
+                  <span className="text-[10px] font-bold text-sky-300 font-mono tracking-wider uppercase border border-sky-400/20 px-2.5 py-0.5 rounded bg-sky-950/30">
+                    Cotización Colectiva Corporativa
+                  </span>
+                  
+                  <h3 className="text-xl sm:text-2xl font-black font-sans leading-tight">
+                    ¡Gracias por cotizar! Nuestro comercial te contactará para un plan a la medida
+                  </h3>
+                  
+                  <p className="text-xs text-slate-200 leading-relaxed font-sans">
+                    Hemos registrado tu solicitud de cotización para el proyecto de <strong>{numberOfPeople} personas</strong> corporativas en la provincia de {province}. Tu ejecutivo comercial asignado es <strong>{assignedRep}</strong>, quien formulará una propuesta integral llave en mano con tarifas preferenciales y descuentos de escala.
+                  </p>
+                </div>
 
+                <div className="pt-4 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-white/10 relative z-10 text-xs">
+                  <div className="space-y-1">
+                    <span className="text-slate-400 block font-mono">Territorio Asignado:</span>
+                    <span className="text-white font-bold block">{province}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-slate-400 block font-mono">Colaboradores Proyectados:</span>
+                    <span className="text-white font-bold block">{numberOfPeople} Integrantes</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-slate-400 block font-mono">Canal Comercial:</span>
+                    <span className="text-sky-300 font-bold block">1800-COLMED Premium Account</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* OTHERWISE: Plan Masivo or Plan Individual results comparison grid */
+              <div className="space-y-8">
+                {selectedPlanToBuy ? (
+                  /* ACTIVE CONTRACTING / CHECKOUT WIZARD FLOW */
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+                    
+                    {/* Checkout Header */}
+                    <div className="bg-[#0C4169] p-6 text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-sky-300" />
+                          <span className="text-[10px] font-mono tracking-widest text-sky-200 uppercase font-bold">
+                            CONTRATACIÓN DIRECTA SEGURA
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold font-sans">
+                          Suscripción Inmediata - {selectedPlanToBuy.name}
+                        </h3>
+                        <p className="text-xs text-sky-100">
+                          Afiliado Titular: <strong className="text-white">{firstName} {lastName}</strong> • Referencia: {leadCode}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          import('../utils/pdfGenerator').then(({ generateQuotePDF }) => {
+                            generateQuotePDF({
+                              leadCode: leadCode,
+                              fullName: `${firstName} ${lastName}`,
+                              email: email,
+                              phone: phone,
+                              docNumber: docNumber || '1712345678',
+                              docType: docType || 'cedula',
+                              planName: selectedPlanToBuy.name,
+                              basePrice: selectedPlanToBuy.basePrice,
+                              finalPrice: calculateDynamicPrice(selectedPlanToBuy.basePrice),
+                              province: province,
+                              coverageStartDate: coverageStartDate,
+                              dependents: dependants.map(d => ({
+                                relation: getDependantAgeLabel(d.ageRange),
+                                age: d.ageRange === '0-17' ? 10 : d.ageRange === '18-35' ? 25 : d.ageRange === '36-49' ? 42 : d.ageRange === '50-64' ? 58 : 70
+                              })),
+                              hospitalNetwork: selectedPlanToBuy.cobertura ? 'Red Cobertura Directa Colmedikal' : 'Red Sede Principal',
+                              maxCoverage: selectedPlanToBuy.cobertura,
+                              dedHosp: selectedPlanToBuy.dedHosp,
+                              features: selectedPlanToBuy.caracteristicas || [],
+                              especialidades: selectedPlanToBuy.especialidades || {}
+                            });
+                          });
+                        }}
+                        className="p-2 px-4 bg-white hover:bg-slate-50 text-[#0C4169] rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer shadow-sm"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Descargar PDF</span>
+                      </button>
+                    </div>
+
+                    {/* Step Body */}
+                    <div className="p-6 sm:p-8">
+                      {checkoutStep === 1 && (
+                        <div className="space-y-6 max-w-2xl mx-auto">
+                          <div className="bg-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-200 space-y-6">
+                            <div className="text-center space-y-2 pb-4 border-b border-slate-200">
+                              <h4 className="text-lg font-black uppercase tracking-wider text-[#0C4169] font-sans">Resumen de Contratación</h4>
+                              <p className="text-xs text-slate-500">Por favor revise los detalles de su plan antes de enviar la solicitud.</p>
+                            </div>
+                            
+                            <div className="space-y-3 text-sm">
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Afiliado Titular:</span>
+                                <span className="font-bold text-slate-900">{firstName} {lastName}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Documento de Identidad:</span>
+                                <span className="font-semibold text-slate-800 uppercase">{docType} - {docNumber}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Correo Electrónico:</span>
+                                <span className="font-semibold text-slate-800">{email}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Teléfono Móvil:</span>
+                                <span className="font-semibold text-slate-800">{phone}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Provincia:</span>
+                                <span className="font-semibold text-slate-800">{province}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Total de Beneficiarios:</span>
+                                <span className="font-semibold text-slate-800">{dependants.length > 0 ? `${dependants.length + 1} Personas` : 'Solo Titular'}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2 mt-4 pt-2 border-t">
+                                <span className="text-slate-550">Plan Elegido:</span>
+                                <span className="font-extrabold text-[#0C4169]">{selectedPlanToBuy.name}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Límite Gastos Hosp.:</span>
+                                <span className="font-semibold text-slate-900">{selectedPlanToBuy.cobertura}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Deducible Hospitalario:</span>
+                                <span className="font-semibold text-slate-800">{selectedPlanToBuy.dedHosp}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="text-slate-550">Bono de Maternidad:</span>
+                                <span className="font-semibold text-slate-800">{selectedPlanToBuy.maternidad}</span>
+                              </div>
+                            </div>
+
+                            {/* Cost Calculations */}
+                            <div className="bg-white p-5 rounded-xl border border-slate-200 pt-4 shadow-inner mt-4">
+                              <span className="text-xs text-slate-400 uppercase font-mono tracking-wider font-bold block text-center">Prima Mensual de Suscripción</span>
+                              <div className="flex items-baseline justify-center gap-1 mt-2">
+                                <span className="text-4xl font-black text-[#0C4169] font-mono">
+                                  ${calculateDynamicPrice(selectedPlanToBuy.basePrice)}
+                                </span>
+                                <span className="text-sm text-slate-500 font-bold">USD</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 flex flex-col sm:flex-row justify-between gap-4">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                generateQuotePDF({
+                                  leadCode: leadCode,
+                                  fullName: `${firstName} ${lastName}`,
+                                  email: email,
+                                  phone: phone,
+                                  docNumber: docNumber || '1712345678',
+                                  docType: docType || 'cedula',
+                                  planName: selectedPlanToBuy.name,
+                                  basePrice: selectedPlanToBuy.basePrice,
+                                  finalPrice: calculateDynamicPrice(selectedPlanToBuy.basePrice),
+                                  province: province,
+                                  coverageStartDate: coverageStartDate,
+                                  dependents: dependants.map(d => ({
+                                    relation: getDependantAgeLabel(d.ageRange),
+                                    age: d.ageRange === '0-17' ? 10 : d.ageRange === '18-35' ? 25 : d.ageRange === '36-49' ? 42 : d.ageRange === '50-64' ? 58 : 70
+                                  })),
+                                  hospitalNetwork: selectedPlanToBuy.cobertura ? 'Red Cobertura Directa Colmedikal' : 'Red Sede Principal',
+                                  maxCoverage: selectedPlanToBuy.cobertura,
+                                  dedHosp: selectedPlanToBuy.dedHosp,
+                                  features: selectedPlanToBuy.caracteristicas || [],
+                                  especialidades: selectedPlanToBuy.especialidades || {}
+                                });
+                              }}
+                              className="px-6 py-3 bg-white border border-slate-205 hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center justify-center gap-2 transition rounded-xl cursor-pointer w-full sm:w-auto"
+                            >
+                              <Download className="w-4 h-4 text-[#4597CA]" />
+                              <span>Descargar Resumen (PDF)</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setCheckoutStep(2)}
+                              className="px-6 py-3 bg-[#0C4169] text-white hover:bg-slate-900 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                            >
+                              <span>Enviar Solicitud de Contratación</span>
+                              <ArrowRight className="w-4 h-4 text-[#4597CA]" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {checkoutStep === 2 && (
+                        <div className="space-y-6 max-w-2xl mx-auto text-center py-12 animate-in zoom-in-95 duration-500">
+                          <div className="w-20 h-20 mx-auto bg-emerald-50 rounded-full flex items-center justify-center mb-6">
+                            <Check className="w-10 h-10 text-emerald-500" />
+                          </div>
+                          <h3 className="text-2xl font-black text-[#0C4169] tracking-tight">¡Solicitud Registrada con Éxito!</h3>
+                          <div className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto space-y-4">
+                            <p>
+                              Su solicitud de suscripción para el plan <strong className="text-[#0C4169]">{selectedPlanToBuy.name}</strong> ha sido enviada exitosamente.
+                            </p>
+                            <div className="bg-sky-50 p-4 rounded-xl border border-sky-100 text-sky-800">
+                              <p>Hemos enviado un resumen detallado con los beneficios de su plan al correo electrónico: <strong>{email}</strong></p>
+                            </div>
+                            <p className="text-xs text-slate-400">
+                              Un asesor especializado de Colmedikal se comunicará con usted en breve para finalizar su proceso de afiliación.
+                            </p>
+                          </div>
+                          <div className="pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+                            <button
+                               onClick={() => {
+                                 window.scrollTo(0,0);
+                                 navigate('/blog');
+                               }}
+                               className="px-6 py-3 bg-white border border-slate-205 hover:bg-slate-50 text-sm font-bold text-slate-700 flex items-center justify-center gap-2 transition rounded-xl cursor-pointer w-full sm:w-auto"
+                            >
+                               Ir al Blog
+                            </button>
+                            <button
+                               onClick={() => {
+                                 window.scrollTo(0,0);
+                                 navigate('/servicios');
+                               }}
+                               className="px-6 py-3 bg-white border border-slate-205 hover:bg-slate-50 text-sm font-bold text-slate-700 flex items-center justify-center gap-2 transition rounded-xl cursor-pointer w-full sm:w-auto"
+                            >
+                               Ver Servicios
+                            </button>
+                            <button
+                              onClick={() => window.location.reload()}
+                              className="px-6 py-3 bg-[#0C4169] text-white hover:bg-slate-900 rounded-xl text-sm font-bold transition shadow-md cursor-pointer w-full sm:w-auto"
+                            >
+                              Finalizar y Volver al Inicio
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+
+                      {checkoutStep === 3 && (
+                        <div className="space-y-8 max-w-3xl mx-auto animate-in zoom-in-95 duration-500">
+                          
+                          {/* Printable Premium Digital Certificate Block */}
+                          <div className="bg-[#0C4169] text-white p-6 sm:p-8 rounded-3xl space-y-6 shadow-xl border-4 border-slate-100 relative overflow-hidden">
+                            <div className="absolute -right-12 -bottom-12 pointer-events-none opacity-10">
+                              <svg className="w-64 h-64 text-white" fill="currentColor" viewBox="0 0 100 100">
+                                <path d="M 38 10 H 62 V 38 H 90 V 62 H 62 V 90 H 38 V 62 H 10 V 38 H 38 Z" />
+                              </svg>
+                            </div>
+
+                            {/* Top Certificate Header */}
+                            <div className="flex justify-between items-start border-b border-white/25 pb-4 relative z-10">
+                              <div className="space-y-1">
+                                <span className="text-[10px] uppercase font-mono tracking-widest text-[#4597CA] bg-slate-900 border border-white/10 px-2.5 py-0.5 rounded font-black">
+                                  CERTIFICADO DIGITAL DE AFILIACIÓN DE RED
+                                </span>
+                                <h4 className="text-xl font-black font-sans tracking-tight">Colmedikal, Medicina Prepagada S.A.</h4>
+                              </div>
+                              <Logo className="h-8 w-auto text-white" isDarkBg={true} />
+                            </div>
+
+                            {/* Core Certificate Fields */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 relative z-10 text-xs font-sans leading-relaxed text-sky-100">
+                              <div className="space-y-2">
+                                <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Asegurado Titular:</strong> {firstName} {lastName}</p>
+                                <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Tipo de Documento:</strong> {docType.toUpperCase()}: {docNumber}</p>
+                                <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Programa Activo:</strong> {selectedPlanToBuy.name} de Red Directa</p>
+                                <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Residencia / Provincia:</strong> {province}</p>
+                              </div>
+
+                              <div className="space-y-2 bg-slate-950/40 p-4 rounded-xl border border-white/10 font-sans text-sky-100">
+                                <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Suscripción CUC:</strong> <span className="font-mono text-yellow-350">{leadCode}-AF-SECURE</span></p>
+                                <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Inicio de Cobertura de Plan:</strong> {new Date(coverageStartDate).toLocaleDateString('es-EC', {day: '2-digit', month: 'long', year: 'numeric'})}</p>
+                                <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Límite Global de Gastos Hospitalarios:</strong> {selectedPlanToBuy.cobertura}</p>
+                                <p><strong className="text-white uppercase tracking-wider block text-[10px] text-sky-300">Frecuencia Débito:</strong> {paymentFrequency === 'mensual' ? 'Mensual Recurrente' : 'Anual pagado completo'}</p>
+                              </div>
+                            </div>
+
+                            {/* Footer Sign labels */}
+                            <div className="border-t border-white/15 pt-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-[10px] relative z-10 font-mono text-slate-350">
+                              <div className="space-y-1">
+                                <p className="text-slate-400 font-sans">Suscripción Electrónica Firmada por:</p>
+                                <p className="text-white font-serif text-lg italic tracking-wide">{signatureText}</p>
+                                <p className="text-[8.5px] text-slate-500">Autorización legalizada bajo Ley de Comercio Electrónico de Ecuador</p>
+                              </div>
+                            </div>
+
+                          </div>
+
+                          {/* Unique PDF Quote download and email panel */}
+                          <div className="bg-emerald-50 border border-emerald-150 p-6 rounded-2xl space-y-4 font-sans text-xs">
+                            <div className="flex items-start gap-3">
+                              <span className="p-2 bg-emerald-500 text-white rounded-xl shadow-md shrink-0">
+                                <FileCheck className="w-5 h-5 text-teal-105" />
+                              </span>
+                              <div className="space-y-1.5 flex-grow text-slate-800">
+                                <h4 className="font-extrabold text-emerald-950 text-sm">¡Propuesta Emitida y Comprobante Digital Listo!</h4>
+                                <p className="text-emerald-800 leading-normal font-medium">
+                                  Su cotización formal ha sido compilada con un <strong className="text-emerald-900 font-bold">formato único oficial de Colmedikal</strong>. Se ha enviado un correo electrónico de bienvenida de parte de <strong className="text-slate-900">Colmedikal</strong> con los detalles completos y la propuesta de Medicina Prepagada en formato PDF adjunto a su casilla: <strong className="text-slate-900 font-black">{email}</strong>.
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-3 pt-1">
+                              <button
+                                onClick={() => {
+                                  generateQuotePDF({
+                                    leadCode: leadCode,
+                                    fullName: `${firstName} ${lastName}`,
+                                    email: email,
+                                    phone: phone,
+                                    docNumber: docNumber || '1712345678',
+                                    docType: docType || 'cedula',
+                                    planName: selectedPlanToBuy.name,
+                                    basePrice: selectedPlanToBuy.basePrice,
+                                    finalPrice: calculateDynamicPrice(selectedPlanToBuy.basePrice),
+                                    province: province,
+                                    coverageStartDate: coverageStartDate,
+                                    dependents: dependants.map(d => ({
+                                      relation: getDependantAgeLabel(d.ageRange),
+                                      age: d.ageRange === '0-17' ? 10 : d.ageRange === '18-35' ? 25 : d.ageRange === '36-49' ? 42 : d.ageRange === '50-64' ? 58 : 70
+                                    })),
+                                    hospitalNetwork: selectedPlanToBuy.cobertura ? 'Red Cobertura Directa Colmedikal' : 'Red Sede Principal',
+                                    maxCoverage: selectedPlanToBuy.cobertura,
+                                    dedHosp: selectedPlanToBuy.dedHosp,
+                                    signatureText: signatureText,
+                                    features: selectedPlanToBuy.caracteristicas || [],
+                                    especialidades: selectedPlanToBuy.especialidades || {}
+                                  });
+                                }}
+                                className="flex items-center gap-2 p-3 px-5 bg-[#0C4169] text-white hover:bg-slate-900 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer shadow transition"
+                              >
+                                <Download className="w-4 h-4 text-sky-200" />
+                                <span>Descargar Cotización (PDF Único)</span>
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  alert(`Se ha despachado un nuevo correo electrónico formal de servicio al usuario con el adjunto PDF a: ${email}`);
+                                }}
+                                className="p-3 px-5 bg-white border border-slate-205 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 cursor-pointer shadow-sm transition"
+                              >
+                                Re-enviar por Correo Electrónico
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* How to use guidelines */}
+                          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+                            <div className="flex gap-2 items-center text-[#0C4169] font-black uppercase text-xs tracking-wider border-b border-slate-200 pb-2">
+                              <HelpCircle className="w-5 h-5 text-[#4597CA]" />
+                              <span>Guía de Uso Directo de su Plan de Medicina Prepagada</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-700 leading-relaxed font-sans">
+                              
+                              <div className="space-y-2">
+                                <h5 className="font-extrabold text-[#0C4169] text-xs">🩺 Coordinación de Consultas del Plan</h5>
+                                <p>
+                                  Goza de consultas de medicina general y especialidades ilimitadas con cobertura del <strong>100% (sin copago)</strong> para el asegurado. Llame o escriba para agendar consultas dentro de la red:
+                                </p>
+                                <div className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-1 mt-1 font-bold text-slate-800 text-[10.5px]">
+                                  <p>📞 Central Fija: 022 567191</p>
+                                  <p>💬 WhatsApp Red: 0987028756 - 0981975410</p>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <h5 className="font-extrabold text-[#0C4169] text-xs">💊 Farmacias Aliadas para Medicina al 100%</h5>
+                                <p>
+                                  Retire sus medicamentos recetados por médicos de la red 100% cubiertos (sin pagar excedentes) en los siguientes puntos indicando su documento de identidad y CUC del certificado:
+                                </p>
+                                <div className="flex flex-wrap gap-1.5 mt-1">
+                                  <span className="px-2 py-0.5 bg-white border border-slate-200 rounded font-black text-[9.5px]">Medicity</span>
+                                  <span className="px-2 py-0.5 bg-white border border-slate-200 rounded font-black text-[9.5px]">Fybeca</span>
+                                  <span className="px-2 py-0.5 bg-white border border-slate-200 rounded font-black text-[9.5px]">Sana Sana</span>
+                                  <span className="px-2 py-0.5 bg-white border border-slate-200 rounded font-black text-[9.5px]">Farmacias Económicas</span>
+                                </div>
+                              </div>
+
+                            </div>
+                          </div>
+
+                          {/* Final Buttons */}
+                          <div className="flex justify-center pt-2">
+                            <button
+                              onClick={() => {
+                                setSelectedPlanToBuy(null);
+                                setShowResultScreen(false);
+                                setQuoteStep(1);
+                              }}
+                              className="px-8 py-3 bg-[#0C4169] text-white hover:bg-slate-900 rounded-2xl text-xs font-black uppercase tracking-wider cursor-pointer shadow-md transition hover:scale-101"
+                            >
+                              Finalizar Contratación
+                            </button>
+                          </div>
+
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                ) : (
+                  /* COMPARATIVE PLANS GRID */
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch font-sans">
+                    {plansComparativo.map((plan) => (
+                      <div 
+                        key={plan.id}
+                        className="bg-white rounded-3xl border border-slate-200 hover:border-[#4597CA] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                      >
+                        
+                        {/* Header tier info */}
+                        <div className="p-6 sm:p-7 space-y-4 border-b border-slate-100 flex-grow">
+                          <div>
+                            {plan.id === 'plan2' && (
+                              <span className="inline-block bg-teal-50 border border-teal-250 text-teal-700 font-extrabold text-[8.5px] uppercase tracking-widest px-2.5 py-0.5 rounded-full mb-2">
+                                Elección Recomendada
+                              </span>
+                            )}
+                            <h3 className="text-lg font-black text-[#0C4169]">{plan.name}</h3>
+                            <p className="text-[10px] text-slate-400 mt-0.5">Asistencia médica familiar Colmedikal</p>
+                          </div>
+
+                          {/* Pricing block */}
+                          <div className="py-2.5 border-t border-b border-slate-50 flex justify-between items-baseline">
+                            <div>
+                              <span className="text-slate-400 text-[9px] block leading-none font-black tracking-wider uppercase font-mono">VALOR CONTRATACIÓN</span>
+                              <span className="text-3xl font-black font-mono text-[#0C4169] tracking-tight">
+                                ${calculateDynamicPrice(plan.basePrice)}
+                              </span>
+                              <span className="text-slate-500 text-xs font-semibold">/mes</span>
+                            </div>
+                            {dependants.length > 0 && (
+                              <div className="text-right">
+                                <span className="text-slate-400 text-[9px] block leading-none font-mono uppercase tracking-wider font-bold">BASE</span>
+                                <span className="text-xs font-bold text-slate-700 font-mono">${plan.basePrice}.00</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Coverages table details */}
+                          <div className="space-y-2 text-[11px] text-slate-700 font-sans border-b border-slate-100 pb-3">
+                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
+                              <span className="text-slate-450 text-[10px]">Límite Anual:</span>
+                              <span className="font-extrabold text-slate-800 text-right">{plan.cobertura}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
+                              <span className="text-slate-450 text-[10px]">Deducible Hospitalización:</span>
+                              <span className="font-semibold text-slate-800 text-right">{plan.dedHosp}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
+                              <span className="text-emerald-700 font-bold text-[10px]">Bono Maternidad:</span>
+                              <span className="font-semibold text-slate-800 text-right">{plan.maternidad}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
+                              <span className="text-slate-450 text-[10px]">Muerte por Accidente:</span>
+                              <span className="font-semibold text-slate-800 text-right">{plan.muerteAccidente}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
+                              <span className="text-slate-450 text-[10px]">Sepelio por Accidente:</span>
+                              <span className="font-semibold text-slate-800 text-right">{plan.sepelio}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
+                              <span className="text-slate-450 text-[10px]">Ambulancias Terrestres:</span>
+                              <span className="font-semibold text-slate-800 text-right">{plan.ambulancia}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1 font-sans">
+                              <span className="text-[#4597CA] text-[10px] font-bold">Exámenes al Año (Lab/Img):</span>
+                              <span className="font-semibold text-slate-850 text-right">Hasta $100.00</span>
+                            </div>
+                          </div>
+
+                          {/* Specialties Matrix */}
+                          <div className="space-y-2 pt-2">
+                            <span className="block text-[9.5px] font-black tracking-widest text-[#0C4169] uppercase font-mono">
+                              Especialidades Cubiertas:
+                            </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10.5px]">
+                              {Object.entries(plan.especialidades).map(([spec, inc]) => (
+                                <div 
+                                  key={spec} 
+                                  className={`flex items-start gap-1.5 px-2 py-1 rounded-md border transition-all duration-300 ${
+                                    inc 
+                                      ? 'bg-emerald-50/50 border-emerald-100/75 text-slate-800' 
+                                      : 'bg-slate-50/60 border-slate-100 text-slate-400 line-through decoration-slate-200'
+                                  }`}
+                                >
+                                  {inc ? (
+                                    <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 animate-in fade-in zoom-in-50">
+                                      <Check className="w-2.5 h-2.5 stroke-[3.5]" />
+                                    </span>
+                                  ) : (
+                                    <span className="w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center shrink-0 mt-0.5">
+                                      <X className="w-2.5 h-2.5 stroke-[3.5]" />
+                                    </span>
+                                  )}
+                                  <span className={`text-[9.5px] font-bold leading-tight ${inc ? 'text-slate-800' : 'text-slate-400 font-medium'}`}>
+                                    {spec}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Highlights */}
+                          <div className="space-y-2 pt-3 border-t border-slate-100">
+                            <span className="block text-[9px] font-black tracking-widest text-slate-450 uppercase font-mono">Beneficios Destacados:</span>
+                            <ul className="space-y-1 text-[11px] text-slate-600 leading-normal">
+                              {plan.caracteristicas.map((feat, idx) => (
+                                <li key={idx} className="flex gap-1.5 items-start">
+                                  <Check className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
+                                  <span>{feat}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                        </div>
+
+                        {/* Bottom CTA container */}
+                        <div className="p-6 bg-slate-50 border-t border-slate-100 shrink-0 space-y-2 font-sans">
+                          <button
+                            onClick={() => {
+                              setSelectedPlanToBuy(plan);
+                              setCheckoutStep(1);
+                            }}
+                            className="w-full py-3 rounded-xl bg-[#0C4169] hover:bg-slate-900 text-xs font-black uppercase tracking-wider text-center cursor-pointer shadow hover:shadow-md transition active:scale-97 text-white"
+                          >
+                            Contratar Este Plan
+                          </button>
+                        </div>
+
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+        )}
+
+      </main>
+
+      {/* Discretion-free simple footer */}
+      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+        <div className="max-w-7xl mx-auto px-4">
+          <p>© {new Date().getFullYear()} Colmedikal - Módulo de Cotización Independiente Protegido. Todos los derechos reservados.</p>
         </div>
-
-      </div>
-
-      <div className="mt-12 text-center max-w-2xl mx-auto space-y-4 print:hidden">
-        <p className="text-sm font-semibold text-slate-600">
-          ¿No encuentras lo que buscas o necesitas una asesoría especializada?
-        </p>
-        <button
-          onClick={() => setCurrentPage('contacto')}
-          className="px-6 py-3 bg-white border-2 border-slate-200 hover:border-[#0C4169] hover:bg-slate-50 text-slate-800 text-sm font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 mx-auto cursor-pointer"
-        >
-          Contacta a un Agente Comercial
-        </button>
-      </div>
+      </footer>
 
     </div>
   );

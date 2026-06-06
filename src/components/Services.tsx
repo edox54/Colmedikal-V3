@@ -45,7 +45,7 @@ export default function Services({ setCurrentPage }: ServicesProps) {
   });
 
   return (
-    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedical-services-view">
+    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-services-view">
       
       {/* 1. Header & Lead */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
@@ -54,7 +54,7 @@ export default function Services({ setCurrentPage }: ServicesProps) {
           Nuestra Cobertura de Prestadores y Servicios Médicos
         </h1>
         <p className="text-slate-600">
-          En Colmedical nos enorgullece brindar acceso preferencial a los mejores especialistas, clínicas privadas y laboratorios del país. Conoce nuestros beneficios integrales.
+          En Colmedikal nos enorgullece brindar acceso preferencial a los mejores especialistas, clínicas privadas y laboratorios del país. Conoce nuestros beneficios integrales.
         </p>
       </div>
 
@@ -125,7 +125,7 @@ export default function Services({ setCurrentPage }: ServicesProps) {
               ¿Cómo funcionan nuestros reembolsos y autorizaciones?
             </h2>
             <p className="text-slate-350 text-xs leading-relaxed">
-              En Colmedical honramos el tiempo de nuestros afiliados. Olvidad los trámites burocráticos engorrosos de seguros médicos del pasado.
+              En Colmedikal honramos el tiempo de nuestros afiliados. Olvidad los trámites burocráticos engorrosos de seguros médicos del pasado.
             </p>
 
             <div className="space-y-4">
@@ -169,7 +169,7 @@ export default function Services({ setCurrentPage }: ServicesProps) {
             <div className="bg-teal-500/10 p-4 rounded-xl border border-teal-500/30">
               <span className="block text-xs text-teal-300 font-bold mb-1">💡 Nota de preexistencia</span>
               <p className="text-[11px] text-teal-100/80 leading-relaxed">
-                De acuerdo con la reglamentación ecuatoriana y de medicina prepagada colombiana, las enfermedades preexistentes declaradas tienen un periodo de carencia estándar y tratamiento especial. Consulta con un asesor para los detalles de cobertura.
+                De acuerdo con la reglamentación ecuatoriana y de medicina prepagada de Ecuador, las enfermedades preexistentes declaradas tienen un periodo de carencia estándar y tratamiento especial. Consulta con un asesor para los detalles de cobertura.
               </p>
             </div>
           </div>
@@ -186,7 +186,7 @@ export default function Services({ setCurrentPage }: ServicesProps) {
               Directorio Interactivo de Clínicas en Red
             </h2>
             <p className="text-xs text-slate-500">
-              Usa el campo de búsqueda para ubicar de inmediato cuáles clínicas cuentan con cobertura directa Colmedical.
+              Usa el campo de búsqueda para ubicar de inmediato cuáles clínicas cuentan con cobertura directa Colmedikal.
             </p>
           </div>
 

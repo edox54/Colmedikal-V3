@@ -1,4 +1,28 @@
-export type Page = 'home' | 'servicios' | 'nosotros' | 'contacto' | 'cotizador' | 'directorio' | 'portal' | 'faqs' | 'admin';
+export type Page = 'home' | 'servicios' | 'nosotros' | 'contacto' | 'cotizador' | 'directorio' | 'tramites' | 'agendamiento' | 'faqs' | 'blog' | 'blog-detalle' | 'admin' | 'privacy';
+
+export interface Author {
+  id: string;
+  name: string;
+  role: string;
+  specialty: string;
+  experience: string;
+  avatar: string; // URL/SVG illustration or path
+  bio: string;
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string[]; // split by paragraphs or sections
+  publishDate: string;
+  readTime: string;
+  category: string;
+  author: Author;
+  image: string;
+  tags: string[];
+}
 
 export interface Plan {
   id: string;
@@ -62,6 +86,7 @@ export interface Doctor {
   education: string;
   image: string;
   cost: number;
+  active?: boolean;
 }
 
 export interface RefundItem {
@@ -73,6 +98,10 @@ export interface RefundItem {
   status: 'Aprobado' | 'Procesando' | 'Reembolsado' | 'Rechazado';
   invoiceNumber: string;
   adminComment?: string;
+  fileName?: string;
+  fileData?: string;
+  userEmail?: string;
+  userPhone?: string;
 }
 
 export interface AuthorizationItem {
@@ -83,6 +112,10 @@ export interface AuthorizationItem {
   requestDate: string;
   status: 'Aprobado' | 'Pendiente' | 'Auditoría' | 'Rechazado';
   adminComment?: string;
+  fileName?: string;
+  fileData?: string;
+  userEmail?: string;
+  userPhone?: string;
 }
 
 export interface AppointmentItem {
@@ -100,3 +133,13 @@ export interface AppointmentItem {
   cost: number;
   status: 'Pendiente' | 'Confirmada' | 'Cancelada' | 'Completada';
 }
+
+export interface AdminUser {
+  email: string;
+  name: string;
+  role: 'Administrador' | 'Auditor Clínico';
+  addedAt: string;
+  addedBy: string;
+  active: boolean;
+}
+

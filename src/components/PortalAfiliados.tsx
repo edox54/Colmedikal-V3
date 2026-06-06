@@ -21,7 +21,7 @@ import {
   HeartPulse
 } from 'lucide-react';
 import { Page } from '../types';
-import { useColmedical } from '../context/ColmedicalContext';
+import { useColmedikal } from '../context/ColmedikalContext';
 
 interface PortalAfiliadosProps {
   setCurrentPage: (page: Page) => void;
@@ -34,14 +34,14 @@ interface Member {
 }
 
 export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps) {
-  const { refunds, authorizations, addRefund, addAuthorization } = useColmedical();
+  const { refunds, authorizations, addRefund, addAuthorization } = useColmedikal();
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'dash' | 'carnet' | 'reembolsos' | 'autorizaciones' | 'triage'>('dash');
   
   // Login State
-  const [username, setUsername] = useState('demo@colmedical.ec');
-  const [password, setPassword] = useState('colmedical2026');
+  const [username, setUsername] = useState('demo@colmedikal.ec');
+  const [password, setPassword] = useState('colmedikal2026');
   const [loginError, setLoginError] = useState('');
 
   // User Profile Data Info
@@ -152,7 +152,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
         fileName: '',
         clinicalNote: ''
       });
-      setAuthAlert('¡Procedimiento médico enviado a auditoría de Colmedical! Código en trámite; recibirás el dictamen de inmediato.');
+      setAuthAlert('¡Procedimiento médico enviado a auditoría de Colmedikal! Código en trámite; recibirás el dictamen de inmediato.');
     }, 1200);
   };
 
@@ -165,7 +165,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
         color: 'text-emerald-600 bg-emerald-50 border-emerald-100',
         advice: 'Tus síntomas sugieren una afección estacional menor. Se recomienda telemedicina remota.',
         specialist: 'Medicina General o Pediatría',
-        hospital: 'Telemedicial VIP Colmedical / Farmacia en red'
+        hospital: 'Telemedicial VIP Colmedikal / Farmacia en red'
       };
 
       if (symptomKey === 'chest_pain') {
@@ -193,7 +193,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   };
 
   return (
-    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedical-portal-view">
+    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-portal-view">
       
       {!isLoggedIn ? (
         /* LOGIN PANEL WITH DEMO BYPASS */
@@ -483,7 +483,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
                   <div className="flex justify-between items-start z-10 relative">
                     <div className="space-y-0.5">
-                      <span className="text-xl font-display font-bold tracking-tight bg-gradient-to-r from-teal-400 to-teal-200 bg-clip-text text-transparent">Colmedical</span>
+                      <span className="text-xl font-display font-bold tracking-tight bg-gradient-to-r from-teal-400 to-teal-200 bg-clip-text text-transparent">Colmedikal</span>
                       <span className="block text-[8px] font-mono tracking-widest text-teal-300 font-bold uppercase">Medicina Prepagada</span>
                     </div>
 
@@ -824,7 +824,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
                           <div className="text-[9px] text-slate-400 border-t border-slate-100 pt-2 flex justify-between items-center font-mono">
                             <span>Solicitado: {auth.requestDate}</span>
-                            <span className="text-indigo-600 font-bold">Oficina de Trámites Colmedical</span>
+                            <span className="text-indigo-600 font-bold">Oficina de Trámites Colmedikal</span>
                           </div>
                         </div>
                       ))}
@@ -898,7 +898,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 {triageLoading && (
                   <div className="text-center py-12 space-y-4">
                     <Clock className="w-10 h-10 text-teal-600 animate-spin mx-auto" />
-                    <p className="text-xs font-semibold text-slate-500">Analizando sintomatología clínica e historial de la red médica de Colmedical...</p>
+                    <p className="text-xs font-semibold text-slate-500">Analizando sintomatología clínica e historial de la red médica de Colmedikal...</p>
                   </div>
                 )}
 
