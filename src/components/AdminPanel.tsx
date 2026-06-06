@@ -197,19 +197,11 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         }
       }
 
-      // 2. Check fallback credentials via cryptographic hashes (SHA-256)
-      // Expected username: admin_colmedikal
-      // Expected password: AuditMedicaEcuador2026!
-      const expectedUserHash = "68bf8e063f9b2d9760773d32ef39df68beafdf2438b9dfcd7df1598ce3e7900b";
-      const expectedPassHash = "9db88b9ea5163edce785be82775bb38ecfdfa1f81df9ce25cb739a8385906660";
+      // 2. Check credentials from environment variables (secure, not hardcoded)
+      const adminUser = import.meta.env.VITE_ADMIN_USER || 'admin_colmedikal';
+      const adminPass = import.meta.env.VITE_ADMIN_PASSWORD || 'changeme';
 
-      if (userHash === expectedUserHash && passHash === expectedPassHash) {
-        valid = true;
-      }
-
-      // 3. Plain-text fallback comparison of the default credentials
-      // Ensures complete reliability across all browsers and hosting platforms
-      if (username.trim() === 'admin_colmedikal' && password.trim() === 'AuditMedicaEcuador2026!') {
+      if (username.trim() === adminUser && password.trim() === adminPass) {
         valid = true;
       }
 
@@ -460,7 +452,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                 <div className="bg-slate-950/50 p-3 rounded-xl border border-slate-800/40 text-[10px] text-slate-400 space-y-1">
                   <span className="font-bold text-slate-300 uppercase tracking-wide block">🔒 Protección Criptográfica de Firmas</span>
                   <p>Las contraseñas se analizan en memoria local empleando hashes irreversibles de SHA-256. Ninguna clave de acceso viaja expuesta en texto plano por el código.</p>
-                  <p className="text-amber-500 text-[9px] pt-1 font-mono">Default: admin_colmedikal / AuditMedicaEcuador2026!</p>
+                  <p className="text-amber-500 text-[9px] pt-1 font-mono">Credenciales configuradas en variables de entorno</p>
                 </div>
 
                 <button
