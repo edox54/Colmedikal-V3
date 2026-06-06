@@ -156,21 +156,30 @@ export default function Footer() {
                 <Phone className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
                 <div>
                   <span className="block text-xs text-slate-500 font-medium">Asistencia Telefónica</span>
-                  <a href="tel:1800265633" className="text-white hover:text-teal-300 font-medium font-mono text-base">
-                    1800-COLMED (265633)
+                  <a href="tel:022567191" className="text-white hover:text-teal-300 font-medium font-mono text-base">
+                    02-2567191
+                  </a>
+                </div>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="w-5 h-5 flex items-center justify-center text-teal-400 shrink-0 mt-0.5 font-bold">💬</span>
+                <div>
+                  <span className="block text-xs text-slate-500 font-medium">WhatsApp</span>
+                  <a href="https://wa.me/593987028756" target="_blank" rel="noreferrer" className="text-white hover:text-teal-300 font-medium font-mono text-base">
+                    098 702 8756
                   </a>
                 </div>
               </li>
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
                 <span className="text-xs">
-                  Av. de la República E6-447, 170102 Quito, Ecuador.
+                  Av. República E6-447 Y Eloy Alfaro Ed. Castillo Sánchez, Quito, Ecuador.
                 </span>
               </li>
               <li className="flex items-start gap-2.5">
                 <Clock className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
                 <span className="text-xs">
-                  Oficinas: Lun - Vie: 08:30 a 17:30.<br />
+                  Horario de atención: Lun - Vie: 08:30 a 18:30.<br />
                   Emergencias clínicas: Atención continua 24 horas.
                 </span>
               </li>

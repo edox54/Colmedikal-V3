@@ -154,7 +154,7 @@ export default function Services({ setCurrentPage }: ServicesProps) {
               
               <div className="bg-slate-900/60 p-4.5 rounded-xl border border-slate-700/50 space-y-1 text-center">
                 <PhoneCall className="w-5 h-5 text-teal-400 mx-auto mb-2" />
-                <span className="block text-xs font-bold font-mono">1800-265633</span>
+                <span className="block text-xs font-bold font-mono">02-2567191</span>
                 <span className="block text-[10px] text-slate-400">Atención telefónica gratuita</span>
               </div>
 

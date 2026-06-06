@@ -35,9 +35,9 @@ export default function Contact({ setCurrentPage }: ContactProps) {
   const officeLocations = [
     {
       city: 'Sede Principal - Quito',
-      address: 'Av. de la República E6-447, 170102 Quito, Ecuador',
-      phones: '02-3951000 / 02-3998000',
-      email: 'quito@colmedikal.com'
+      address: 'Av. República E6-447 Y Eloy Alfaro Ed. Castillo Sánchez',
+      phones: '02-2567191 (WhatsApp: 098 702 8756)',
+      email: 'info@colmedikal.com'
     }
   ];
 
@@ -119,10 +119,23 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                 </div>
                 <div>
                   <span className="block text-xs text-slate-400 font-semibold uppercase tracking-wider">Centro de Asistencia</span>
-                  <a href="tel:1800265633" className="block text-base font-bold text-slate-900 font-mono hover:text-teal-600 transition-colors">
-                    1800-COLMED (265633)
+                  <a href="tel:022567191" className="block text-base font-bold text-slate-900 font-mono hover:text-teal-600 transition-colors">
+                    02-2567191
                   </a>
-                  <span className="text-[11px] text-slate-500">Línea gratuita de cobertura nacional ECU/COL</span>
+                  <span className="text-[11px] text-slate-500">Asistencia telefónica y soporte nacional</span>
+                </div>
+              </div>
+
+              <div className="flex gap-4 p-5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-teal-200 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <span className="text-lg font-bold">💬</span>
+                </div>
+                <div>
+                  <span className="block text-xs text-slate-400 font-semibold uppercase tracking-wider">WhatsApp Citas</span>
+                  <a href="https://wa.me/593987028756" target="_blank" rel="noreferrer" className="block text-base font-bold text-slate-900 font-mono hover:text-emerald-650 transition-colors">
+                    098 702 8756
+                  </a>
+                  <span className="text-[11px] text-slate-500">Reserva de citas médicas y consultas</span>
                 </div>
               </div>
 
@@ -133,7 +146,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                 <div>
                   <span className="block text-xs text-slate-400 font-semibold uppercase tracking-wider">Correo Corporativo</span>
                   <a href="mailto:info@colmedikal.com" className="block text-base font-bold text-slate-900 hover:text-indigo-600 transition-colors">
-                    contacto@colmedikal.com
+                    info@colmedikal.com
                   </a>
                   <span className="text-[11px] text-slate-500">Respuestas en menos de 2 horas hábiles</span>
                 </div>
@@ -148,7 +161,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                   <p className="text-xs font-bold text-slate-900">
                     Emergencias: 24 horas continuo
                   </p>
-                  <p className="text-[11px] text-slate-500">Oficinas Comerciales: Lunes a Viernes de 08:30 - 17:30</p>
+                  <p className="text-[11px] text-slate-500">Horario de atención: Lunes a Viernes de 08:30 - 18:30</p>
                 </div>
               </div>
 

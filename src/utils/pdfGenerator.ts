@@ -87,8 +87,8 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(100, 116, 139);
-    doc.text('Colmedikal - Sede Principal: Av. de la República E6-447 y El Jardín, Quito - Ecuador.', 15, pageHeight - 9);
-    doc.text('Superintendencia de Compañías del Ecuador Registro Reg: 923-CO. Teléfono: 1800-COLMED.', 15, pageHeight - 5);
+    doc.text('Colmedikal - Sede Principal: Av. República E6-447 Y Eloy Alfaro Ed. Castillo Sánchez, Quito - Ecuador.', 15, pageHeight - 9);
+    doc.text('Superintendencia de Compañías del Ecuador Registro Reg: 923-CO. Teléfono: 02-2567191 | WhatsApp: 098 702 8756 | Correo: info@colmedikal.com', 15, pageHeight - 5);
 
     doc.setFont('helvetica', 'bold');
     doc.text('Página 1 de 1', pageWidth - 30, pageHeight - 7);
@@ -216,13 +216,16 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
   doc.setTextColor(70, 80, 90);
 
   let bulletY = 169;
-  options.features.slice(0, 4).forEach((feat) => {
-    doc.setFillColor(16, 185, 129); // Green bullets
-    doc.circle(18, bulletY - 1, 1.2, 'F');
-    doc.setTextColor(28, 46, 60);
-    doc.text(feat, 22, bulletY);
-    bulletY += 5.5;
-  });
+  options.features
+    .filter((feat) => !feat.toLowerCase().includes('especialidad'))
+    .slice(0, 4)
+    .forEach((feat) => {
+      doc.setFillColor(16, 185, 129); // Green bullets
+      doc.circle(18, bulletY - 1, 1.2, 'F');
+      doc.setTextColor(28, 46, 60);
+      doc.text(feat, 22, bulletY);
+      bulletY += 5.5;
+    });
 
   if (options.especialidades) {
     let specY = 169;

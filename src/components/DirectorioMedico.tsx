@@ -301,13 +301,13 @@ export default function DirectorioMedico() {
                           </button>
                           
                           <a 
-                            href="tel:1800265633"
+                            href="tel:022567191"
                             onClick={(e) => e.stopPropagation()}
                             className="font-mono text-[10px] font-extrabold text-[#0C4169] bg-slate-100 hover:bg-slate-200 px-2.5 py-0.5 rounded-lg border border-slate-250 inline-flex items-center gap-1 transition-all"
                             title="Central Telefónica de Colmedikal"
                           >
                             <Phone className="w-3 h-3 text-[#4597CA]" />
-                            <span>1800-COLMED</span>
+                            <span>02-2567191</span>
                           </a>
                         </div>
                       </div>
@@ -473,10 +473,10 @@ export default function DirectorioMedico() {
                         
                         <div className="space-y-1">
                           <p className="text-xs font-black text-slate-800">
-                            📞 1800-COLMED (265633) - Toll Free Nacional
+                            📞 02-2567191 - Central Telefónica
                           </p>
                           <p className="text-xs font-bold text-slate-700">
-                            💬 +593 99 876 5432 - Concierge WhatsApp Citas
+                            💬 098 702 8756 - WhatsApp Citas
                           </p>
                         </div>
                         

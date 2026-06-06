@@ -477,7 +477,7 @@ export default function Home() {
               </button>
             </div>
             <span className="block text-xs text-slate-400 font-mono pt-2">
-              Asistencia telefónica inmediata: 1800-COLMED (265633)
+              Asistencia telefónica inmediata: 02-2567191 | WhatsApp: 098 702 8756
             </span>
           </div>
         </div>

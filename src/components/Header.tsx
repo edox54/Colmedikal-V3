@@ -79,14 +79,14 @@ export default function Header() {
       {/* Top Info Bar */}
       <div className="bg-slate-900 text-slate-300 py-2.5 px-4 sm:px-6 lg:px-8 flex justify-between items-center text-[10px] sm:text-xs font-medium">
         <div className="flex items-center gap-3">
-          <span>🕒 Lunes a Viernes 08h00 - 18h00</span>
+          <span>🕒 Lunes a Viernes 08:30 - 18:30</span>
           <span className="hidden sm:inline text-slate-700">|</span>
           <span className="hidden sm:inline">📍 Presencia en UIO, GYE, CUE y todo el país</span>
         </div>
         <div className="flex items-center gap-4">
-          <a href="tel:1800265633" className="hover:text-white transition-colors">📞 1800-COLMED (265633)</a>
-          <span className="text-slate-705 text-slate-700">|</span>
-          <a href="https://wa.me/593998765432" target="_blank" rel="noreferrer" className="hover:text-emerald-450 text-emerald-400 transition-colors">💬 WhatsApp Citas</a>
+          <a href="tel:022567191" className="hover:text-white transition-colors">📞 02-2567191</a>
+          <span className="text-slate-700">|</span>
+          <a href="https://wa.me/593987028756" target="_blank" rel="noreferrer" className="hover:text-emerald-450 text-emerald-400 transition-colors">💬 WhatsApp: 098 702 8756</a>
         </div>
       </div>
 

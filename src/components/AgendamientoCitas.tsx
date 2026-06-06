@@ -350,8 +350,8 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
               <p className="text-[11px] text-slate-600 leading-normal">
                 Si prefiere soporte telefónico expedito para emergencias de hospital o requiere un traslado de ambulancia inmediato, no dude en llamar:
               </p>
-              <a href="tel:1800265633" className="block text-sm font-black text-[#0C4169] font-mono hover:underline">
-                📞 1800-COLMED (265633)
+              <a href="tel:022567191" className="block text-sm font-black text-[#0C4169] font-mono hover:underline">
+                📞 02-2567191 | 💬 WhatsApp: 098 702 8756
               </a>
             </div>
           </div>

@@ -244,7 +244,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 <input type="checkbox" defaultChecked className="accent-teal-500 rounded" />
                 <span>Recordar sesión</span>
               </label>
-              <a href="#reset" onClick={(e) => { e.preventDefault(); alert("Contacto telefónico de soporte para recuperación: 1800-COLMED"); }} className="text-indigo-650 font-semibold hover:underline">
+              <a href="#reset" onClick={(e) => { e.preventDefault(); alert("Contacto telefónico de soporte para recuperación: 02-2567191 o WhatsApp: 098 702 8756"); }} className="text-indigo-650 font-semibold hover:underline">
                 ¿Olvidaste tu clave?
               </a>
             </div>

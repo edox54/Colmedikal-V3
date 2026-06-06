@@ -1061,7 +1061,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                   </div>
                   <div className="space-y-1">
                     <span className="text-slate-400 block font-mono">Canal Comercial:</span>
-                    <span className="text-sky-300 font-bold block">1800-COLMED Premium Account</span>
+                    <span className="text-sky-300 font-bold block">Canal Directo Colmedikal Premium</span>
                   </div>
                 </div>
               </div>
