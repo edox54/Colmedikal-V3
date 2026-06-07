@@ -49,6 +49,7 @@ export default function App() {
     <ColmedikalProvider>
       <BrowserRouter>
         <ScrollToTop />
+        <SEOController />
         <Routes>
           <Route path="/" element={<HomeLayout component={Home} />} />
           <Route path="/servicios" element={<HomeLayout component={Services} />} />

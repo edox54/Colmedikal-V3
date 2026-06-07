@@ -1,17 +1,37 @@
 import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Page, BlogPost } from '../types';
 import { SEO_MATRIX, PageSEOMetadata } from './seoMatrix';
+import { BLOG_POSTS } from '../data/blogData';
 import sedePrincipalBuilding from '../assets/images/sede_principal_building_1780025281820.png';
 
-interface SEOControllerProps {
-  currentPage: Page;
-  activeBlogPost?: BlogPost | null;
-}
+export default function SEOController() {
+  const location = useLocation();
 
-export default function SEOController({ currentPage, activeBlogPost }: SEOControllerProps) {
   useEffect(() => {
     // 1. Resolve correct metadata object
     let meta: PageSEOMetadata | null = null;
+    let currentPage = 'home';
+    let activeBlogPost: BlogPost | null = null;
+
+    const path = location.pathname;
+    if (path === '/' || path === '/home') currentPage = 'home';
+    else if (path.startsWith('/servicios')) currentPage = 'servicios';
+    else if (path.startsWith('/directorio')) currentPage = 'directorio';
+    else if (path.startsWith('/nosotros')) currentPage = 'nosotros';
+    else if (path.startsWith('/faqs')) currentPage = 'faqs';
+    else if (path.startsWith('/contacto')) currentPage = 'contacto';
+    else if (path.startsWith('/cotizador')) currentPage = 'cotizador';
+    else if (path.startsWith('/portal') || path.startsWith('/tramites') || path.startsWith('/agendamiento')) currentPage = 'portal';
+    else if (path.startsWith('/blog')) {
+      const slug = path.replace('/blog/', '').replace('/blog', '');
+      if (slug && slug !== '/') {
+        currentPage = 'blog-detalle';
+        activeBlogPost = BLOG_POSTS.find(post => post.slug === slug || post.id === slug) || null;
+      } else {
+        currentPage = 'blog';
+      }
+    }
 
     if (currentPage === 'blog-detalle' && activeBlogPost) {
       // Dynamic SEO for individual blog detail view
@@ -19,7 +39,7 @@ export default function SEOController({ currentPage, activeBlogPost }: SEOContro
         title: `${activeBlogPost.title} | Blog Colmedikal`,
         description: activeBlogPost.excerpt,
         keywords: activeBlogPost.tags.join(', '),
-        robots: 'noindex, nofollow',
+        robots: 'index, follow', // Changed to index, follow for blog posts!
         geoRegion: 'EC-P',
         geoPlacename: 'Quito, Ecuador',
         geoPosition: '-0.180653;-78.467834',
@@ -55,8 +75,7 @@ export default function SEOController({ currentPage, activeBlogPost }: SEOContro
     // 4. Update core meta elements
     updateMetaTag('name', 'description', meta.description);
     updateMetaTag('name', 'keywords', meta.keywords);
-    // Unconditionally force noindex, nofollow globally on all page states
-    updateMetaTag('name', 'robots', 'noindex, nofollow');
+    updateMetaTag('name', 'robots', meta.robots || 'index, follow');
 
     // 5. Update GEO-targeting tags (for GEO SEO Google search intent)
     updateMetaTag('name', 'geo.region', meta.geoRegion);
@@ -107,17 +126,14 @@ export default function SEOController({ currentPage, activeBlogPost }: SEOContro
         'headline': activeBlogPost.title,
         'description': activeBlogPost.excerpt,
         'image': activeBlogPost.image,
-        'datePublished': '2026-05-28T12:00:00Z',
-        'dateModified': '2026-05-29T02:00:00Z',
+        'datePublished': activeBlogPost.date,
         'author': {
           '@type': 'Person',
           'name': activeBlogPost.author.name,
           'jobTitle': activeBlogPost.author.role,
           'description': activeBlogPost.author.bio,
           'knowsAbout': [
-            activeBlogPost.author.specialty,
-            'Medicina Prepagada',
-            'Sistemas de salud en Ecuador'
+            activeBlogPost.author.specialty || 'Medicina Prepagada'
           ]
         },
         'publisher': {
@@ -230,10 +246,7 @@ export default function SEOController({ currentPage, activeBlogPost }: SEOContro
       document.head.appendChild(scriptElement);
     }
 
-    return () => {
-      // Optional Cleanup, though keeping tags is generally preferred for SEO continuity
-    };
-  }, [currentPage, activeBlogPost]);
+  }, [location.pathname]);
 
   // This controller doesn't render visual aspects, it just orchestrates SEO header tags.
   return null;
