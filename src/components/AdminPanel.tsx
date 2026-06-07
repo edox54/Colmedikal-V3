@@ -436,33 +436,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                 >
                   {isLoggingIn ? 'Verificando Hash...' : 'Ingresar al Panel Seguro ✓'}
                 </button>
-
-                <div className="relative flex py-2 items-center">
-                  <div className="flex-grow border-t border-slate-800"></div>
-                  <span className="flex-shrink mx-4 text-slate-500 text-[10px] font-bold uppercase tracking-wider">O también</span>
-                  <div className="flex-grow border-t border-slate-800"></div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={isLoggingIn}
-                  className="w-full py-3 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 font-bold text-xs rounded-xl border border-indigo-500/20 shadow-sm cursor-pointer transition flex items-center justify-center gap-2 uppercase tracking-wider"
-                >
-                  <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
-                    <path d="M12.24 10.285V13.4h6.887C18.2 15.614 15.645 18 12.24 18c-3.86 0-7-3.14-7-7s3.14-7 7-7c1.7 0 3.25.61 4.47 1.617l2.427-2.426C17.41 1.63 14.99 1 12.24 1c-5.523 0-10 4.477-10 10s4.477 10 10 10c5.78 0 9.61-4.06 9.61-9.78 0-.66-.06-1.3-.17-1.935H12.24z" />
-                  </svg>
-                  <span>Verificar con Google (Administrador)</span>
-                </button>
               </form>
 
               <div className="pt-4 border-t border-slate-800/60 flex flex-col gap-3">
-                <div className="bg-slate-950/50 p-3 rounded-xl border border-slate-800/40 text-[10px] text-slate-400 space-y-1">
-                  <span className="font-bold text-slate-300 uppercase tracking-wide block">🔒 Protección Criptográfica de Firmas</span>
-                  <p>Las contraseñas se analizan en memoria local empleando hashes irreversibles de SHA-256. Ninguna clave de acceso viaja expuesta en texto plano por el código.</p>
-                  <p className="text-amber-500 text-[9px] pt-1 font-mono">Default: admin_colmedikal / AuditMedicaEcuador2026!</p>
-                </div>
-
                 <button
                   type="button"
                   onClick={() => setCurrentPage('home')}
