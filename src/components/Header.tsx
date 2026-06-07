@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Menu, 
   X, 
@@ -27,10 +28,37 @@ export default function Header() {
   const location = useLocation();
   const { user, logout, isAdminUser } = useColmedikal();
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null);
   
   // Megamenu state managers
   const [activeMegamenu, setActiveMegamenu] = useState<'servicios' | 'directorio' | null>(null);
   const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Top Info Bar mobile ticker
+  const topBarItems = [
+    { id: 'horario', content: <span>🕒 Lunes a Viernes 08:30 - 18:30</span> },
+    { id: 'presencia', content: <span>📍 Presencia en UIO, GYE, CUE y todo el país</span> },
+    { id: 'tel', content: <a href="tel:022567191" className="hover:text-white transition-colors">📞 02-2567191</a> },
+    { id: 'whatsapp', content: <a href="https://wa.me/593987028756" target="_blank" rel="noreferrer" className="hover:text-emerald-450 text-emerald-400 transition-colors">💬 WhatsApp: 098 702 8756</a> }
+  ];
+
+  const [currentTickerIdx, setCurrentTickerIdx] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTickerIdx((prev) => (prev + 1) % topBarItems.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [topBarItems.length]);
 
   const menuItems = [
     { label: 'Inicio', id: 'inicio', items: [
@@ -76,12 +104,28 @@ export default function Header() {
 
   return (
     <div className="w-full flex flex-col z-50 sticky top-0 shadow-sm border-b border-teal-50">
-      {/* Top Info Bar */}
-      <div className="bg-slate-900 text-slate-300 py-2.5 px-4 sm:px-6 lg:px-8 flex justify-between items-center text-[10px] sm:text-xs font-medium">
+      {/* Top Info Bar Mobile Animated Version */}
+      <div className={`sm:hidden bg-slate-900 text-slate-300 px-4 flex justify-center items-center text-[11px] font-medium relative overflow-hidden transition-all duration-300 ${isScrolled ? 'h-0 py-0 opacity-0' : 'h-9 py-2.5 opacity-100'}`}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentTickerIdx}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.3 }}
+            className="absolute w-full flex justify-center items-center px-4 text-center"
+          >
+            {topBarItems[currentTickerIdx].content}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Top Info Bar Desktop Static Version */}
+      <div className={`hidden sm:flex bg-slate-900 text-slate-300 px-4 sm:px-6 lg:px-8 justify-between items-center text-[10px] sm:text-xs font-medium transition-all duration-300 ${isScrolled ? 'h-0 py-0 opacity-0 overflow-hidden' : 'h-9 py-2.5 opacity-100'}`}>
         <div className="flex items-center gap-3">
           <span>🕒 Lunes a Viernes 08:30 - 18:30</span>
-          <span className="hidden sm:inline text-slate-700">|</span>
-          <span className="hidden sm:inline">📍 Presencia en UIO, GYE, CUE y todo el país</span>
+          <span className="text-slate-700">|</span>
+          <span>📍 Presencia en UIO, GYE, CUE y todo el país</span>
         </div>
         <div className="flex items-center gap-4">
           <a href="tel:022567191" className="hover:text-white transition-colors">📞 02-2567191</a>
@@ -95,7 +139,7 @@ export default function Header() {
         onMouseLeave={handleCloseMenu}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+          <div className={`flex justify-between items-center transition-all duration-300 ${isScrolled ? 'h-14 lg:h-16' : 'h-16 lg:h-20'}`}>
             
             {/* Logo Branding */}
             <div 
@@ -103,7 +147,7 @@ export default function Header() {
               className="flex items-center gap-3 cursor-pointer group"
               id="colmedikal-brand-logo"
             >
-              <Logo className="w-auto h-10 sm:h-11 transition-transform duration-300 group-hover:scale-105" />
+              <Logo className={`w-auto transition-all duration-300 group-hover:scale-105 ${isScrolled ? 'h-8 sm:h-9' : 'h-10 sm:h-11'}`} />
             </div>
 
             {/* Desktop Navigation */}
@@ -227,21 +271,62 @@ export default function Header() {
 
         {/* Mobile Menu Dropdown */}
         {isOpen && (
-          <div className="lg:hidden border-t border-slate-100 bg-white/95 backdrop-blur-md shadow-xl animate-in fade-in slide-in-from-top-4 duration-200">
-            <div className="px-4 pt-2 pb-6 space-y-1.5">
+          <div className="lg:hidden border-t border-slate-100 bg-white/95 backdrop-blur-md shadow-xl animate-in fade-in slide-in-from-top-4 duration-200 max-h-[calc(100vh-140px)] overflow-y-auto">
+            <div className="px-4 pt-2 pb-24 space-y-1.5">
               {menuItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => item.path ? handleNavClick(item.path) : void 0}
-                  className={`block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                  location.pathname === item.path
-                      ? 'bg-[#4597CA]/10 text-[#0C4169] font-semibold border-l-4 border-[#4597CA]'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-[#4597CA]'
-                  }`}
-                  id={`mobile-nav-${item.id}`}
-                >
-                  {item.label}
-                </button>
+                <div key={item.id}>
+                  {item.items ? (
+                    <div className="space-y-1 my-1">
+                      <button
+                        onClick={() => setExpandedMobileMenu(expandedMobileMenu === item.id ? null : item.id)}
+                        className="flex items-center justify-between w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <span>{item.label}</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expandedMobileMenu === item.id ? 'rotate-180 text-[#4597CA]' : 'text-slate-400'}`} />
+                      </button>
+                      
+                      <AnimatePresence>
+                        {expandedMobileMenu === item.id && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="py-1 space-y-1 bg-slate-50/50 rounded-xl mt-1">
+                              {item.items.map((subItem) => (
+                                <button
+                                  key={subItem.path}
+                                  onClick={() => handleNavClick(subItem.path)}
+                                  className={`block w-full text-left pl-8 pr-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                                  location.pathname === subItem.path
+                                      ? 'bg-[#4597CA]/10 text-[#0C4169] font-semibold border-l-2 border-[#4597CA]'
+                                      : 'text-slate-600 hover:bg-white hover:text-[#4597CA]'
+                                  }`}
+                                >
+                                  <span className="text-[#4597CA] opacity-50 mr-2">•</span>{subItem.label}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => item.path ? handleNavClick(item.path) : void 0}
+                      className={`block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                      location.pathname === item.path
+                          ? 'bg-[#4597CA]/10 text-[#0C4169] font-semibold border-l-4 border-[#4597CA]'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-[#4597CA]'
+                      }`}
+                      id={`mobile-nav-${item.id}`}
+                    >
+                      {item.label}
+                    </button>
+                  )}
+                </div>
               ))}
               
               {user && (

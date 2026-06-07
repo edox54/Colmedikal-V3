@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './components/Home';
@@ -23,6 +23,16 @@ import SEOController from './seo/SEOController';
 import { ColmedikalProvider } from './context/ColmedikalContext';
 import AdminPanel from './components/AdminPanel';
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+
+  return null;
+}
+
 function useSetCurrentPageMapper() {
   const navigate = useNavigate();
   return (page: string) => {
@@ -38,6 +48,7 @@ export default function App() {
   return (
     <ColmedikalProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<HomeLayout component={Home} />} />
           <Route path="/servicios" element={<HomeLayout component={Services} />} />

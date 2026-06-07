@@ -89,51 +89,51 @@ export default function FloatingWidget() {
         className="md:hidden fixed bottom-4 left-4 right-4 z-50"
         id="colmedikal-mobile-floating-dock-wrapper"
       >
-        <div className="bg-[#111C2Evb] backdrop-blur-md rounded-2xl px-5 py-2.5 shadow-2xl border border-white/10 flex items-center justify-around gap-2 max-w-sm mx-auto">
+        <div className="bg-[#0C4169] rounded-2xl px-5 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.25)] flex items-center justify-around gap-2 max-w-sm mx-auto border border-[#0C4169]/50">
           {/* WhatsApp Mobile Trigger */}
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-col items-center justify-center flex-1 py-1 text-center transition-transform active:scale-95 rounded-lg active:bg-white/5"
+            className="flex flex-col items-center justify-center flex-1 py-1 text-center transition-transform active:scale-95 rounded-lg active:bg-white/10"
           >
             <div className="relative">
-              <MessageCircle className="w-5 h-5 text-emerald-450" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <MessageCircle className="w-6 h-6 text-emerald-400 mb-0.5" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
             </div>
-            <span className="text-[10px] text-slate-300 font-bold mt-1 tracking-tight">
+            <span className="text-[11px] text-white font-bold mt-1 tracking-tight">
               WhatsApp
             </span>
           </a>
 
           {/* Divider */}
-          <div className="h-7 w-px bg-white/10 shrink-0"></div>
+          <div className="h-8 w-px bg-white/20 shrink-0"></div>
 
           {/* Cotizador Mobile Link */}
           <button
             onClick={() => handlePageChange('/cotizador')}
             className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-transform active:scale-95 rounded-lg ${
-              isActive('/cotizador') ? 'bg-white/10 scale-105' : 'active:bg-white/5'
+              isActive('/cotizador') ? 'bg-white/10 scale-105' : 'active:bg-white/10'
             }`}
           >
-            <Calculator className={`w-5 h-5 ${isActive('/cotizador') ? 'text-teal-400 font-bold' : 'text-slate-300'}`} />
-            <span className={`text-[10px] mt-1 tracking-tight ${isActive('/cotizador') ? 'text-teal-400 font-extrabold' : 'text-slate-300 font-medium'}`}>
+            <Calculator className={`w-6 h-6 mb-0.5 ${isActive('/cotizador') ? 'text-white' : 'text-slate-300'}`} />
+            <span className={`text-[11px] mt-1 tracking-tight ${isActive('/cotizador') ? 'text-white font-extrabold' : 'text-slate-200 font-medium'}`}>
               Cotizar
             </span>
           </button>
 
           {/* Divider */}
-          <div className="h-7 w-px bg-white/10 shrink-0"></div>
+          <div className="h-8 w-px bg-white/20 shrink-0"></div>
 
           {/* Contacto Mobile Link */}
           <button
             onClick={() => handlePageChange('/contacto')}
             className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-transform active:scale-95 rounded-lg ${
-              isActive('/contacto') ? 'bg-white/10 scale-105' : 'active:bg-whtie/5'
+              isActive('/contacto') ? 'bg-white/10 scale-105' : 'active:bg-white/10'
             }`}
           >
-            <PhoneCall className={`w-5 h-5 ${isActive('/contacto') ? 'text-orange-400 font-bold' : 'text-slate-300'}`} />
-            <span className={`text-[10px] mt-1 tracking-tight ${isActive('/contacto') ? 'text-orange-400 font-extrabold' : 'text-slate-300 font-medium'}`}>
+            <PhoneCall className={`w-6 h-6 mb-0.5 ${isActive('/contacto') ? 'text-white' : 'text-slate-300'}`} />
+            <span className={`text-[11px] mt-1 tracking-tight ${isActive('/contacto') ? 'text-white font-extrabold' : 'text-slate-200 font-medium'}`}>
               Contacto
             </span>
           </button>
