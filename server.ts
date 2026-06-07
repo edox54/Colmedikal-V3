@@ -2,37 +2,15 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
-import cors from 'cors';
-
-// Importar rutas de API
-import doctorsRouter from './src/api/routes/doctors';
-import refundsRouter from './src/api/routes/refunds';
-import authorizationsRouter from './src/api/routes/authorizations';
-import appointmentsRouter from './src/api/routes/appointments';
-import leadsRouter from './src/api/routes/leads';
-import adminsRouter from './src/api/routes/admins';
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3000;
+  const PORT = 3000;
 
-  // Middlewares
-  app.use(cors());
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-  // Health check
+  // General API routes (if any) go here first
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok' });
   });
-
-  // API Routes
-  app.use('/api/doctors', doctorsRouter);
-  app.use('/api/refunds', refundsRouter);
-  app.use('/api/authorizations', authorizationsRouter);
-  app.use('/api/appointments', appointmentsRouter);
-  app.use('/api/leads', leadsRouter);
-  app.use('/api/admins', adminsRouter);
 
   const distPath = path.join(process.cwd(), 'dist');
   const hasDist = fs.existsSync(path.join(distPath, 'index.html'));
@@ -46,7 +24,9 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
+    // Serve static files in the dist folder
     app.use(express.static(distPath));
+    // Provide general routing fallback to index.html for react-router-dom
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
@@ -57,4 +37,4 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+startServer();
