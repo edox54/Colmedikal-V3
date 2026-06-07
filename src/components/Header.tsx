@@ -143,7 +143,7 @@ export default function Header() {
             
             {/* Logo Branding */}
             <div 
-              onClick={() => handleNavClick('home')} 
+              onClick={() => handleNavClick('/')} 
               className="flex items-center gap-3 cursor-pointer group"
               id="colmedikal-brand-logo"
             >
@@ -219,7 +219,7 @@ export default function Header() {
                 <div className="flex items-center gap-2 mr-2">
                   {isAdminUser && (
                     <button
-                      onClick={() => handleNavClick('admin')}
+                      onClick={() => handleNavClick('/admin')}
                       className={`p-2.5 rounded-full transition-all duration-300 border border-slate-200 ${
                         location.pathname === '/admin' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-50'
                       }`}
@@ -241,7 +241,7 @@ export default function Header() {
               )}
 
               <button
-                onClick={() => handleNavClick('cotizador')}
+                onClick={() => handleNavClick('/cotizador')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 shadow-md ${
                   location.pathname === '/cotizador'
                     ? 'bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white shadow-[#0C4169]/20 scale-95'
@@ -333,7 +333,7 @@ export default function Header() {
                 <div className="pt-2 flex flex-col gap-2">
                   {isAdminUser && (
                     <button
-                      onClick={() => handleNavClick('admin')}
+                      onClick={() => handleNavClick('/admin')}
                       className="flex items-center w-full gap-3 px-4 py-3 rounded-xl bg-slate-100 text-slate-900 font-bold text-xs cursor-pointer"
                     >
                       <Settings className="w-4 h-4" />
@@ -355,7 +355,7 @@ export default function Header() {
 
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                 <button
-                  onClick={() => handleNavClick('cotizador')}
+                  onClick={() => handleNavClick('/cotizador')}
                   className="flex items-center justify-center w-full gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs shadow-md shadow-[#0C4169]/15 active:scale-98 transition-all cursor-pointer"
                   id="mobile-nav-cotizador"
                 >
@@ -388,7 +388,7 @@ export default function Header() {
                     </h3>
                     <div className="space-y-4">
                       <button 
-                        onClick={() => handleNavClick('servicios')}
+                        onClick={() => handleNavClick('/servicios')}
                         className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
@@ -401,7 +401,7 @@ export default function Header() {
                       </button>
 
                       <button 
-                        onClick={() => handleNavClick('servicios')}
+                        onClick={() => handleNavClick('/servicios')}
                         className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
@@ -414,7 +414,7 @@ export default function Header() {
                       </button>
 
                       <button 
-                        onClick={() => handleNavClick('servicios')}
+                        onClick={() => handleNavClick('/servicios')}
                         className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
@@ -435,7 +435,7 @@ export default function Header() {
                     </h3>
                     <div className="space-y-4">
                       <button 
-                        onClick={() => handleNavClick('servicios')}
+                        onClick={() => handleNavClick('/servicios')}
                         className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
@@ -448,7 +448,7 @@ export default function Header() {
                       </button>
 
                       <button 
-                        onClick={() => handleNavClick('servicios')}
+                        onClick={() => handleNavClick('/servicios')}
                         className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
@@ -461,7 +461,7 @@ export default function Header() {
                       </button>
 
                       <button 
-                        onClick={() => handleNavClick('servicios')}
+                        onClick={() => handleNavClick('/servicios')}
                         className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
@@ -492,7 +492,7 @@ export default function Header() {
 
                     <div className="pt-4">
                       <button
-                        onClick={() => handleNavClick('cotizador')}
+                        onClick={() => handleNavClick('/cotizador')}
                         className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#4597CA] hover:bg-[#4597CA]/90 active:scale-98 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
                       >
                         <Calculator className="w-4 h-4" />
@@ -577,7 +577,7 @@ export default function Header() {
 
                     <div className="pt-4">
                       <button
-                        onClick={() => handleNavClick('directorio')}
+                        onClick={() => handleNavClick('/directorio')}
                         className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-[#0C4169] hover:bg-[#0C4169]/90 active:scale-98 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
                       >
                         <span>Buscar Médico o Clínica</span>
