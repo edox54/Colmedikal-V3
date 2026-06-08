@@ -7,7 +7,7 @@ export default function FloatingWidget() {
   const location = useLocation();
 
   // WhatsApp Link for Colmedikal Ecuador
-  const whatsappUrl = "https://wa.me/593900000000?text=Hola%20Colmedikal%2C%20quisiera%20asesoria%20sobre%20los%20planes%20de%20medicina%20prepagada.";
+  const whatsappUrl = "https://wa.me/593987028756?text=Hola%20Colmedikal%2C%20quisiera%20asesoria%20sobre%20los%20planes%20de%20medicina%20prepagada.";
 
   const handlePageChange = (path: string) => {
     navigate(path);

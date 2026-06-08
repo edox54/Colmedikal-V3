@@ -33,104 +33,97 @@
         <div id="dataList">Cargando datos...</div>
     </div>
 
-<script>
-const API_URL = '/api';
+    <script>
+        const API_URL = '/api';
+        
+        async function checkAuth() {
+            const token = localStorage.getItem('admin_token');
+            if (!token) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/verify`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    showDashboard();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
 
-async function checkAuth() {
-  const token = localStorage.getItem('admin_token');
-  if (!token) return;
+        async function login() {
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    localStorage.setItem('admin_token', data.token);
+                    errorMsg.style.display = 'none';
+                    showDashboard();
+                } else {
+                    errorMsg.textContent = data.message || 'Error de autenticación';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                errorMsg.textContent = 'Error de conexión';
+                errorMsg.style.display = 'block';
+            }
+        }
 
-  try {
-    const res = await fetch(`${API_URL}/auth/verify`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+        function logout() {
+            localStorage.removeItem('admin_token');
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('password').value = '';
+        }
 
-    if (res.ok) {
-      showDashboard();
-      loadForms(); // ✅ AÑADIR ESTO
-    } else {
-      logout();
-    }
-  } catch (error) {
-    console.error(error);
-  }
-}
+        async function showDashboard() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+            
+            const token = localStorage.getItem('admin_token');
+            
+            try {
+                const res = await fetch(`${API_URL}/forms`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await res.json();
+                const dataList = document.getElementById('dataList');
+                
+                if (data.success) {
+                    if (!data.forms || data.forms.length === 0) {
+                        dataList.innerHTML = '<p>No hay formularios registrados</p>';
+                        return;
+                    }
+                    
+                    dataList.innerHTML = data.forms.map(form => `
+                        <div class="form-card">
+                            <strong>Tipo:</strong> ${form.type}<br>
+                            <strong>Fecha:</strong> ${new Date(form.createdAt || Date.now()).toLocaleString()}<br>
+                            <pre style="margin-top: 10px; background: white; padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(form.data, null, 2)}</pre>
+                        </div>
+                    `).join('');
+                } else {
+                    dataList.innerHTML = '<p>Error al cargar los datos</p>';
+                }
+            } catch (error) {
+                document.getElementById('dataList').innerHTML = '<p>Error de conexión</p>';
+            }
+        }
 
-async function login() {
-  const password = document.getElementById('password').value;
-  const errorMsg = document.getElementById('errorMsg');
-
-  try {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      localStorage.setItem('admin_token', data.token);
-      errorMsg.style.display = 'none';
-      showDashboard();
-      loadForms(); // ✅ AÑADIR ESTO
-    } else {
-      errorMsg.textContent = data.message || 'Error de autenticación';
-      errorMsg.style.display = 'block';
-    }
-  } catch (error) {
-    errorMsg.textContent = 'Error de conexión';
-    errorMsg.style.display = 'block';
-  }
-}
-
-function logout() {
-  localStorage.removeItem('admin_token');
-  document.getElementById('loginContainer').style.display = 'block';
-  document.getElementById('dashboardContainer').style.display = 'none';
-  document.getElementById('password').value = '';
-}
-
-async function loadForms() { // ✅ NUEVA FUNCIÓN
-  const token = localStorage.getItem('admin_token');
-
-  try {
-    const res = await fetch(`${API_URL}/forms`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    const data = await res.json();
-    const dataList = document.getElementById('dataList');
-
-    if (data.success) {
-      if (!data.forms || data.forms.length === 0) {
-        dataList.innerHTML = '<p>No hay formularios registrados</p>';
-        return;
-      }
-
-      dataList.innerHTML = data.forms.map(form => `
-        <div class="form-card">
-          <strong>Tipo:</strong> ${form.type}<br>
-          <strong>Fecha:</strong> ${new Date(form.createdAt || Date.now()).toLocaleString()}<br>
-          <pre style="margin-top: 10px; background: white; padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(form.data, null, 2)}</pre>
-        </div>
-      `).join('');
-    } else {
-      dataList.innerHTML = '<p>Error al cargar los datos</p>';
-    }
-  } catch (error) {
-    console.error('Error cargando formularios:', error);
-    document.getElementById('dataList').innerHTML = '<p>Error de conexión</p>';
-  }
-}
-
-function showDashboard() {
-  document.getElementById('loginContainer').style.display = 'none';
-  document.getElementById('dashboardContainer').style.display = 'block';
-}
-
-// ✅ LLAMAR checkAuth() AL CARGAR LA PÁGINA
-window.addEventListener('load', checkAuth);
-</script>
+        // Check auth on load
+        checkAuth();
+    </script>
 </body>
 </html>

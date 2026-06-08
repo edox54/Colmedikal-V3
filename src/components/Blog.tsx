@@ -332,7 +332,7 @@ export default function Blog({
 
               <div className="space-y-2 pt-2">
                 <a 
-                  href="https://wa.me/593900000000?text=Hola%20Colmedikal%2C%20quisiera%20asesoria%2520sobre%2520los%2520planes%2520de%2520medicina%2520prepagada."
+                  href="https://wa.me/593987028756?text=Hola%20Colmedikal%2C%20quisiera%20asesoria%2520sobre%2520los%2520planes%2520de%2520medicina%2520prepagada."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-extrabold text-xs sm:text-xs rounded-xl shadow-xs transition-colors cursor-pointer"

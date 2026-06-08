@@ -126,7 +126,7 @@ export default function SEOController() {
         'headline': activeBlogPost.title,
         'description': activeBlogPost.excerpt,
         'image': activeBlogPost.image,
-        'datePublished': activeBlogPost.date,
+        'datePublished': activeBlogPost.publishDate,
         'author': {
           '@type': 'Person',
           'name': activeBlogPost.author.name,

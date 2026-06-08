@@ -28,5 +28,3 @@ function registerForms() {
     });
   }
 }
-
-export { setupFormIntegrations };
