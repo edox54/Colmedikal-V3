@@ -96,6 +96,12 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
   const [authorizations, setAuthorizations] = useState<AuthorizationItem[]>([]);
   const [leads, setLeads] = useState<LeadQuote[]>([]);
+  const [localLeads, setLocalLeads] = useState<LeadQuote[]>(() => {
+    try {
+      const saved = localStorage.getItem('colmedikal_local_leads');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [token, setToken] = useState<string | null>(() => {
     return sessionStorage.getItem('colmedikal_token');
@@ -353,7 +359,23 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ==================== LEADS ====================
   const addLead = async (quote: QuoteState, estimatedPrice: number) => {
-    if (!token) throw new Error('Not authenticated');
+    // Public submission path — no admin token required
+    if (!token) {
+      const newLead: LeadQuote = {
+        id: 'local-' + Date.now(),
+        timestamp: new Date().toISOString(),
+        quoteData: quote,
+        estimatedPrice,
+        status: 'Nuevo Plan',
+      };
+      setLocalLeads(prev => {
+        const updated = [newLead, ...prev];
+        try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      return newLead;
+    }
+
     setIsLoading(true);
     try {
       const result = await apiCall('/api/admin/leads', 'POST', {
@@ -374,6 +396,16 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateLeadStatus = async (id: string, status: LeadQuote['status']) => {
+    // Handle local leads
+    if (id.startsWith('local-')) {
+      setLocalLeads(prev => {
+        const updated = prev.map(l => l.id === id ? { ...l, status } : l);
+        try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      return;
+    }
+
     if (!token) throw new Error('Not authenticated');
     setIsLoading(true);
     try {
@@ -395,11 +427,12 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsLoading(true);
     try {
       const newAdmin: AdminUser = {
-        id: Math.random().toString(),
         email,
         name,
         role,
         active: true,
+        addedAt: new Date().toISOString(),
+        addedBy: 'admin',
       };
       setAdmins([...admins, newAdmin]);
       setError(null);
@@ -444,12 +477,18 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  // Merge API leads with locally-stored public leads; deduplicate by id
+  const mergedLeads = [
+    ...localLeads.filter(l => !leads.some(al => al.id === l.id)),
+    ...leads,
+  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
   const value: ColmedikalContextType = {
     doctors,
     refunds,
     appointments,
     authorizations,
-    leads,
+    leads: mergedLeads,
     admins,
     isAdminUser: !!user,
     user,
