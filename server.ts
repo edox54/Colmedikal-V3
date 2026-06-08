@@ -3,12 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 
-const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'colmedikal123'; // CAMBIAR ESTO
-
-// Generar token simple (para producción usar JWT)
-function generateToken() {
-  return Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-}
+const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'colmedikal2024';
 
 async function startServer() {
   const app = express();
@@ -25,8 +20,7 @@ async function startServer() {
       
       // Verificar contraseña
       if (password === DASHBOARD_PASSWORD) {
-        const token = generateToken();
-        // Guardar token en memoria (o en BD para mejor seguridad)
+        const token = 'token_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
         res.json({ success: true, token });
       } else {
         res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
@@ -45,8 +39,6 @@ async function startServer() {
         return res.status(401).json({ success: false });
       }
       
-      // Aquí podrías validar el token contra una BD
-      // Por ahora solo verificamos que exista
       res.json({ success: true });
     } catch (error) {
       res.status(401).json({ success: false });
