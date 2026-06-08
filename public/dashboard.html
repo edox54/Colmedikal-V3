@@ -1,651 +1,129 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Panel de Administración - Colmedikal Leads</title>
-      <style>
-                * {
-                              margin: 0;
-                              padding: 0;
-                              box-sizing: border-box;
-                }
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Colmedikal</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #334155; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        h1 { margin-top: 0; color: #0C4169; }
+        .form-group { margin-bottom: 20px; }
+        input[type="password"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        button { background: #0C4169; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0a3556; }
+        #dataList { margin-top: 30px; }
+        .form-card { border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 8px; background: #f8fafc; }
+    </style>
+</head>
+<body>
+    <div class="container" id="loginContainer">
+        <h1>Acceso al Dashboard</h1>
+        <div class="form-group">
+            <label for="password">Contraseña:</label>
+            <input type="password" id="password" placeholder="Ingrese la contraseña">
+        </div>
+        <button onclick="login()">Ingresar</button>
+        <p id="errorMsg" style="color: red; display: none;"></p>
+    </div>
 
-                body {
-                              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                              min-height: 100vh;
-                }
+    <div class="container" id="dashboardContainer" style="display: none;">
+        <h1>Formularios Recibidos</h1>
+        <button onclick="logout()" style="background: #ef4444; margin-bottom: 20px;">Cerrar Sesión</button>
+        <div id="dataList">Cargando datos...</div>
+    </div>
 
-                /* LOGIN STYLES */
-                .login-container {
-                              display: flex;
-                              align-items: center;
-                              justify-content: center;
-                              min-height: 100vh;
-                              padding: 20px;
-                }
-
-                .login-box {
-                              background: white;
-                              padding: 50px;
-                              border-radius: 15px;
-                              box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                              width: 100%;
-                              max-width: 400px;
-                }
-
-                .login-box h1 {
-                              color: #333;
-                              margin-bottom: 10px;
-                              text-align: center;
-                              font-size: 1.8em;
-                }
-
-                .login-box .subtitle {
-                              color: #666;
-                              text-align: center;
-                              margin-bottom: 30px;
-                              font-size: 0.95em;
-                }
-
-                .login-box .form-group {
-                              margin-bottom: 20px;
-                }
-
-                .login-box label {
-                              display: block;
-                              color: #333;
-                              font-weight: bold;
-                              margin-bottom: 8px;
-                }
-
-                .login-box input {
-                              width: 100%;
-                              padding: 12px 15px;
-                              border: 1px solid #ddd;
-                              border-radius: 5px;
-                              font-size: 1em;
-                              transition: border-color 0.3s;
-                }
-
-                .login-box input:focus {
-                              outline: none;
-                              border-color: #667eea;
-                              box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-                }
-
-                .login-box button {
-                              width: 100%;
-                              padding: 12px;
-                              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                              color: white;
-                              border: none;
-                              border-radius: 5px;
-                              font-size: 1em;
-                              font-weight: bold;
-                              cursor: pointer;
-                              transition: transform 0.2s, box-shadow 0.2s;
-                }
-
-                .login-box button:hover {
-                              transform: translateY(-2px);
-                              box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-                }
-
-                .login-box button:active {
-                              transform: translateY(0);
-                }
-
-                .error-message {
-                              background: #ffebee;
-                              color: #c62828;
-                              padding: 12px;
-                              border-radius: 5px;
-                              margin-bottom: 20px;
-                              display: none;
-                }
-
-                .login-box .loading-spinner {
-                              display: none;
-                              text-align: center;
-                              color: #667eea;
-                }
-
-                /* DASHBOARD STYLES */
-                .dashboard-wrapper {
-                              display: none;
-                              padding: 20px;
-                }
-
-                .dashboard-wrapper.active {
-                              display: block;
-                }
-
-                .container {
-                              max-width: 1400px;
-                              margin: 0 auto;
-                }
-
-                header {
-                              background: white;
-                              padding: 30px;
-                              border-radius: 10px;
-                              box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-                              margin-bottom: 30px;
-                              display: flex;
-                              justify-content: space-between;
-                              align-items: center;
-                }
-
-                header h1 {
-                              color: #333;
-                              font-size: 2em;
-                }
-
-                .logout-btn {
-                              background: #dc3545;
-                              color: white;
-                              padding: 10px 20px;
-                              border: none;
-                              border-radius: 5px;
-                              cursor: pointer;
-                              transition: background 0.3s;
-                }
-
-                .logout-btn:hover {
-                              background: #c82333;
-                }
-
-                .dashboard-grid {
-                              display: grid;
-                              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                              gap: 20px;
-                              margin-bottom: 30px;
-                }
-
-                .stat-card {
-                              background: white;
-                              padding: 30px;
-                              border-radius: 10px;
-                              box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-                              text-align: center;
-                              transition: transform 0.3s ease;
-                }
-
-                .stat-card:hover {
-                              transform: translateY(-5px);
-                              box-shadow: 0 15px 50px rgba(0,0,0,0.15);
-                }
-
-                .stat-number {
-                              font-size: 2.5em;
-                              font-weight: bold;
-                              color: #667eea;
-                              margin-bottom: 10px;
-                }
-
-                .stat-label {
-                              color: #666;
-                              font-size: 1em;
-                }
-
-                .controls {
-                              background: white;
-                              padding: 20px;
-                              border-radius: 10px;
-                              box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-                              margin-bottom: 30px;
-                              display: flex;
-                              gap: 15px;
-                              flex-wrap: wrap;
-                              align-items: center;
-                }
-
-                .search-box {
-                              flex: 1;
-                              min-width: 200px;
-                }
-
-                .search-box input {
-                              width: 100%;
-                              padding: 12px 15px;
-                              border: 1px solid #ddd;
-                              border-radius: 5px;
-                              font-size: 1em;
-                }
-
-                .filter-select {
-                              padding: 12px 15px;
-                              border: 1px solid #ddd;
-                              border-radius: 5px;
-                              font-size: 1em;
-                              cursor: pointer;
-                }
-
-                button.action-btn {
-                              padding: 12px 25px;
-                              background: #667eea;
-                              color: white;
-                              border: none;
-                              border-radius: 5px;
-                              cursor: pointer;
-                              font-size: 1em;
-                              transition: background 0.3s;
-                }
-
-                button.action-btn:hover {
-                              background: #764ba2;
-                }
-
-                .table-container {
-                              background: white;
-                              border-radius: 10px;
-                              box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-                              overflow: hidden;
-                }
-
-                table {
-                              width: 100%;
-                              border-collapse: collapse;
-                }
-
-                th {
-                              background: #f5f5f5;
-                              padding: 15px;
-                              text-align: left;
-                              font-weight: bold;
-                              color: #333;
-                              border-bottom: 2px solid #ddd;
-                }
-
-                td {
-                              padding: 15px;
-                              border-bottom: 1px solid #eee;
-                }
-
-                tr:hover {
-                              background: #f9f9f9;
-                }
-
-                .badge {
-                              display: inline-block;
-                              padding: 5px 12px;
-                              border-radius: 20px;
-                              font-size: 0.85em;
-                              font-weight: bold;
-                }
-
-                .badge-nuevo {
-                              background: #e3f2fd;
-                              color: #1976d2;
-                }
-
-                .badge-contactado {
-                              background: #f3e5f5;
-                              color: #7b1fa2;
-                }
-
-                .badge-sincronizado {
-                              background: #e8f5e9;
-                              color: #388e3c;
-                }
-
-                .badge-contact {
-                              background: #fff3e0;
-                              color: #e65100;
-                }
-
-                .badge-quote {
-                              background: #fce4ec;
-                              color: #c2185b;
-                }
-
-                .badge-reimbursement {
-                              background: #e0f2f1;
-                              color: #00695c;
-                }
-
-                .loading {
-                              text-align: center;
-                              padding: 40px;
-                              color: #666;
-                }
-
-                .no-data {
-                              text-align: center;
-                              padding: 60px 20px;
-                              color: #999;
-                }
-
-                .message {
-                              padding: 15px;
-                              border-radius: 5px;
-                              margin-bottom: 20px;
-                              display: none;
-                }
-
-                .message.error {
-                              background: #ffebee;
-                              color: #c62828;
-                }
-
-                .message.success {
-                              background: #e8f5e9;
-                              color: #388e3c;
-                }
-
-                @media (max-width: 768px) {
-                              .controls {
-                                                flex-direction: column;
-                              }
-
-                              .search-box {
-                                                width: 100%;
-                              }
-
-                              table {
-                                                font-size: 0.9em;
-                              }
-
-                              th, td {
-                                                padding: 10px;
-                              }
-
-                              header {
-                                                flex-direction: column;
-                                                gap: 15px;
-                              }
-                }
-            </style>
-  </head>
-  <body>
-        <!-- LOGIN SCREEN -->
-        <div id="loginScreen" class="login-container">
-                  <div class="login-box">
-                                <h1>🔐 Acceso Seguro</h1>
-                              <p class="subtitle">Panel de Administración de Leads</p>p>
-                              <div id="loginError" class="error-message"></div>div>
-                              <form onsubmit="handleLogin(event)">
-                                              <div class="form-group">
-                                                                  <label for="password">Contraseña:</label>label>
-                                                                  <input type="password" id="password" placeholder="Ingresa la contraseña" required autofocus>
-                                              </div>div>
-                                              <button type="submit" class="login-btn">Ingresar</button>button>
-                                              <div id="loginLoading" class="loading-spinner">Verificando...</div>div>
-                              </form>form>
-                  </div>div>
-        </div>div>
-      
-      <!-- DASHBOARD SCREEN -->
-      <div id="dashboardScreen" class="dashboard-wrapper">
-              <div class="container">
-                          <header>
-                                            <div>
-                                                                  <h1>📊 Panel de Administración Colmedikal</h1>
-                                            </div>
-                                            <button class="logout-btn" onclick="handleLogout()">Cerrar Sesión</button>button>
-                          </header>
-
-                            <div id="message" class="message"></div>
-
-                            <div class="dashboard-grid">
-                                              <div class="stat-card">
-                                                                    <div class="stat-number" id="totalLeads">0</div>
-                                                                    <div class="stat-label">Leads Total</div>
-                                              </div>
-                                              <div class="stat-card">
-                                                                    <div class="stat-number" id="totalContact">0</div>
-                                                                    <div class="stat-label">Formularios de Contacto</div>
-                                              </div>
-                                              <div class="stat-card">
-                                                                    <div class="stat-number" id="totalQuote">0</div>
-                                                                    <div class="stat-label">Cotizaciones</div>
-                                              </div>
-                                              <div class="stat-card">
-                                                                    <div class="stat-number" id="totalReimbursement">0</div>
-                                                                    <div class="stat-label">Solicitudes de Reembolso</div>
-                                              </div>
-                            </div>
-
-                            <div class="controls">
-                                              <div class="search-box">
-                                                                    <input type="text" id="searchInput" placeholder="Buscar por nombre, email o teléfono...">
-                                              </div>
-                                              <select id="filterType" class="filter-select">
-                                                                    <option value="">Todos los tipos</option>option>
-                                                                    <option value="contact">Contacto</option>option>
-                                                                    <option value="quote">Cotización</option>option>
-                                                                    <option value="reimbursement">Reembolso</option>option>
-                                              </select>select>
-                                              <select id="filterStatus" class="filter-select">
-                                                                    <option value="">Todos los estados</option>option>
-                                                                    <option value="nuevo">Nuevo</option>option>
-                                                                    <option value="contactado">Contactado</option>option>
-                                                                    <option value="sincronizado">Sincronizado</option>option>
-                                              </select>select>
-                                              <button class="action-btn" onclick="refreshData()">🔄 Actualizar</button>button>
-                            </div>
-
-                            <div class="table-container">
-                                              <table id="leadsTable">
-                                                                    <thead>
-                                                                                              <tr>
-                                                                                                                            <th>ID</th>
-                                                                                                <th>Tipo</th>
-                                                                                                <th>Nombre</th>
-                                                                                                <th>Email</th>
-                                                                                                <th>Teléfono</th>
-                                                                                                <th>Estado</th>
-                                                                                                <th>Fecha</th>
-                                                                                              </tr>
-                                                                    </thead>
-                                                                  <tbody id="tableBody">
-                                                                      <tr><td colspan="7" class="loading">Cargando leads...</td>td></tr>
-                                                                  </tbody>tbody>
-                                              </table>table>
-                            </div>
-              </div>
-      </div>
-      
-      <script>
-                const API_URL = '/api/forms';
-                const AUTH_TOKEN_KEY = 'colmedikal_auth_token';
-                let allLeads = [];
-
-                // Verificar autenticación al cargar
-                window.addEventListener('DOMContentLoaded', () => {
-                              const token = localStorage.getItem(AUTH_TOKEN_KEY);
-                              if (token) {
-                                                verifyToken(token);
-                              } else {
-                                                showLogin();
-                              }
+    <script>
+        const API_URL = '/api';
+        
+        async function checkAuth() {
+            const token = localStorage.getItem('admin_token');
+            if (!token) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/verify`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
-
-                function showLogin() {
-                              document.getElementById('loginScreen').style.display = 'flex';
-                              document.getElementById('dashboardScreen').classList.remove('active');
+                
+                if (res.ok) {
+                    showDashboard();
                 }
+            } catch (error) {
+                console.error(error);
+            }
+        }
 
-                function showDashboard() {
-                              document.getElementById('loginScreen').style.display = 'none';
-                              document.getElementById('dashboardScreen').classList.add('active');
-                              fetchLeads();
-                              setInterval(fetchLeads, 30000);
+        async function login() {
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    localStorage.setItem('admin_token', data.token);
+                    errorMsg.style.display = 'none';
+                    showDashboard();
+                } else {
+                    errorMsg.textContent = data.message || 'Error de autenticación';
+                    errorMsg.style.display = 'block';
                 }
+            } catch (error) {
+                errorMsg.textContent = 'Error de conexión';
+                errorMsg.style.display = 'block';
+            }
+        }
 
-                async function handleLogin(event) {
-                              event.preventDefault();
+        function logout() {
+            localStorage.removeItem('admin_token');
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('password').value = '';
+        }
 
-                              const password = document.getElementById('password').value;
-                              const loginBtn = document.querySelector('.login-btn');
-                              const loginLoading = document.getElementById('loginLoading');
-                              const errorDiv = document.getElementById('loginError');
-
-                              loginBtn.style.display = 'none';
-                              loginLoading.style.display = 'block';
-                              errorDiv.style.display = 'none';
-
-                              try {
-                                                const response = await fetch('/api/auth/login', {
-                                                                      method: 'POST',
-                                                                      headers: { 'Content-Type': 'application/json' },
-                                                                      body: JSON.stringify({ password })
-                                                });
-
-                                                const data = await response.json();
-
-                                                if (data.success && data.token) {
-                                                                      localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-                                                                      showDashboard();
-                                                } else {
-                                                                      errorDiv.textContent = '❌ Contraseña incorrecta';
-                                                                      errorDiv.style.display = 'block';
-                                                }
-                              } catch (error) {
-                                                errorDiv.textContent = '❌ Error al conectar con el servidor';
-                                                errorDiv.style.display = 'block';
-                              } finally {
-                                                loginBtn.style.display = 'block';
-                                                loginLoading.style.display = 'none';
-                                                document.getElementById('password').value = '';
-                              }
+        async function showDashboard() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+            
+            const token = localStorage.getItem('admin_token');
+            
+            try {
+                const res = await fetch(`${API_URL}/forms`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await res.json();
+                const dataList = document.getElementById('dataList');
+                
+                if (data.success) {
+                    if (!data.forms || data.forms.length === 0) {
+                        dataList.innerHTML = '<p>No hay formularios registrados</p>';
+                        return;
+                    }
+                    
+                    dataList.innerHTML = data.forms.map(form => `
+                        <div class="form-card">
+                            <strong>Tipo:</strong> ${form.type}<br>
+                            <strong>Fecha:</strong> ${new Date(form.createdAt || Date.now()).toLocaleString()}<br>
+                            <pre style="margin-top: 10px; background: white; padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(form.data, null, 2)}</pre>
+                        </div>
+                    `).join('');
+                } else {
+                    dataList.innerHTML = '<p>Error al cargar los datos</p>';
                 }
+            } catch (error) {
+                document.getElementById('dataList').innerHTML = '<p>Error de conexión</p>';
+            }
+        }
 
-                async function verifyToken(token) {
-                              try {
-                                                const response = await fetch('/api/auth/verify', {
-                                                                      headers: { 'Authorization': `Bearer ${token}` }
-                                                });
-
-                                                if (response.ok) {
-                                                                      showDashboard();
-                                                } else {
-                                                                      localStorage.removeItem(AUTH_TOKEN_KEY);
-                                                                      showLogin();
-                                                }
-                              } catch (error) {
-                                                showLogin();
-                              }
-                }
-
-                function handleLogout() {
-                              localStorage.removeItem(AUTH_TOKEN_KEY);
-                              location.reload();
-                }
-
-                async function fetchLeads() {
-                              const token = localStorage.getItem(AUTH_TOKEN_KEY);
-
-                              try {
-                                                const response = await fetch(API_URL, {
-                                                                      headers: { 'Authorization': `Bearer ${token}` }
-                                                });
-
-                                                if (response.status === 401) {
-                                                                      handleLogout();
-                                                                      return;
-                                                }
-
-                                                const data = await response.json();
-                                                if (data.success) {
-                                                                      allLeads = data.forms || [];
-                                                                      updateStats();
-                                                                      renderTable(allLeads);
-                                                                      showMessage('✓ Datos actualizados', 'success');
-                                                }
-                              } catch (error) {
-                                                showMessage('Error al cargar los datos', 'error');
-                              }
-                }
-
-                function updateStats() {
-                              const stats = {
-                                                totalLeads: allLeads.length,
-                                                totalContact: allLeads.filter(l => l.form_type === 'contact').length,
-                                                totalQuote: allLeads.filter(l => l.form_type === 'quote').length,
-                                                totalReimbursement: allLeads.filter(l => l.form_type === 'reimbursement').length
-                              };
-
-                              document.getElementById('totalLeads').textContent = stats.totalLeads;
-                              document.getElementById('totalContact').textContent = stats.totalContact;
-                              document.getElementById('totalQuote').textContent = stats.totalQuote;
-                              document.getElementById('totalReimbursement').textContent = stats.totalReimbursement;
-                }
-
-                function renderTable(leads) {
-                              const tbody = document.getElementById('tableBody');
-
-                              if (leads.length === 0) {
-                                                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No hay datos para mostrar</td></tr>';
-                                                return;
-                              }
-
-                              tbody.innerHTML = leads.map(lead => {
-                                                const formData = typeof lead.form_data === 'string' ? JSON.parse(lead.form_data) : lead.form_data;
-                                                const typeLabel = lead.form_type === 'contact' ? '📧 Contacto' : 
-                                                                                   lead.form_type === 'quote' ? '💰 Cotización' : '💳 Reembolso';
-
-                                                return `<tr>
-                                                                    <td>#${lead.id}</td>
-                                                                                        <td><span class="badge badge-${lead.form_type}">${typeLabel}</span></td>
-                                                                                                            <td>${formData.nombre || formData.name || 'N/A'}</td>
-                                                                                                                                <td>${formData.email || formData.correoElectronico || 'N/A'}</td>
-                                                                                                                                                    <td>${formData.telefono || formData.phone || 'N/A'}</td>
-                                                                                                                                                                        <td><span class="badge badge-${lead.status}">${lead.status || 'nuevo'}</span></td>
-                                                                                                                                                                                            <td>${new Date(lead.fecha_recepcion).toLocaleDateString('es-ES')}</td>
-                                                                                                                                                                                                            </tr>`;
-                              }).join('');
-                }
-
-                function filterLeads() {
-                              const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-                              const typeFilter = document.getElementById('filterType').value;
-                              const statusFilter = document.getElementById('filterStatus').value;
-
-                              const filtered = allLeads.filter(lead => {
-                                                const formData = typeof lead.form_data === 'string' ? JSON.parse(lead.form_data) : lead.form_data;
-                                                const matchesSearch = !searchTerm || 
-                                                                      (formData.nombre || formData.name || '').toLowerCase().includes(searchTerm) ||
-                                                                      (formData.email || formData.correoElectronico || '').toLowerCase().includes(searchTerm) ||
-                                                                      (formData.telefono || formData.phone || '').includes(searchTerm);
-
-                                                const matchesType = !typeFilter || lead.form_type === typeFilter;
-                                                const matchesStatus = !statusFilter || lead.status === statusFilter;
-
-                                                return matchesSearch && matchesType && matchesStatus;
-                              });
-
-                              renderTable(filtered);
-                }
-
-                function refreshData() {
-                              document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" class="loading">Actualizando...</td></tr>';
-                              fetchLeads();
-                }
-
-                function showMessage(msg, type) {
-                              const messageDiv = document.getElementById('message');
-                              messageDiv.className = `message ${type}`;
-                              messageDiv.textContent = msg;
-                              messageDiv.style.display = 'block';
-                              setTimeout(() => {
-                                                messageDiv.style.display = 'none';
-                              }, 3000);
-                }
-
-                document.getElementById('searchInput').addEventListener('input', filterLeads);
-                document.getElementById('filterType').addEventListener('change', filterLeads);
-                document.getElementById('filterStatus').addEventListener('change', filterLeads);
-      </script>
-  </body>
-</html>html>
-      </script></tr></th></th>
-                                                                                              </tr>
-                                                                    </thead>
-                                            </div>
-                          </header></h1>
-  </body>
-      </style></title>
-  </head>
+        // Check auth on load
+        checkAuth();
+    </script>
+</body>
+</html>
