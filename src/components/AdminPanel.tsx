@@ -53,6 +53,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     authorizations,
     leads,
     admins,
+    login,
     addDoctor,
     deleteDoctor,
     toggleDoctorActiveStatus,
@@ -168,60 +169,18 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
   // Secure Cryptographic Login Verification
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsLoggingIn(true);
-  setLoginError('');
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError('');
 
-  try {
-    // Usar el contexto para conectarse al backend
-    await login(username.trim(), password.trim());
-    setIsAuthenticated(true);
-    sessionStorage.setItem('colmedikal_admin_auth', 'true');
-  } catch (error) {
-    setLoginError(error instanceof Error ? error.message : 'Error al iniciar sesión');
-    setIsAuthenticated(false);
-  } finally {
-    setIsLoggingIn(false);
-  }
-};
-      // Read clean environment variables if defined (can be added dynamically in settings)
-      const envUser = import.meta.env.VITE_ADMIN_USER;
-      const envPass = import.meta.env.VITE_ADMIN_PASSWORD;
-
-      let valid = false;
-
-      // 1. Check custom environment variables if they are set (build-time variables)
-      if (envUser && envPass) {
-        if (username.trim() === envUser.trim() && password.trim() === envPass.trim()) {
-          valid = true;
-        }
-      }
-
-      // 2. Check fallback credentials via cryptographic hashes (SHA-256)
-      // Expected username: admin_colmedikal
-      // Expected password: AuditMedicaEcuador2026!
-      const expectedUserHash = "68bf8e063f9b2d9760773d32ef39df68beafdf2438b9dfcd7df1598ce3e7900b";
-      const expectedPassHash = "9db88b9ea5163edce785be82775bb38ecfdfa1f81df9ce25cb739a8385906660";
-
-      if (userHash === expectedUserHash && passHash === expectedPassHash) {
-        valid = true;
-      }
-
-      // 3. Plain-text fallback comparison of the default credentials
-      // Ensures complete reliability across all browsers and hosting platforms
-      if (username.trim() === 'admin_colmedikal' && password.trim() === 'AuditMedicaEcuador2026!') {
-        valid = true;
-      }
-
-      if (valid) {
-        setIsAuthenticated(true);
-        sessionStorage.setItem('colmedikal_admin_auth', 'true');
-        setLoginError('');
-      } else {
-        setLoginError('Credenciales incorrectas o firma digital corporativa no autorizada.');
-      }
-    } catch (err: any) {
-      setLoginError('Error del motor criptográfico del navegador.');
+    try {
+      // Usar el contexto para conectarse al backend
+      await login(username.trim(), password.trim());
+      setIsAuthenticated(true);
+      sessionStorage.setItem('colmedikal_admin_auth', 'true');
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : 'Error al iniciar sesión');
+      setIsAuthenticated(false);
     } finally {
       setIsLoggingIn(false);
     }
