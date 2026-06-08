@@ -168,22 +168,22 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
   // Secure Cryptographic Login Verification
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoggingIn(true);
-    setLoginError('');
+  e.preventDefault();
+  setIsLoggingIn(true);
+  setLoginError('');
 
-    try {
-      const hashString = async (str: string) => {
-        const buffer = new TextEncoder().encode(str);
-        const hash = await crypto.subtle.digest('SHA-256', buffer);
-        return Array.from(new Uint8Array(hash))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('');
-      };
-
-      const userHash = await hashString(username.trim());
-      const passHash = await hashString(password.trim());
-
+  try {
+    // Usar el contexto para conectarse al backend
+    await login(username.trim(), password.trim());
+    setIsAuthenticated(true);
+    sessionStorage.setItem('colmedikal_admin_auth', 'true');
+  } catch (error) {
+    setLoginError(error instanceof Error ? error.message : 'Error al iniciar sesión');
+    setIsAuthenticated(false);
+  } finally {
+    setIsLoggingIn(false);
+  }
+};
       // Read clean environment variables if defined (can be added dynamically in settings)
       const envUser = import.meta.env.VITE_ADMIN_USER;
       const envPass = import.meta.env.VITE_ADMIN_PASSWORD;
