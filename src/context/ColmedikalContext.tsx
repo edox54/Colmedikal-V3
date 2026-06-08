@@ -10,474 +10,341 @@ interface ColmedikalContextType {
   admins: AdminUser[];
   isAdminUser: boolean;
   user: any | null;
-  token: string | null;
-  isLoading: boolean;
-  error: string | null;
   logout: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  addDoctor: (doctor: Doctor) => Promise<void>;
-  deleteDoctor: (id: string) => Promise<void>;
-  toggleDoctorActiveStatus: (id: string) => Promise<void>;
-  updateDoctor: (doctor: Doctor) => Promise<void>;
-  addRefund: (refund: Omit<RefundItem, 'id' | 'refundDate'>) => Promise<void>;
-  updateRefundStatus: (id: string, status: RefundItem['status'], comment?: string) => Promise<void>;
-  addAuthorization: (auth: Omit<AuthorizationItem, 'id' | 'requestDate'>) => Promise<void>;
-  updateAuthorizationStatus: (id: string, status: AuthorizationItem['status'], comment?: string) => Promise<void>;
-  addAppointment: (appointment: Omit<AppointmentItem, 'id'>) => Promise<void>;
-  updateAppointmentStatus: (id: string, status: AppointmentItem['status']) => Promise<void>;
-  addLead: (quote: QuoteState, estimatedPrice: number) => Promise<void>;
-  updateLeadStatus: (id: string, status: LeadQuote['status']) => Promise<void>;
+  addDoctor: (doctor: Doctor) => void;
+  deleteDoctor: (id: string) => void;
+  toggleDoctorActiveStatus: (id: string) => void;
+  updateDoctor: (doctor: Doctor) => void;
+  addRefund: (refund: Omit<RefundItem, 'id' | 'refundDate'>) => void;
+  updateRefundStatus: (id: string, status: RefundItem['status'], comment?: string) => void;
+  addAuthorization: (auth: Omit<AuthorizationItem, 'id' | 'requestDate'>) => void;
+  updateAuthorizationStatus: (id: string, status: AuthorizationItem['status'], comment?: string) => void;
+  addAppointment: (appointment: Omit<AppointmentItem, 'id'>) => void;
+  updateAppointmentStatus: (id: string, status: AppointmentItem['status']) => void;
+  addLead: (quote: QuoteState, estimatedPrice: number) => void;
+  updateLeadStatus: (id: string, status: LeadQuote['status']) => void;
   addAdmin: (email: string, name: string, role: 'Administrador' | 'Auditor Clínico') => Promise<void>;
   deleteAdmin: (email: string) => Promise<void>;
   toggleAdminActiveStatus: (email: string) => Promise<void>;
-  fetchDashboard: () => Promise<any>;
 }
 
 const ColmedikalContext = createContext<ColmedikalContextType | undefined>(undefined);
 
-// API Configuration
-const API_BASE_URL = 'https://api.colmedikal.com';
-const API_TIMEOUT = 10000;
+import { initialDoctors } from '../data/doctors';
 
-// Helper function for API calls
-async function apiCall(
-  endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
-  data?: any,
-  token?: string | null
-) {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
+const initialRefunds: RefundItem[] = [
+  { id: 'REF-92051', familyMember: 'Carlos Ramos Valdiviezo', specialty: 'Dermatología', amount: 55.00, refundDate: '2026-05-15', status: 'Reembolsado', invoiceNumber: '001-001-12542', adminComment: 'Factura autorizada por SRI. Transferencia liquidada el 16/05' },
+  { id: 'REF-92012', familyMember: 'Mateo Ramos Mendoza', specialty: 'Pediatría', amount: 40.00, refundDate: '2026-05-02', status: 'Reembolsado', invoiceNumber: '002-005-00942', adminComment: 'Reembolso liquidado al 90%' },
+  { id: 'REF-83145', familyMember: 'Elena Mendoza de Ramos', specialty: 'Ginecología', amount: 85.00, refundDate: '2026-05-21', status: 'Procesando', invoiceNumber: '005-010-44910' }
+];
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+const initialAuthorizations: AuthorizationItem[] = [
+  { id: 'AUT-88125', patient: 'Elena Mendoza de Ramos', procedure: 'Cardiografía Ecocardiograma', facility: 'Hospital Metropolitano', requestDate: '2026-05-18', status: 'Aprobado', adminComment: 'Aprobación inmediata. Diagnóstico de control preventivo.' },
+  { id: 'AUT-88091', patient: 'Carlos Ramos Valdiviezo', procedure: 'Resonancia Magnética de Rodilla', facility: 'Clínica San Francisco', requestDate: '2026-05-10', status: 'Aprobado', adminComment: 'Procedimiento programado.' },
+  { id: 'AUT-77140', patient: 'Mateo Ramos Mendoza', procedure: 'Terapia Física y Rehabilitación (10 sesiones)', facility: 'Hospital Metropolitano', requestDate: '2026-05-22', status: 'Pendiente' }
+];
+
+const initialAppointments: AppointmentItem[] = [
+  {
+    id: 'APT-10492',
+    doctorName: 'Dr. Alejandro Mendoza',
+    specialty: 'Cardiología',
+    patientName: 'Elena Mendoza de Ramos',
+    patientId: '1725458921',
+    patientPhone: '0995102555',
+    aptDate: '2026-05-26',
+    aptTime: '09:00',
+    modality: 'presencial',
+    clinic: 'Clínica San Francisco',
+    city: 'Quito',
+    cost: 45,
+    status: 'Confirmada'
+  },
+  {
+    id: 'APT-11204',
+    doctorName: 'Dra. Gabriela Alarcón',
+    specialty: 'Pediatría y Neonatología',
+    patientName: 'Mateo Ramos Mendoza',
+    patientId: '1755102941',
+    patientPhone: '0995102556',
+    aptDate: '2026-05-27',
+    aptTime: '10:00',
+    modality: 'presencial',
+    clinic: 'Hospital Metropolitano',
+    city: 'Quito',
+    cost: 40,
+    status: 'Pendiente'
   }
+];
 
-  const options: RequestInit = {
-    method,
-    headers,
-  };
-
-  if (data && (method === 'POST' || method === 'PUT')) {
-    options.body = JSON.stringify(data);
+const initialLeads: LeadQuote[] = [
+  {
+    id: 'LEAD-5510-1',
+    timestamp: '2026-05-22T19:40:00Z',
+    quoteData: {
+      fullName: 'Dra. Lucía Guerrero Torres',
+      email: 'lucia.guerrero@gmail.com',
+      phone: '0984920251',
+      type: 'familiar',
+      primaryAge: 38,
+      partnerAge: 41,
+      childrenCount: 2,
+      childrenAges: [10, 6],
+      basePlanId: 'premium',
+    },
+    estimatedPrice: 228.50,
+    status: 'Nuevo Plan'
+  },
+  {
+    id: 'LEAD-9204-2',
+    timestamp: '2026-05-22T11:15:00Z',
+    quoteData: {
+      fullName: 'Ing. Rodrigo Cevallos Placa',
+      email: 'rcevallos@cevallostrans.ec',
+      phone: '0992451002',
+      type: 'individual',
+      primaryAge: 45,
+      childrenCount: 0,
+      childrenAges: [],
+      basePlanId: 'premium',
+    },
+    estimatedPrice: 380.00,
+    status: 'Contactado'
   }
+];
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+// 3. Error handler helper
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
 
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(error.error || `API Error: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`API Error: ${error.message}`);
-    }
-    throw error;
-  }
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  // Firebase disabled, logging locally only
+  console.error('Operation Error: ', operationType, path, error);
 }
 
 export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // State
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [refunds, setRefunds] = useState<RefundItem[]>([]);
-  const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
-  const [authorizations, setAuthorizations] = useState<AuthorizationItem[]>([]);
-  const [leads, setLeads] = useState<LeadQuote[]>([]);
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
-  const [token, setToken] = useState<string | null>(() => {
-    return sessionStorage.getItem('colmedikal_token');
+  const [doctors, setDoctors] = useState<Doctor[]>(() => {
+    const saved = localStorage.getItem('colmedikal_doctors');
+    return saved ? JSON.parse(saved) : initialDoctors;
   });
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  
+  const [refunds, setRefunds] = useState<RefundItem[]>(() => {
+    const saved = localStorage.getItem('colmedikal_refunds');
+    return saved ? JSON.parse(saved) : initialRefunds;
+  });
 
-  // Initialize: Load data on mount
+  const [appointments, setAppointments] = useState<AppointmentItem[]>(() => {
+    const saved = localStorage.getItem('colmedikal_appointments');
+    return saved ? JSON.parse(saved) : initialAppointments;
+  });
+
+  const [authorizations, setAuthorizations] = useState<AuthorizationItem[]>(() => {
+    const saved = localStorage.getItem('colmedikal_authorizations');
+    return saved ? JSON.parse(saved) : initialAuthorizations;
+  });
+
+  const [leads, setLeads] = useState<LeadQuote[]>(() => {
+    const saved = localStorage.getItem('colmedikal_leads');
+    return saved ? JSON.parse(saved) : initialLeads;
+  });
+
+  const [admins, setAdmins] = useState<AdminUser[]>(() => {
+    const saved = localStorage.getItem('colmedikal_admins');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [isAdminUser, setIsAdminUser] = useState<boolean>(false);
+  const [user, setUser] = useState<any | null>(null);
+
+  // Validate Firestore Connection on initial boot (Critical Constraint)
   useEffect(() => {
-    if (token) {
-      fetchAllData();
-    }
-  }, [token]);
+    // Firebase disabled
+  }, []);
 
-  // Login function
-  const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await apiCall('/api/auth/login', 'POST', { email, password });
-      setToken(response.token);
-      setUser(response.admin);
-      sessionStorage.setItem('colmedikal_token', response.token);
-      sessionStorage.setItem('colmedikal_user', JSON.stringify(response.admin));
+  // Monitor Auth User to determine if it is the Corporate Administrator
+  useEffect(() => {
+    // Firebase disabled
+    const unsub = () => {};
+    return unsub;
+  }, []);
 
-      // Load data after login
-      await fetchAllData(response.token);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Sync /doctors live for everyone (Public directory)
+  useEffect(() => {
+    // Firebase disabled
+  }, []);
 
-  // Logout function
-  const logout = async () => {
-    setToken(null);
-    setUser(null);
-    setDoctors([]);
-    setRefunds([]);
-    setAppointments([]);
-    setAuthorizations([]);
-    setLeads([]);
-    sessionStorage.removeItem('colmedikal_token');
-    sessionStorage.removeItem('colmedikal_user');
-  };
+  // Synchronize all administration records in real-time once admin is authenticated
+  useEffect(() => {
+    // Firebase disabled
+    return () => {};
+  }, [isAdminUser]);
 
-  // Fetch all data
-  const fetchAllData = async (currentToken?: string) => {
-    const authToken = currentToken || token;
-    if (!authToken) return;
+  // Persist guest offline data to local storage for portal history fallback
+  useEffect(() => {
+    localStorage.setItem('colmedikal_doctors', JSON.stringify(doctors));
+  }, [doctors]);
 
-    setIsLoading(true);
-    try {
-      const [doctorsRes, refundsRes, appointmentsRes, authorizationsRes, leadsRes] = await Promise.all([
-        apiCall('/api/admin/doctors?limit=100', 'GET', undefined, authToken),
-        apiCall('/api/admin/refunds?limit=100', 'GET', undefined, authToken),
-        apiCall('/api/admin/appointments?limit=100', 'GET', undefined, authToken),
-        apiCall('/api/admin/authorizations?limit=100', 'GET', undefined, authToken),
-        apiCall('/api/admin/leads?limit=100', 'GET', undefined, authToken),
-      ]);
+  useEffect(() => {
+    localStorage.setItem('colmedikal_refunds', JSON.stringify(refunds));
+  }, [refunds]);
 
-      setDoctors(doctorsRes.data || []);
-      setRefunds(refundsRes.data || []);
-      setAppointments(appointmentsRes.data || []);
-      setAuthorizations(authorizationsRes.data || []);
-      setLeads(leadsRes.data || []);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch data';
-      setError(message);
-      console.error('Fetch error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    localStorage.setItem('colmedikal_appointments', JSON.stringify(appointments));
+  }, [appointments]);
 
-  // Fetch dashboard
-  const fetchDashboard = async () => {
-    if (!token) return;
-    try {
-      const response = await apiCall('/api/admin/dashboard', 'GET', undefined, token);
-      return response;
-    } catch (err) {
-      console.error('Dashboard fetch error:', err);
-      throw err;
-    }
-  };
+  useEffect(() => {
+    localStorage.setItem('colmedikal_authorizations', JSON.stringify(authorizations));
+  }, [authorizations]);
 
-  // ==================== DOCTORS ====================
+  useEffect(() => {
+    localStorage.setItem('colmedikal_leads', JSON.stringify(leads));
+  }, [leads]);
+
+  useEffect(() => {
+    localStorage.setItem('colmedikal_admins', JSON.stringify(admins));
+  }, [admins]);
+
+  // Database handlers
+
   const addDoctor = async (doctor: Doctor) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      const result = await apiCall('/api/admin/doctors', 'POST', doctor, token);
-      await fetchAllData(token);
-      setError(null);
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add doctor';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateDoctor = async (doctor: Doctor) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      await apiCall(`/api/admin/doctors/${doctor.id}`, 'PUT', doctor, token);
-      await fetchAllData(token);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update doctor';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    setDoctors((prev) => [...prev, { ...doctor, active: doctor.active ?? true }]);
   };
 
   const deleteDoctor = async (id: string) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      await apiCall(`/api/admin/doctors/${id}`, 'DELETE', undefined, token);
-      await fetchAllData(token);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete doctor';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    setDoctors((prev) => prev.filter((d) => d.id !== id));
   };
 
   const toggleDoctorActiveStatus = async (id: string) => {
-    if (!token) throw new Error('Not authenticated');
-    const doctor = doctors.find(d => d.id === id);
-    if (!doctor) throw new Error('Doctor not found');
-
-    await updateDoctor({
-      ...doctor,
-      active: !doctor.active,
-    });
+    setDoctors((prev) => prev.map((d) => d.id === id ? { ...d, active: d.active === false ? true : false } : d));
   };
 
-  // ==================== REFUNDS ====================
+  const updateDoctor = async (updatedDoc: Doctor) => {
+    setDoctors((prev) => prev.map((d) => d.id === updatedDoc.id ? updatedDoc : d));
+  };
+
   const addRefund = async (refund: Omit<RefundItem, 'id' | 'refundDate'>) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      const result = await apiCall('/api/admin/refunds', 'POST', refund, token);
-      await fetchAllData(token);
-      setError(null);
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add refund';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    const id = `REF-${Math.floor(10000 + Math.random() * 90000)}`;
+    const refundDate = new Date().toISOString().split('T')[0];
+    const newRef: RefundItem = {
+      ...refund,
+      id,
+      refundDate,
+      status: 'Procesando'
+    };
+    setRefunds((prev) => [newRef, ...prev]);
   };
 
   const updateRefundStatus = async (id: string, status: RefundItem['status'], comment?: string) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      await apiCall(`/api/admin/refunds/${id}`, 'PUT', { status, admin_comment: comment }, token);
-      await fetchAllData(token);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update refund';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    setRefunds((prev) => prev.map((r) => r.id === id ? { ...r, status, adminComment: comment ?? r.adminComment } : r));
   };
 
-  // ==================== AUTHORIZATIONS ====================
-  const addAuthorization = async (auth: Omit<AuthorizationItem, 'id' | 'requestDate'>) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      const result = await apiCall('/api/admin/authorizations', 'POST', auth, token);
-      await fetchAllData(token);
-      setError(null);
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add authorization';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+  const addAuthorization = async (authItem: Omit<AuthorizationItem, 'id' | 'requestDate'>) => {
+    const id = `AUT-${Math.floor(80000 + Math.random() * 19500)}`;
+    const requestDate = new Date().toISOString().split('T')[0];
+    const newAuth: AuthorizationItem = {
+      ...authItem,
+      id,
+      requestDate,
+      status: 'Pendiente'
+    };
+    setAuthorizations((prev) => [newAuth, ...prev]);
   };
 
   const updateAuthorizationStatus = async (id: string, status: AuthorizationItem['status'], comment?: string) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      await apiCall(`/api/admin/authorizations/${id}`, 'PUT', { status, admin_comment: comment }, token);
-      await fetchAllData(token);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update authorization';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    setAuthorizations((prev) => prev.map((a) => a.id === id ? { ...a, status, adminComment: comment ?? a.adminComment } : a));
   };
 
-  // ==================== APPOINTMENTS ====================
   const addAppointment = async (appointment: Omit<AppointmentItem, 'id'>) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      const result = await apiCall('/api/admin/appointments', 'POST', appointment, token);
-      await fetchAllData(token);
-      setError(null);
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add appointment';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    const id = `APT-${Math.floor(10000 + Math.random() * 90000)}`;
+    const newApt: AppointmentItem = {
+      ...appointment,
+      id,
+      status: 'Pendiente'
+    };
+    setAppointments((prev) => [newApt, ...prev]);
   };
 
   const updateAppointmentStatus = async (id: string, status: AppointmentItem['status']) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      await apiCall(`/api/admin/appointments/${id}`, 'PUT', { status }, token);
-      await fetchAllData(token);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update appointment';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    setAppointments((prev) => prev.map((a) => a.id === id ? { ...a, status } : a));
   };
 
-  // ==================== LEADS ====================
   const addLead = async (quote: QuoteState, estimatedPrice: number) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      const result = await apiCall('/api/admin/leads', 'POST', {
-        quote_data: quote,
-        estimated_price: estimatedPrice,
-        status: 'Nuevo Plan',
-      }, token);
-      await fetchAllData(token);
-      setError(null);
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add lead';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    const id = `LEAD-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(10 + Math.random() * 90)}`;
+    const newLead: LeadQuote = {
+      id,
+      timestamp: new Date().toISOString(),
+      quoteData: quote,
+      estimatedPrice,
+      status: 'Nuevo Plan'
+    };
+    setLeads((prev) => [newLead, ...prev]);
   };
 
   const updateLeadStatus = async (id: string, status: LeadQuote['status']) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      await apiCall(`/api/admin/leads/${id}`, 'PUT', { status }, token);
-      await fetchAllData(token);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update lead';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    setLeads((prev) => prev.map((l) => l.id === id ? { ...l, status } : l));
   };
 
-  // ==================== ADMINS ====================
   const addAdmin = async (email: string, name: string, role: 'Administrador' | 'Auditor Clínico') => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      const newAdmin: AdminUser = {
-        id: Math.random().toString(),
-        email,
-        name,
-        role,
-        active: true,
-      };
-      setAdmins([...admins, newAdmin]);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add admin';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    const addedBy = 'edox54@gmail.com';
+    const newAdminObj: AdminUser = {
+      email,
+      name,
+      role,
+      addedAt: new Date().toISOString(),
+      addedBy,
+      active: true
+    };
+    setAdmins((prev) => [newAdminObj, ...prev.filter(a => a.email !== email)]);
   };
 
   const deleteAdmin = async (email: string) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      setAdmins(admins.filter(a => a.email !== email));
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete admin';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    setAdmins((prev) => prev.filter(a => a.email !== email));
   };
 
   const toggleAdminActiveStatus = async (email: string) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
-    try {
-      setAdmins(admins.map(a =>
-        a.email === email ? { ...a, active: !a.active } : a
-      ));
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to toggle admin status';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
+    setAdmins((prev) => prev.map((a) => a.email === email ? { ...a, active: !a.active } : a));
   };
 
-  const value: ColmedikalContextType = {
-    doctors,
-    refunds,
-    appointments,
-    authorizations,
-    leads,
-    admins,
-    isAdminUser: !!user,
-    user,
-    token,
-    isLoading,
-    error,
-    login,
-    logout,
-    addDoctor,
-    deleteDoctor,
-    toggleDoctorActiveStatus,
-    updateDoctor,
-    addRefund,
-    updateRefundStatus,
-    addAuthorization,
-    updateAuthorizationStatus,
-    addAppointment,
-    updateAppointmentStatus,
-    addLead,
-    updateLeadStatus,
-    addAdmin,
-    deleteAdmin,
-    toggleAdminActiveStatus,
-    fetchDashboard,
+  const logout = async () => {
+    setIsAdminUser(false);
+    setUser(null);
   };
 
   return (
-    <ColmedikalContext.Provider value={value}>
+    <ColmedikalContext.Provider
+      value={{
+        doctors,
+        refunds,
+        appointments,
+        authorizations,
+        leads,
+        admins,
+        isAdminUser,
+        user,
+        logout,
+        addDoctor,
+        deleteDoctor,
+        toggleDoctorActiveStatus,
+        updateDoctor,
+        addRefund,
+        updateRefundStatus,
+        addAuthorization,
+        updateAuthorizationStatus,
+        addAppointment,
+        updateAppointmentStatus,
+        addLead,
+        updateLeadStatus,
+        addAdmin,
+        deleteAdmin,
+        toggleAdminActiveStatus
+      }}
+    >
       {children}
     </ColmedikalContext.Provider>
   );
@@ -486,7 +353,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 export const useColmedikal = () => {
   const context = useContext(ColmedikalContext);
   if (context === undefined) {
-    throw new Error('useColmedikal must be used within ColmedikalProvider');
+    throw new Error('useColmedikal must be used within a ColmedikalProvider');
   }
   return context;
 };
