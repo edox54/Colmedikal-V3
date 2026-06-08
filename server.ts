@@ -12,6 +12,26 @@ async function startServer() {
     res.json({ status: 'ok' });
   });
 
+  // Endpoint para recibir datos de formularios
+  app.post('/api/forms/submit', express.json(), async (req, res) => {
+    try {
+      const { type, data } = req.body;
+      
+      console.log(`[API] Formulario ${type} recibido:`, data);
+      
+      // Aquí iría la lógica para enviar a Kommo
+      // Por ahora solo registramos
+      
+      res.json({
+        success: true,
+        message: `Formulario ${type} procesado correctamente`
+      });
+    } catch (error) {
+      console.error('[API Error]', error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
   const distPath = path.join(process.cwd(), 'dist');
   const hasDist = fs.existsSync(path.join(distPath, 'index.html'));
   const isProd = process.env.NODE_ENV === 'production' || hasDist;
