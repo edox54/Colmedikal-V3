@@ -35,6 +35,30 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
   const [city, setCity] = useState('Quito');
   const [specialty, setSpecialty] = useState('Pediatría');
   const [facility, setFacility] = useState('Hospital Metropolitano');
+
+  const facilitiesByCity: Record<string, string[]> = {
+    Quito: [
+      'Hospital Metropolitano',
+      'Hospital de los Valles',
+      'Clínica Pichincha',
+      'Hospital Voz Andes',
+      'Hospital Pablo Arturo Suárez',
+      'Clínica La Primavera',
+    ],
+    Guayaquil: [
+      'Clínica Kennedy',
+      'Hospital Alcívar',
+      'Clínica Santa Cecilia',
+      'Hospital Naval (GYE)',
+      'Clínica Guayaquil',
+    ],
+    Cuenca: [
+      'Hospital Santa Inés',
+      'Clínica Santa Ana',
+      'Hospital Monte Sinaí',
+      'Clínica Latinoamericana',
+    ],
+  };
   const [preferredDate, setPreferredDate] = useState('');
   const [preferredTimeRange, setPreferredTimeRange] = useState('Mañana (08:00 - 12:00)');
   const [additionalNotes, setAdditionalNotes] = useState('');
@@ -209,10 +233,9 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                   <select
                     value={city}
                     onChange={(e) => {
-                      setCity(e.target.value);
-                      if (e.target.value === 'Guayaquil') setFacility('Clínica Kennedy (GYE)');
-                      else if (e.target.value === 'Cuenca') setFacility('Hospital Santa Inés (CUE)');
-                      else setFacility('Hospital Metropolitano (UIO)');
+                      const newCity = e.target.value;
+                      setCity(newCity);
+                      setFacility(facilitiesByCity[newCity]?.[0] || '');
                     }}
                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"
                   >
@@ -240,12 +263,15 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
 
                 <div className="space-y-1">
                   <label className="block text-xs font-bold text-slate-700">Establecimiento:</label>
-                  <input
-                    type="text"
-                    disabled
+                  <select
                     value={facility}
-                    className="w-full px-3 py-2 bg-slate-100/60 border border-slate-200 rounded-xl text-xs cursor-not-allowed font-medium text-slate-600"
-                  />
+                    onChange={(e) => setFacility(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"
+                  >
+                    {(facilitiesByCity[city] || []).map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
                 </div>
 
               </div>

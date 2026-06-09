@@ -170,9 +170,46 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ]);
 
       setDoctors(doctorsRes.data || []);
-      setRefunds(refundsRes.data || []);
-      setAppointments(appointmentsRes.data || []);
-      setAuthorizations(authorizationsRes.data || []);
+      setRefunds((refundsRes.data || []).map((r: any) => ({
+        id: r.id,
+        familyMember: r.family_member || '',
+        specialty: r.specialty || '',
+        amount: Number(r.amount || 0),
+        refundDate: r.refund_date ? r.refund_date.split('T')[0] : '',
+        status: r.status || 'Procesando',
+        invoiceNumber: r.invoice_number || '',
+        adminComment: r.admin_comment || undefined,
+        fileName: r.file_url || undefined,
+        userEmail: r.user_email || undefined,
+        userPhone: r.user_phone || undefined,
+      })));
+      setAppointments((appointmentsRes.data || []).map((a: any) => ({
+        id: a.id,
+        doctorName: a.doctor_name || 'Por Asignar',
+        specialty: a.specialty || '',
+        patientName: a.patient_name || '',
+        patientId: a.patient_id || '',
+        patientPhone: a.patient_phone || '',
+        aptDate: a.appointment_date ? a.appointment_date.split('T')[0] : '',
+        aptTime: a.appointment_time || '',
+        modality: a.modality || 'presencial',
+        clinic: a.clinic || '',
+        city: a.city || '',
+        cost: Number(a.cost || 0),
+        status: a.status || 'Pendiente',
+      })));
+      setAuthorizations((authorizationsRes.data || []).map((a: any) => ({
+        id: a.id,
+        patient: a.patient || '',
+        procedure: a.procedure || '',
+        facility: a.facility || '',
+        requestDate: a.request_date || a.requestDate || '',
+        status: a.status || 'Pendiente',
+        adminComment: a.admin_comment || a.adminComment,
+        fileName: a.file_url || a.file_name || a.fileName,
+        userEmail: a.user_email || a.userEmail,
+        userPhone: a.user_phone || a.userPhone,
+      })));
 
       // Transform API leads: snake_case → camelCase, parse JSON quote_data
       setLeads((leadsRes.data || []).map((l: any) => ({
