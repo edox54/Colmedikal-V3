@@ -97,11 +97,27 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
     setTimeout(() => setSavedRobots(false), 2500);
   };
 
+  // Normalize any date to ISO 8601 (YYYY-MM-DD) — sitemap <lastmod> requires it.
+  // Handles Spanish format ("28 de Mayo de 2026"), ISO datetime, and falls back to today.
+  const toISODate = (d?: string): string => {
+    const today = new Date().toISOString().split('T')[0];
+    if (!d) return today;
+    const iso = d.split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+    const MONTH_ES: Record<string, string> = {
+      enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06',
+      julio: '07', agosto: '08', septiembre: '09', octubre: '10', noviembre: '11', diciembre: '12',
+    };
+    const m = d.match(/^(\d{1,2}) de (\w+) de (\d{4})$/i);
+    if (m) return `${m[3]}-${MONTH_ES[m[2].toLowerCase()] || '01'}-${m[1].padStart(2, '0')}`;
+    return today;
+  };
+
   // Generate sitemap XML
   const staticRoutes = ROUTES.map(r => `  <url>\n    <loc>https://colmedikal.com${r.path}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>${r.path === '/' ? '1.0' : '0.8'}</priority>\n  </url>`);
   const blogRoutes = [
-    ...BLOG_POSTS.map(p => `  <url>\n    <loc>https://colmedikal.com/blog/${p.slug}</loc>\n    <lastmod>${p.publishDate}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`),
-    ...blogPostsCMS.filter(p => p.published).map(p => `  <url>\n    <loc>https://colmedikal.com/blog/${p.slug}</loc>\n    <lastmod>${(p.publish_date || p.created_at || '').split('T')[0]}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`),
+    ...BLOG_POSTS.map(p => `  <url>\n    <loc>https://colmedikal.com/blog/${p.slug}</loc>\n    <lastmod>${toISODate(p.publishDate)}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`),
+    ...blogPostsCMS.filter(p => p.published).map(p => `  <url>\n    <loc>https://colmedikal.com/blog/${p.slug}</loc>\n    <lastmod>${toISODate(p.publish_date || p.created_at)}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`),
   ];
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...staticRoutes, ...blogRoutes].join('\n')}\n</urlset>`;
 
