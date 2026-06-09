@@ -53,12 +53,14 @@ export default function Blog({
       publishDate: (p.publish_date || '').split('T')[0],
       readTime: p.read_time || '5 min',
       category: p.category || 'Salud',
-      author: { id: 'cms', name: p.author_name || 'Equipo Colmedikal', role: 'Redacción', specialty: '', experience: '', avatar: '', bio: '' },
+      author: { id: 'cms', name: p.author_name || 'Equipo Colmedikal', role: 'Redacción', specialty: '', experience: '', avatar: 'https://colmedikal.com/logo.png', bio: '' },
       image: p.image_url || '',
       tags: (p.tags || '').split(',').map((t: string) => t.trim()).filter(Boolean),
     })), [blogPostsCMS]);
 
-  const allPosts = useMemo(() => [...BLOG_POSTS, ...cmsPosts], [cmsPosts]);
+  const allPosts = useMemo(() =>
+    [...BLOG_POSTS, ...cmsPosts].sort((a, b) => b.publishDate.localeCompare(a.publishDate)),
+  [cmsPosts]);
 
   // Determine active post from URL slug
   const activeBlogPost = slug ? allPosts.find(post => post.slug === slug || post.id === slug) : null;
