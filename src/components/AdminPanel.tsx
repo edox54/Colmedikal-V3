@@ -166,14 +166,17 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     }
   };
 
-  // Role of the currently logged-in user
+  // Role of the currently logged-in user — comes directly from the JWT via sessionStorage
   const currentUserRole = (() => {
     try {
       const stored = sessionStorage.getItem('colmedikal_user');
       if (!stored) return 'Super Admin' as const;
       const userObj = JSON.parse(stored);
-      const match = admins.find(a => a.email === userObj?.email);
-      return (match?.role as 'Super Admin' | 'Mid Admin' | 'Equipo Comercial' | 'Auditor') || 'Super Admin';
+      const role = userObj?.role as string;
+      const validRoles = ['Super Admin', 'Mid Admin', 'Equipo Comercial', 'Auditor'] as const;
+      return validRoles.includes(role as any)
+        ? role as 'Super Admin' | 'Mid Admin' | 'Equipo Comercial' | 'Auditor'
+        : 'Super Admin' as const;
     } catch { return 'Super Admin' as const; }
   })();
 

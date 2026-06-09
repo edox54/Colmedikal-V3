@@ -115,12 +115,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
-  const [admins, setAdmins] = useState<AdminUser[]>(() => {
-    try {
-      const saved = localStorage.getItem('colmedikal_admins');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [seoSettings, setSeoSettings] = useState<Record<string, string>>({});
   const [seoMetaOverrides, setSeoMetaOverrides] = useState<Record<string, any>>({});
   const [blogPostsCMS, setBlogPostsCMS] = useState<any[]>([]);
@@ -234,6 +229,9 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         apiCall('/api/admin/authorizations?limit=100', 'GET', undefined, authToken).catch(() => empty),
         apiCall('/api/admin/leads?limit=100', 'GET', undefined, authToken).catch(() => empty),
       ]);
+
+      // Load admin users list from DB
+      await fetchAdmins(authToken);
 
       let fetchedDoctors: any[] = doctorsRes.data || [];
       if (fetchedDoctors.length === 0) {
@@ -656,33 +654,14 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // ==================== ADMINS ====================
-  const ADMINS_KEY = 'colmedikal_admins';
-
-  const persistAdmins = (list: AdminUser[]) => {
-    try { localStorage.setItem(ADMINS_KEY, JSON.stringify(list)); } catch { /* quota */ }
-  };
 
   const addAdmin = async (email: string, name: string, role: AdminUser['role'], password?: string) => {
     if (!token) throw new Error('Not authenticated');
+    if (!password) throw new Error('Password is required');
     setIsLoading(true);
     try {
-      // Try to register user in the auth database via API
-      if (password) {
-        await apiCall('/api/admin/users', 'POST', { email, name, role, password }, token).catch(() => {
-          // API may not support user creation yet — continue with local registration
-        });
-      }
-      const newAdmin: AdminUser = {
-        email,
-        name,
-        role,
-        active: true,
-        addedAt: new Date().toISOString(),
-        addedBy: 'admin',
-      };
-      const updated = [...admins, newAdmin];
-      setAdmins(updated);
-      persistAdmins(updated);
+      await apiCall('/api/admin/users', 'POST', { email, name, role, password }, token);
+      await fetchAdmins(token);
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to add admin';
@@ -697,9 +676,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!token) throw new Error('Not authenticated');
     setIsLoading(true);
     try {
-      const updated = admins.filter(a => a.email !== email);
-      setAdmins(updated);
-      persistAdmins(updated);
+      await apiCall(`/api/admin/users/${encodeURIComponent(email)}`, 'DELETE', undefined, token);
+      setAdmins(prev => prev.filter(a => a.email !== email));
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete admin';
@@ -714,11 +692,10 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!token) throw new Error('Not authenticated');
     setIsLoading(true);
     try {
-      const updated = admins.map(a =>
-        a.email === email ? { ...a, active: !a.active } : a
-      );
-      setAdmins(updated);
-      persistAdmins(updated);
+      const target = admins.find(a => a.email === email);
+      const newActive = target ? !target.active : false;
+      await apiCall(`/api/admin/users/${encodeURIComponent(email)}`, 'PUT', { active: newActive }, token);
+      setAdmins(prev => prev.map(a => a.email === email ? { ...a, active: newActive } : a));
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to toggle admin status';
@@ -727,6 +704,21 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchAdmins = async (authToken: string) => {
+    try {
+      const res = await apiCall('/api/admin/users', 'GET', undefined, authToken);
+      const list: AdminUser[] = (res.data || []).map((u: any) => ({
+        email: u.email,
+        name: u.name,
+        role: u.role as AdminUser['role'],
+        active: Boolean(u.active),
+        addedAt: u.created_at || new Date().toISOString(),
+        addedBy: 'admin',
+      }));
+      setAdmins(list);
+    } catch { /* non-fatal */ }
   };
 
   // SEO Settings
