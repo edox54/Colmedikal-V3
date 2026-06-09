@@ -168,30 +168,68 @@ async function startServer() {
       },
     };
 
+    // Escape a value for safe insertion into an HTML attribute
+    const esc = (s: string) =>
+      String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Fetch SEO meta overrides from the API/DB, cached for 60s to avoid per-request load.
+    // Overrides are stored under keys like "meta_/directorio" => {title, description, keywords}.
+    const API_BASE_URL = 'https://api.colmedikal.com';
+    let overrideCache: Record<string, { title?: string; description?: string; keywords?: string }> = {};
+    let overrideCacheAt = 0;
+    const getOverrides = async () => {
+      if (Date.now() - overrideCacheAt < 60_000) return overrideCache;
+      try {
+        const r = await fetch(`${API_BASE_URL}/api/public/settings`);
+        const json: any = await r.json();
+        const data = json?.data || {};
+        const next: Record<string, any> = {};
+        for (const [k, v] of Object.entries(data)) {
+          if (k.startsWith('meta_')) {
+            try { next[k.slice(5)] = JSON.parse(v as string); } catch { /* skip bad json */ }
+          }
+        }
+        overrideCache = next;
+        overrideCacheAt = Date.now();
+      } catch { /* keep last good cache on failure */ }
+      return overrideCache;
+    };
+
     // Provide general routing fallback to index.html for react-router-dom with per-route meta injection
-    app.get('*', (req, res) => {
+    app.get('*', async (req, res) => {
       const pathname = req.path.replace(/\/$/, '') || '/';
       const basePath = pathname.startsWith('/blog/') ? '/blog-detalle' : pathname;
-      const meta = routes[basePath] || routes['/'];
+      const base = routes[basePath] || routes['/'];
+
+      // DB override (from SEO panel) wins over the hardcoded defaults; match on the
+      // real pathname first, then the normalized basePath.
+      const overrides = await getOverrides();
+      const ov = overrides[pathname] || overrides[basePath] || {};
+      const meta = {
+        title: ov.title || base.title,
+        description: ov.description || base.description,
+        keywords: ov.keywords || base.keywords,
+        og_image: base.og_image,
+      };
 
       let html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
 
       // Replace <title>
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${meta.title}</title>`);
+      html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(meta.title)}</title>`);
 
       // Inject meta + OG tags before </head>
       const inject = `
-  <meta name="description" content="${meta.description}" />
-  <meta name="keywords" content="${meta.keywords}" />
+  <meta name="description" content="${esc(meta.description)}" />
+  <meta name="keywords" content="${esc(meta.keywords)}" />
   <link rel="canonical" href="https://colmedikal.com${pathname}" />
-  <meta property="og:title" content="${meta.title}" />
-  <meta property="og:description" content="${meta.description}" />
+  <meta property="og:title" content="${esc(meta.title)}" />
+  <meta property="og:description" content="${esc(meta.description)}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://colmedikal.com${pathname}" />
-  <meta property="og:image" content="${meta.og_image}" />
+  <meta property="og:image" content="${esc(meta.og_image)}" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${meta.title}" />
-  <meta name="twitter:description" content="${meta.description}" />`;
+  <meta name="twitter:title" content="${esc(meta.title)}" />
+  <meta name="twitter:description" content="${esc(meta.description)}" />`;
 
       html = html.replace('</head>', inject + '\n  </head>');
 
