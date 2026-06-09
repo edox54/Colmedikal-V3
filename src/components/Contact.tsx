@@ -394,25 +394,18 @@ export default function Contact({ setCurrentPage }: ContactProps) {
           </div>
 
           {/* Right: Embedded Interactive Map */}
-          <div className="lg:col-span-7 bg-white p-3 rounded-2xl border border-slate-150 shadow-sm overflow-hidden min-h-[350px] flex flex-col gap-2">
+          <div className="lg:col-span-7 bg-white p-3 rounded-2xl border border-slate-150 shadow-sm overflow-hidden min-h-[350px] flex">
             <iframe
-              src="https://www.openstreetmap.org/export/embed.html?bbox=-78.4932409%2C-0.1963199%2C-78.4832409%2C-0.1863199&layer=mapnik&marker=-0.1913199%2C-78.4882409"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3989.796077118578!2d-78.485666!3d-0.19131990000000001!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91d59a7ab997494d%3A0x96170303f777b745!2sColmedikal!5e0!3m2!1ses!2sus!4v1781047961993!5m2!1ses!2sus"
               width="100%"
               height="100%"
               style={{ border: 0 }}
               allowFullScreen={true}
               loading="lazy"
-              className="w-full flex-1 min-h-[310px] rounded-xl border-0"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="w-full h-full min-h-[350px] rounded-xl border-0 flex-1"
               title="Mapa de Ubicación de Colmedikal Sede Principal"
             ></iframe>
-            <a
-              href="https://www.openstreetmap.org/?mlat=-0.1913&mlon=-78.4882#map=16/-0.1913/-78.4882"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[10px] text-center text-slate-400 hover:text-teal-500 transition-colors pb-1"
-            >
-              Ver en mapa completo →
-            </a>
           </div>
         </div>
       </section>
