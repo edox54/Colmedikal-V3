@@ -1,5 +1,5 @@
+Options -MultiViews
 RewriteEngine On
-RewriteBase /
 
 # Serve existing files and directories directly (JS, CSS, images, etc.)
 RewriteCond %{REQUEST_FILENAME} -f [OR]
@@ -7,4 +7,4 @@ RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
 # Route all page requests through PHP for per-route meta injection
-RewriteRule ^ /seo-render.php [L]
+RewriteRule ^ seo-render.php [L]
