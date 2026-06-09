@@ -6,7 +6,7 @@ interface VersionInfo {
   timestamp: string;
 }
 
-export function Footer() {
+export default function Footer() {
   const [versionInfo, setVersionInfo] = useState<VersionInfo>({
     version: 'V1.1',
     commit: 'unknown',
