@@ -132,6 +132,19 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (token) fetchAllData();
   }, [token]);
 
+  // Re-apply deactivated_doctors filter whenever settings or raw doctors change
+  useEffect(() => {
+    const deactivatedIds: string[] = (() => {
+      try { return JSON.parse(seoSettings.deactivated_doctors || '[]'); } catch { return []; }
+    })();
+    if (deactivatedIds.length > 0) {
+      setDoctors(prev => prev.map(d => ({
+        ...d,
+        active: deactivatedIds.includes(d.id) ? false : (d.active !== false),
+      })));
+    }
+  }, [seoSettings.deactivated_doctors]);
+
   const fetchPublicData = async () => {
     try {
       const [settingsRes, blogRes] = await Promise.all([
@@ -342,16 +355,27 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const toggleDoctorActiveStatus = async (id: string) => {
     if (!token) throw new Error('Not authenticated');
-    const doctor = doctors.find(d => d.id === id);
-    if (!doctor) throw new Error('Doctor not found');
 
-    const newActive = doctor.active === false ? true : false;
-    // Optimistic update first — stays regardless of API outcome
-    setDoctors(prev => prev.map(d => d.id === id ? { ...d, active: newActive } : d));
-    // Fire-and-forget to backend — no fetchAllData that would overwrite optimistic state
-    apiCall(`/api/admin/doctors/${id}`, 'PUT', { ...doctor, active: newActive }, token).catch(() => {
-      /* If API fails, optimistic state remains — acceptable for session UX */
-    });
+    // Use deactivated_doctors list in settings — works regardless of DB doctor source
+    const current: string[] = (() => {
+      try { return JSON.parse(seoSettings.deactivated_doctors || '[]'); } catch { return []; }
+    })();
+
+    const isDeactivated = current.includes(id);
+    const newList = isDeactivated ? current.filter(x => x !== id) : [...current, id];
+    const newJson = JSON.stringify(newList);
+
+    // Optimistic update
+    setSeoSettings(prev => ({ ...prev, deactivated_doctors: newJson }));
+    setDoctors(prev => prev.map(d => d.id === id ? { ...d, active: isDeactivated } : d));
+
+    try {
+      await apiCall('/api/admin/settings', 'PUT', { deactivated_doctors: newJson }, token);
+    } catch {
+      // Revert
+      setSeoSettings(prev => ({ ...prev, deactivated_doctors: JSON.stringify(current) }));
+      setDoctors(prev => prev.map(d => d.id === id ? { ...d, active: !isDeactivated } : d));
+    }
   };
 
   // ==================== REFUNDS ====================

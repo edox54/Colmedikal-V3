@@ -26,8 +26,8 @@ import { Doctor } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
 
 export default function DirectorioMedico() {
-  const { token } = useColmedikal();
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const { token, seoSettings } = useColmedikal();
+  const [rawDoctors, setRawDoctors] = useState<Doctor[]>([]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -42,9 +42,18 @@ export default function DirectorioMedico() {
   useEffect(() => {
     fetch('https://api.colmedikal.com/api/doctors?limit=500')
       .then(r => r.json())
-      .then(d => setDoctors(d.data || []))
+      .then(d => setRawDoctors(d.data || []))
       .catch(() => {});
   }, []);
+
+  // Apply deactivated_doctors filter from settings
+  const deactivatedIds: string[] = (() => {
+    try { return JSON.parse(seoSettings.deactivated_doctors || '[]'); } catch { return []; }
+  })();
+  const doctors = rawDoctors.map(d => ({
+    ...d,
+    active: deactivatedIds.includes(d.id) ? false : (d.active !== false),
+  }));
 
   useEffect(() => {
     const specialtyParam = searchParams.get('especialidad');
