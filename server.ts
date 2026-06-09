@@ -94,8 +94,9 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    // Serve static files in the dist folder
-    app.use(express.static(distPath));
+    // Serve static files in the dist folder (index:false so all HTML routing
+    // goes through our meta-injection handler below, including "/")
+    app.use(express.static(distPath, { index: false }));
 
     // Per-route meta tag injection
     const routes: Record<string, { title: string; description: string; keywords: string; og_image: string }> = {
