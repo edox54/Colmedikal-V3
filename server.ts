@@ -1,8 +1,12 @@
-import express from 'express';
+import 'dotenv/config';
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import https from 'https';
 import { createServer as createViteServer } from 'vite';
+import jwt from 'jsonwebtoken';
+import helmet from 'helmet';
+import crypto from 'crypto';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
 // WASM-based llhttp parser, which fails under CloudLinux LVE memory limits).
@@ -20,57 +24,100 @@ function httpsGetJson(url: string, timeoutMs = 4000): Promise<any> {
   });
 }
 
-const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'colmedikal2024';
+// Security: Require JWT_SECRET to be set, fail fast if missing
+const JWT_SECRET = process.env.JWT_SECRET;
+const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD;
+
+if (!JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is required');
+  process.exit(1);
+}
+
+if (!DASHBOARD_PASSWORD) {
+  console.error('FATAL: DASHBOARD_PASSWORD environment variable is required');
+  process.exit(1);
+}
+
+// Middleware: Verify JWT token
+function verifyToken(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Token required' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET!);
+    (req as any).user = decoded;
+    next();
+  } catch (error) {
+    return res.status(403).json({ success: false, message: 'Invalid token' });
+  }
+}
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Security: Apply helmet middleware for automatic security headers
+  app.use(helmet());
+
+  // Security: Add custom security headers
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Content-Security-Policy', "default-src 'self'");
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    next();
+  });
+
   // ENDPOINTS DE AUTENTICACIÓN
   app.post('/api/auth/login', express.json(), async (req, res) => {
     try {
       const { password } = req.body;
-      
-      if (!password) {
+
+      if (!password || typeof password !== 'string') {
         return res.status(400).json({ success: false, message: 'Contraseña requerida' });
       }
-      
-      // Verificar contraseña
-      if (password === DASHBOARD_PASSWORD) {
-        const token = 'token_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
-        res.json({ success: true, token });
-      } else {
-        res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
+
+      // Verify password (constant-time comparison to prevent timing attacks)
+      const passwordBuffer = Buffer.from(password);
+      const correctBuffer = Buffer.from(DASHBOARD_PASSWORD!);
+
+      let isValid = false;
+      if (passwordBuffer.length === correctBuffer.length) {
+        try {
+          isValid = crypto.timingSafeEqual(passwordBuffer, correctBuffer);
+        } catch {
+          isValid = false;
+        }
       }
+
+      if (!isValid) {
+        return res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
+      }
+
+      // Generate JWT token with expiration (1 hour)
+      const token = jwt.sign(
+        { iat: Date.now(), type: 'admin' },
+        JWT_SECRET!,
+        { expiresIn: '1h' }
+      );
+
+      res.json({ success: true, token });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Error del servidor' });
+      console.error('[Auth Error]', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   });
 
-  app.get('/api/auth/verify', (req, res) => {
-    try {
-      const authHeader = req.headers.authorization;
-      const token = authHeader && authHeader.split(' ')[1];
-      
-      if (!token) {
-        return res.status(401).json({ success: false });
-      }
-      
-      res.json({ success: true });
-    } catch (error) {
-      res.status(401).json({ success: false });
-    }
+  app.get('/api/auth/verify', verifyToken, (req, res) => {
+    res.json({ success: true });
   });
 
   // PROTEGER ENDPOINT DE FORMULARIOS
-  app.get('/api/forms', (req, res) => {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-    
-    if (!token) {
-      return res.status(401).json({ success: false, message: 'No autenticado' });
-    }
-    
+  app.get('/api/forms', verifyToken, (req, res) => {
     res.json({ success: true, forms: [] });
   });
 
@@ -83,19 +130,28 @@ async function startServer() {
   app.post('/api/forms/submit', express.json(), async (req, res) => {
     try {
       const { type, data } = req.body;
-      
-      console.log(`[API] Formulario ${type} recibido:`, data);
-      
+
+      // Input validation: type must be one of the allowed values
+      if (!type || !['contact', 'quote', 'reimbursement'].includes(type)) {
+        return res.status(400).json({ success: false, message: 'Invalid form type' });
+      }
+
+      if (!data || typeof data !== 'object') {
+        return res.status(400).json({ success: false, message: 'Invalid form data' });
+      }
+
+      console.log(`[API] Formulario ${type} recibido`);
+
       // Aquí iría la lógica para enviar a Kommo
       // Por ahora solo registramos
-      
+
       res.json({
         success: true,
         message: `Formulario ${type} procesado correctamente`
       });
     } catch (error) {
       console.error('[API Error]', error);
-      res.status(500).json({ success: false, error: String(error) });
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   });
 

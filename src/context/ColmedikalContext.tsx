@@ -120,7 +120,20 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [seoMetaOverrides, setSeoMetaOverrides] = useState<Record<string, any>>({});
   const [blogPostsCMS, setBlogPostsCMS] = useState<any[]>([]);
   const [token, setToken] = useState<string | null>(() => {
-    return sessionStorage.getItem('colmedikal_token');
+    // Only restore token if it's not expired
+    const savedToken = sessionStorage.getItem('colmedikal_token');
+    const savedExpiry = sessionStorage.getItem('colmedikal_token_expiry');
+
+    if (savedToken && savedExpiry) {
+      const expiryTime = parseInt(savedExpiry, 10);
+      if (Date.now() < expiryTime) {
+        return savedToken;
+      } else {
+        sessionStorage.removeItem('colmedikal_token');
+        sessionStorage.removeItem('colmedikal_token_expiry');
+      }
+    }
+    return null;
   });
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -168,10 +181,12 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiCall('/api/auth/login', 'POST', { email, password });
+      const response = await apiCall('/api/auth/login', 'POST', { password });
       setToken(response.token);
       setUser(response.admin);
       sessionStorage.setItem('colmedikal_token', response.token);
+      // Token expires in 1 hour (JWT default)
+      sessionStorage.setItem('colmedikal_token_expiry', String(Date.now() + 60 * 60 * 1000));
       sessionStorage.setItem('colmedikal_user', JSON.stringify(response.admin));
 
       // Load data after login
@@ -195,6 +210,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setAuthorizations([]);
     setLeads([]);
     sessionStorage.removeItem('colmedikal_token');
+    sessionStorage.removeItem('colmedikal_token_expiry');
     sessionStorage.removeItem('colmedikal_user');
   };
 
