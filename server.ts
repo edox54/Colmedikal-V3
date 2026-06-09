@@ -177,6 +177,7 @@ async function startServer() {
     const API_BASE_URL = 'https://api.colmedikal.com';
     let overrideCache: Record<string, { title?: string; description?: string; keywords?: string }> = {};
     let overrideCacheAt = 0;
+    let lastOvErr = 'none';
     const getOverrides = async () => {
       if (Date.now() - overrideCacheAt < 60_000) return overrideCache;
       try {
@@ -191,9 +192,13 @@ async function startServer() {
         }
         overrideCache = next;
         overrideCacheAt = Date.now();
-      } catch { /* keep last good cache on failure */ }
+        lastOvErr = `ok:${Object.keys(next).length}`;
+      } catch (e: any) {
+        lastOvErr = `${e?.name || 'err'}:${e?.message || e}`.slice(0, 120);
+      }
       return overrideCache;
     };
+    const getLastOvErr = () => lastOvErr;
 
     // Provide general routing fallback to index.html for react-router-dom with per-route meta injection
     app.get('*', async (req, res) => {
@@ -216,6 +221,7 @@ async function startServer() {
       res.set('X-Meta-Build', 'override-v2');
       res.set('X-Meta-Override', ov.title ? 'hit' : 'miss');
       res.set('X-Meta-OvKeys', String(Object.keys(overrides).length));
+      res.set('X-Meta-OvErr', encodeURIComponent(getLastOvErr()));
 
       let html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
 
