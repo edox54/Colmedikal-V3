@@ -58,9 +58,19 @@ export default function Blog({
       tags: (p.tags || '').split(',').map((t: string) => t.trim()).filter(Boolean),
     })), [blogPostsCMS]);
 
-  const allPosts = useMemo(() =>
-    [...BLOG_POSTS, ...cmsPosts].sort((a, b) => b.publishDate.localeCompare(a.publishDate)),
-  [cmsPosts]);
+  const allPosts = useMemo(() => {
+    const MONTH_ES: Record<string, string> = {
+      'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06',
+      'julio':'07','agosto':'08','septiembre':'09','octubre':'10','noviembre':'11','diciembre':'12',
+    };
+    const toISO = (d: string) => {
+      if (/^\d{4}-\d{2}/.test(d)) return d;
+      const m = d.match(/^(\d{1,2}) de (\w+) de (\d{4})$/i);
+      if (m) return `${m[3]}-${MONTH_ES[m[2].toLowerCase()] || '01'}-${m[1].padStart(2,'0')}`;
+      return d;
+    };
+    return [...BLOG_POSTS, ...cmsPosts].sort((a, b) => toISO(b.publishDate).localeCompare(toISO(a.publishDate)));
+  }, [cmsPosts]);
 
   // Determine active post from URL slug
   const activeBlogPost = slug ? allPosts.find(post => post.slug === slug || post.id === slug) : null;

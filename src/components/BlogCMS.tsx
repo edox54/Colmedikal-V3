@@ -80,25 +80,38 @@ function generateSchemaTemplate(type: string, post: CMSPost): string {
 
 function renderPara(para: string, i: number) {
   if (para.startsWith('### ')) return (
-    <h3 key={i} className="text-base font-bold text-[#143b67] mt-4 mb-2">{para.slice(4)}</h3>
+    <h3 key={i} className="text-xl font-bold text-[#143b67] mt-8 mb-3 tracking-tight">{para.slice(4)}</h3>
   );
   if (para.startsWith('* **')) {
     const clean = para.slice(4);
-    const [key, ...rest] = clean.split(':** ');
+    const parts = clean.split(':** ');
     return (
-      <div key={i} className="flex gap-2 my-2">
-        <div className="mt-2 w-1.5 h-1.5 rounded-full bg-[#4597CA] flex-shrink-0" />
-        <p className="text-xs text-slate-700"><strong className="text-[#143b67]">{key}:</strong> {rest.join('')}</p>
+      <div key={i} className="flex gap-3 my-3">
+        <div className="mt-2 flex-shrink-0 w-2 h-2 rounded-full bg-[#4597CA]" />
+        <p className="text-slate-700 leading-relaxed text-sm">
+          <strong className="text-[#143b67] font-semibold">{parts[0]}:</strong> {parts.slice(1).join('')}
+        </p>
+      </div>
+    );
+  }
+  if (para.match(/^\d+\.\s\*\*/)) {
+    const clean = para.replace(/^\d+\.\s\*\*/, '');
+    const parts = clean.split(':** ');
+    return (
+      <div key={i} className="flex gap-3 my-4 bg-[#4597CA]/5 p-4 rounded-xl border-l-4 border-[#4597CA]">
+        <p className="text-slate-700 leading-relaxed text-sm">
+          <strong className="text-[#143b67] font-semibold">{parts[0]}:</strong> {parts.slice(1).join('')}
+        </p>
       </div>
     );
   }
   if (para.startsWith('* ')) return (
-    <div key={i} className="flex gap-2 my-1.5 pl-2">
-      <div className="mt-2 w-1 h-1 rounded-full bg-slate-400 flex-shrink-0" />
-      <p className="text-xs text-slate-600">{para.slice(2)}</p>
+    <div key={i} className="flex gap-3 my-2 pl-4">
+      <div className="mt-2 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-slate-400" />
+      <p className="text-slate-600 leading-relaxed text-sm">{para.slice(2)}</p>
     </div>
   );
-  return <p key={i} className="text-xs text-slate-600 leading-relaxed my-2">{para}</p>;
+  return <p key={i} className="text-slate-600/95 leading-relaxed text-sm mb-4">{para}</p>;
 }
 
 function ContentEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {

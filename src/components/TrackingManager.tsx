@@ -38,11 +38,10 @@ export default function TrackingManager() {
     }
 
     // Google Search Console verification
-    if (gsc_verification && !document.querySelector('meta[name="google-site-verification"]')) {
-      const m = document.createElement('meta');
-      m.name = 'google-site-verification';
+    if (gsc_verification) {
+      let m = document.querySelector('meta[name="google-site-verification"]') as HTMLMetaElement | null;
+      if (!m) { m = document.createElement('meta'); m.name = 'google-site-verification'; document.head.appendChild(m); }
       m.content = gsc_verification;
-      document.head.appendChild(m);
     }
 
     // Facebook Pixel
