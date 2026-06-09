@@ -351,7 +351,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
   // KPI Calculations
   const pendingRefunds = refunds.filter(r => r.status === 'Procesando');
-  const totalRefundAmountPending = pendingRefunds.reduce((sum, r) => sum + r.amount, 0);
+  const totalRefundAmountPending = pendingRefunds.reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const totalLeadsUncontacted = leads.filter(l => l.status === 'Nuevo Plan').length;
   const pendingAuthsCount = authorizations.filter(a => a.status === 'Pendiente' || a.status === 'Auditoría').length;
   const activeAppointmentsCount = appointments.filter(a => a.status === 'Confirmada' || a.status === 'Pendiente').length;
@@ -789,8 +789,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
                           <div className="text-right space-y-1">
                             <span className="text-[10px] text-slate-400 font-medium">Monto Declarado:</span>
-                            <p className="text-lg font-black font-mono text-slate-950">${ref.amount.toFixed(2)}</p>
-                            <p className="text-[10px] text-emerald-600 font-semibold font-mono">Retorno Est. 90%: ${(ref.amount * 0.9).toFixed(2)}</p>
+                            <p className="text-lg font-black font-mono text-slate-950">${Number(ref.amount || 0).toFixed(2)}</p>
+                            <p className="text-[10px] text-emerald-600 font-semibold font-mono">Retorno Est. 90%: ${(Number(ref.amount || 0) * 0.9).toFixed(2)}</p>
                           </div>
                         </div>
 

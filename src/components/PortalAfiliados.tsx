@@ -669,7 +669,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                             </div>
 
                             <div className="text-right space-y-1">
-                              <span className="text-sm font-bold text-slate-900 font-mono">${ref.amount.toFixed(2)}</span>
+                              <span className="text-sm font-bold text-slate-900 font-mono">${Number(ref.amount || 0).toFixed(2)}</span>
                               <span className={`block text-[9px] font-bold px-2 py-0.2 rounded-full uppercase tracking-wider font-sans border text-center ${
                                 ref.status === 'Reembolsado' 
                                   ? 'text-emerald-700 bg-emerald-50 border-emerald-100' 
@@ -682,7 +682,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                           
                           <div className="text-[10px] text-slate-400 border-t border-slate-50 pt-2 flex justify-between">
                             <span>Ingresado el: {ref.refundDate}</span>
-                            <span>Valor Aprobado (90%): <strong>${(ref.amount * 0.9).toFixed(2)}</strong></span>
+                            <span>Valor Aprobado (90%): <strong>${(Number(ref.amount || 0) * 0.9).toFixed(2)}</strong></span>
                           </div>
                         </div>
                       ))}
