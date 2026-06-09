@@ -215,8 +215,6 @@ async function startServer() {
       }
       return overrideCache;
     };
-    const getLastOvErr = () => lastOvErr;
-
     // Provide general routing fallback to index.html for react-router-dom with per-route meta injection
     app.get('*', async (req, res) => {
       const pathname = req.path.replace(/\/$/, '') || '/';
@@ -233,12 +231,6 @@ async function startServer() {
         keywords: ov.keywords || base.keywords,
         og_image: base.og_image,
       };
-
-      // Diagnostic headers (safe to keep; helps verify deploy + override source)
-      res.set('X-Meta-Build', 'override-v2');
-      res.set('X-Meta-Override', ov.title ? 'hit' : 'miss');
-      res.set('X-Meta-OvKeys', String(Object.keys(overrides).length));
-      res.set('X-Meta-OvErr', encodeURIComponent(getLastOvErr()));
 
       let html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
 
