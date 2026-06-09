@@ -126,6 +126,36 @@ async function startServer() {
     res.json({ status: 'ok' });
   });
 
+  // Version endpoint - para mostrar en footer cuál fue el último deploy
+  app.get('/api/version', (req, res) => {
+    try {
+      // Leer git commit actual
+      const gitCommit = require('child_process')
+        .execSync('git rev-parse --short HEAD', { encoding: 'utf-8', cwd: process.cwd() })
+        .trim();
+
+      // Leer branch actual
+      const gitBranch = require('child_process')
+        .execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8', cwd: process.cwd() })
+        .trim();
+
+      const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+      res.json({
+        version: 'V1.1',
+        commit: `${gitCommit} (${gitBranch})`,
+        timestamp,
+      });
+    } catch (error) {
+      // Si git no está disponible, retornar valores por defecto
+      res.json({
+        version: 'V1.1',
+        commit: 'unknown',
+        timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      });
+    }
+  });
+
   // Endpoint para recibir datos de formularios
   app.post('/api/forms/submit', express.json(), async (req, res) => {
     try {
