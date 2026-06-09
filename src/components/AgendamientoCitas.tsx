@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { initialDoctors } from '../data/doctors';
 import { 
   Calendar, 
   MapPin, 
@@ -32,33 +33,32 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
   const [email, setEmail] = useState('');
   
   // Appointment specific fields
-  const [city, setCity] = useState('Quito');
+  const [city, setCity] = useState('QUITO');
   const [specialty, setSpecialty] = useState('Pediatría');
-  const [facility, setFacility] = useState('Hospital Metropolitano');
+  const [facility, setFacility] = useState('');
 
-  const facilitiesByCity: Record<string, string[]> = {
-    Quito: [
-      'Hospital Metropolitano',
-      'Hospital de los Valles',
-      'Clínica Pichincha',
-      'Hospital Voz Andes',
-      'Hospital Pablo Arturo Suárez',
-      'Clínica La Primavera',
-    ],
-    Guayaquil: [
-      'Clínica Kennedy',
-      'Hospital Alcívar',
-      'Clínica Santa Cecilia',
-      'Hospital Naval (GYE)',
-      'Clínica Guayaquil',
-    ],
-    Cuenca: [
-      'Hospital Santa Inés',
-      'Clínica Santa Ana',
-      'Hospital Monte Sinaí',
-      'Clínica Latinoamericana',
-    ],
-  };
+  const { facilityCities, facilitiesByCity } = useMemo(() => {
+    const medCenters = initialDoctors.filter(
+      (d) => d.specialty === 'Hospital' || d.specialty === 'Clínica'
+    );
+    const byCity: Record<string, string[]> = {};
+    medCenters.forEach((d) => {
+      const cityKey = d.city.trim();
+      if (!byCity[cityKey]) byCity[cityKey] = [];
+      if (!byCity[cityKey].includes(d.name)) byCity[cityKey].push(d.name);
+    });
+    const cities = Object.keys(byCity).sort();
+    return { facilityCities: cities, facilitiesByCity: byCity };
+  }, []);
+
+  useEffect(() => {
+    const defaultCity = facilityCities.includes('QUITO') ? 'QUITO' : facilityCities[0];
+    if (defaultCity) {
+      setCity(defaultCity);
+      setFacility(facilitiesByCity[defaultCity]?.[0] || '');
+    }
+  }, []);
+
   const [preferredDate, setPreferredDate] = useState('');
   const [preferredTimeRange, setPreferredTimeRange] = useState('Mañana (08:00 - 12:00)');
   const [additionalNotes, setAdditionalNotes] = useState('');
@@ -239,9 +239,9 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                     }}
                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"
                   >
-                    <option value="Quito">Quito</option>
-                    <option value="Guayaquil">Guayaquil</option>
-                    <option value="Cuenca">Cuenca</option>
+                    {facilityCities.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
 
