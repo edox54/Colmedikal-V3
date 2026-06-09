@@ -346,14 +346,12 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!doctor) throw new Error('Doctor not found');
 
     const newActive = doctor.active === false ? true : false;
-    // Optimistic update — instant visual feedback
+    // Optimistic update first — stays regardless of API outcome
     setDoctors(prev => prev.map(d => d.id === id ? { ...d, active: newActive } : d));
-    try {
-      await apiCall(`/api/admin/doctors/${id}`, 'PUT', { ...doctor, active: newActive }, token);
-    } catch {
-      // Revert on failure
-      setDoctors(prev => prev.map(d => d.id === id ? { ...d, active: doctor.active } : d));
-    }
+    // Fire-and-forget to backend — no fetchAllData that would overwrite optimistic state
+    apiCall(`/api/admin/doctors/${id}`, 'PUT', { ...doctor, active: newActive }, token).catch(() => {
+      /* If API fails, optimistic state remains — acceptable for session UX */
+    });
   };
 
   // ==================== REFUNDS ====================

@@ -1370,7 +1370,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                     <label className="block text-[11px] font-bold text-slate-700">Costo Consulta ($):</label>
                     <input 
                       type="number"
-                      min="10"
+                      min="0"
                       max="150"
                       value={newDoc.cost}
                       onChange={(e) => setNewDoc({...newDoc, cost: Number(e.target.value)})}
