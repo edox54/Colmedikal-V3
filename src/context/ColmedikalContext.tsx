@@ -193,14 +193,22 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsLoading(true);
     try {
       const [doctorsRes, refundsRes, appointmentsRes, authorizationsRes, leadsRes] = await Promise.all([
-        apiCall('/api/admin/doctors?limit=100', 'GET', undefined, authToken),
+        apiCall('/api/admin/doctors?limit=500', 'GET', undefined, authToken),
         apiCall('/api/admin/refunds?limit=100', 'GET', undefined, authToken),
         apiCall('/api/admin/appointments?limit=100', 'GET', undefined, authToken),
         apiCall('/api/admin/authorizations?limit=100', 'GET', undefined, authToken),
         apiCall('/api/admin/leads?limit=100', 'GET', undefined, authToken),
       ]);
 
-      setDoctors(doctorsRes.data || []);
+      let fetchedDoctors: any[] = doctorsRes.data || [];
+      if (fetchedDoctors.length === 0) {
+        try {
+          const pub = await fetch(`${API_BASE_URL}/api/doctors?limit=500`);
+          const pubData = await pub.json();
+          fetchedDoctors = pubData.data || [];
+        } catch { /* silent */ }
+      }
+      setDoctors(fetchedDoctors);
       setRefunds((refundsRes.data || []).map((r: any) => ({
         id: r.id,
         familyMember: r.family_member || '',
