@@ -2,8 +2,13 @@
   RewriteEngine On
   RewriteBase /
 
-  # Redirect www to non-www (301 permanent)
+  # Redirect www → non-www (HTTP and HTTPS)
   RewriteCond %{HTTP_HOST} ^www\.colmedikal\.com [NC]
+  RewriteCond %{HTTPS} off
+  RewriteRule ^ http://colmedikal.com%{REQUEST_URI} [R=301,L]
+
+  RewriteCond %{HTTP_HOST} ^www\.colmedikal\.com [NC]
+  RewriteCond %{HTTPS} on
   RewriteRule ^ https://colmedikal.com%{REQUEST_URI} [R=301,L]
 
   # SPA fallback

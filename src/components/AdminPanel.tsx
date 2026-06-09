@@ -38,8 +38,6 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Page, Doctor } from '../types';
-import SEODashboard from './SEODashboard';
-import BlogCMS from './BlogCMS';
 import avatarGomez from '../assets/images/avatar_gomez_1780024902226.png';
 import avatarRestrepo from '../assets/images/avatar_restrepo_1780024921091.png';
 import avatarDoctorM2 from '../assets/images/avatar_doctor_m2_1780025298286.png';
@@ -117,7 +115,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     fileData?: string;
   } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'kpis' | 'refunds' | 'appointments' | 'auths' | 'leads' | 'doctors' | 'admins' | 'seo' | 'blog'>('kpis');
+  const [activeTab, setActiveTab] = useState<'kpis' | 'refunds' | 'appointments' | 'auths' | 'leads' | 'doctors' | 'admins'>('kpis');
   
   // Administradores form and registration states
   const [newAdmin, setNewAdmin] = useState<{
@@ -589,25 +587,12 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
           <span className="text-[10px] text-slate-450 font-mono font-normal">({admins ? admins.length : 0})</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('blog')}
-          className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'blog' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-655 hover:bg-slate-200'
-          }`}
-          id="admin-tab-blog"
+        <a
+          href="/seo-panel"
+          className="px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200"
         >
-          ✍️ <span>Blog CMS</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('seo')}
-          className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'seo' ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200'
-          }`}
-          id="admin-tab-seo"
-        >
-          🔍 <span>SEO & Tracking</span>
-        </button>
+          🔍 <span>Panel SEO</span>
+        </a>
       </div>
 
       {/* 3. CONDITIONAL RENDER AREA */}
@@ -1847,19 +1832,6 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         </div>
       </div>
     )}
-      {/* BLOG CMS */}
-      {activeTab === 'blog' && (
-        <div className="animate-in fade-in duration-200">
-          <BlogCMS />
-        </div>
-      )}
-
-      {/* SEO DASHBOARD */}
-      {activeTab === 'seo' && (
-        <div className="animate-in fade-in duration-200">
-          <SEODashboard />
-        </div>
-      )}
     </>
   );
 }

@@ -24,6 +24,7 @@ import { ColmedikalProvider } from './context/ColmedikalContext';
 import AdminPanel from './components/AdminPanel';
 import NotFound from './components/NotFound';
 import TrackingManager from './components/TrackingManager';
+import SEOPanel from './components/SEOPanel';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -66,6 +67,7 @@ export default function App() {
           <Route path="/blog/*" element={<HomeLayout component={Blog} />} />
           <Route path="/cotizador" element={<AdminLayout component={Cotizador} />} />
           <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
+          <Route path="/seo-panel" element={<SEOPanelLayout />} />
           <Route path="*" element={<HomeLayout component={NotFound} />} />
         </Routes>
       </BrowserRouter>
@@ -110,5 +112,15 @@ function AdminLayout({ component: Component }: { component: React.ElementType })
       </main>
     </div>
   );
+}
+
+function SEOPanelLayout() {
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!meta) { meta = document.createElement('meta'); meta.name = 'robots'; document.head.appendChild(meta); }
+    meta.content = 'noindex, nofollow';
+    return () => { if (meta) meta.content = 'index, follow'; };
+  }, []);
+  return <SEOPanel />;
 }
 

@@ -26,9 +26,9 @@ const FIELD_LABELS: Record<string, { label: string; placeholder: string; hint: s
   google_ads_id:    { label: 'Google Ads Conversion ID',     placeholder: 'AW-XXXXXXXXXX',     hint: 'ID de conversión de Google Ads' },
 };
 
-export default function SEODashboard() {
+export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
   const { seoSettings, saveSEOSettings, seoMetaOverrides, saveSeoMetaOverride, blogPostsCMS } = useColmedikal();
-  const [activeTab, setActiveTab] = useState<SeoTab>('tracking');
+  const [activeTab, setActiveTab] = useState<SeoTab>(initialTab || 'tracking');
   const [tracking, setTracking] = useState<Record<string, string>>({});
   const [savedTracking, setSavedTracking] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState('/');
