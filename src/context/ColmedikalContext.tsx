@@ -181,7 +181,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiCall('/api/auth/login', 'POST', { password });
+      const response = await apiCall('/api/auth/login', 'POST', { email, password });
       setToken(response.token);
       setUser(response.admin);
       sessionStorage.setItem('colmedikal_token', response.token);
