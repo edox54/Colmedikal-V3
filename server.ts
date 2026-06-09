@@ -126,32 +126,27 @@ async function startServer() {
     res.json({ status: 'ok' });
   });
 
-  // Version endpoint - para mostrar en footer cuál fue el último deploy
+  // Version endpoint - muestra en el footer la versión y commit del último deploy
   app.get('/api/version', (req, res) => {
     try {
-      // Leer git commit actual
-      const gitCommit = require('child_process')
-        .execSync('git rev-parse --short HEAD', { encoding: 'utf-8', cwd: process.cwd() })
-        .trim();
+      const { execSync } = require('child_process');
+      const metaRaw = fs.readFileSync(path.join(process.cwd(), 'metadata.json'), 'utf-8');
+      const meta = JSON.parse(metaRaw);
+      const deployVersion = meta.deployVersion || '1.0';
 
-      // Leer branch actual
-      const gitBranch = require('child_process')
-        .execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8', cwd: process.cwd() })
-        .trim();
-
-      const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      const gitCommit = execSync('git rev-parse --short HEAD', { encoding: 'utf-8', cwd: process.cwd() }).trim();
+      const deployedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
       res.json({
-        version: 'V1.1',
-        commit: `${gitCommit} (${gitBranch})`,
-        timestamp,
+        version: `V${deployVersion}`,
+        commit: gitCommit,
+        deployedAt,
       });
     } catch (error) {
-      // Si git no está disponible, retornar valores por defecto
       res.json({
         version: 'V1.1',
         commit: 'unknown',
-        timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        deployedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
       });
     }
   });
