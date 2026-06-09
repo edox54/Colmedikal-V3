@@ -3,10 +3,12 @@ import { useLocation } from 'react-router-dom';
 import { Page, BlogPost } from '../types';
 import { SEO_MATRIX, PageSEOMetadata } from './seoMatrix';
 import { BLOG_POSTS } from '../data/blogData';
+import { useColmedikal } from '../context/ColmedikalContext';
 import sedePrincipalBuilding from '../assets/images/sede_principal_building_1780025281820.png';
 
 export default function SEOController() {
   const location = useLocation();
+  const { seoMetaOverrides } = useColmedikal();
 
   useEffect(() => {
     // 1. Resolve correct metadata object
@@ -57,6 +59,19 @@ export default function SEOController() {
     }
 
     if (!meta) return;
+
+    // 1b. DB override from the SEO panel wins over seoMatrix (matches the
+    // server-side SSR injection so the browser tab title stays consistent).
+    const ovKey = location.pathname.replace(/\/$/, '') || '/';
+    const ov = seoMetaOverrides?.[ovKey];
+    if (ov) {
+      meta = {
+        ...meta,
+        title: ov.title || meta.title,
+        description: ov.description || meta.description,
+        keywords: ov.keywords || meta.keywords,
+      };
+    }
 
     // 2. Head Title Tag
     document.title = meta.title;
@@ -246,7 +261,7 @@ export default function SEOController() {
       document.head.appendChild(scriptElement);
     }
 
-  }, [location.pathname]);
+  }, [location.pathname, seoMetaOverrides]);
 
   // This controller doesn't render visual aspects, it just orchestrates SEO header tags.
   return null;
