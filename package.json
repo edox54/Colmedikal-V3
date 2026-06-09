@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && node -e \"const fs=require('fs'),f='dist/server.cjs',c=fs.readFileSync(f,'utf8'),h='process.on(\\\"unhandledRejection\\\",(r)=>{if(r&&r.toString().includes(\\\"WebAssembly\\\"))return;process.exit(1);});\\n';if(!c.startsWith(h)){fs.writeFileSync(f,h+c);console.log('postbuild: server.cjs patched');}\"",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
