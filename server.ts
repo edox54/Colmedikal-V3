@@ -1,7 +1,24 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import https from 'https';
 import { createServer as createViteServer } from 'vite';
+
+// GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
+// WASM-based llhttp parser, which fails under CloudLinux LVE memory limits).
+function httpsGetJson(url: string, timeoutMs = 4000): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, (res) => {
+      let data = '';
+      res.on('data', (c) => { data += c; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(timeoutMs, () => req.destroy(new Error('timeout')));
+  });
+}
 
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'colmedikal2024';
 
@@ -181,8 +198,7 @@ async function startServer() {
     const getOverrides = async () => {
       if (Date.now() - overrideCacheAt < 60_000) return overrideCache;
       try {
-        const r = await fetch(`${API_BASE_URL}/api/public/settings`);
-        const json: any = await r.json();
+        const json: any = await httpsGetJson(`${API_BASE_URL}/api/public/settings`);
         const data = json?.data || {};
         const next: Record<string, any> = {};
         for (const [k, v] of Object.entries(data)) {
