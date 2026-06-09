@@ -212,6 +212,11 @@ async function startServer() {
         og_image: base.og_image,
       };
 
+      // Diagnostic headers (safe to keep; helps verify deploy + override source)
+      res.set('X-Meta-Build', 'override-v2');
+      res.set('X-Meta-Override', ov.title ? 'hit' : 'miss');
+      res.set('X-Meta-OvKeys', String(Object.keys(overrides).length));
+
       let html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
 
       // Replace <title>
