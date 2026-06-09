@@ -194,7 +194,8 @@ async function startServer() {
         overrideCacheAt = Date.now();
         lastOvErr = `ok:${Object.keys(next).length}`;
       } catch (e: any) {
-        lastOvErr = `${e?.name || 'err'}:${e?.message || e}`.slice(0, 120);
+        const cause = e?.cause ? `|cause:${e.cause.code || e.cause.message || e.cause}` : '';
+        lastOvErr = `${e?.name || 'err'}:${e?.message || e}${cause}`.slice(0, 160);
       }
       return overrideCache;
     };
