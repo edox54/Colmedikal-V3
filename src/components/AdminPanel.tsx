@@ -651,7 +651,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       <p className="text-[10px] text-slate-500">Plan: {ld.quoteData?.basePlanId?.toUpperCase() || 'N/A'} • Tlf: {ld.quoteData?.phone || '—'}</p>
                     </div>
                     <div className="text-right space-y-1">
-                      <span className="font-bold text-slate-900 font-mono">${(ld.estimatedPrice || 0).toFixed(2)}/mes</span>
+                      <span className="font-bold text-slate-900 font-mono">${Number(ld.estimatedPrice || 0).toFixed(2)}/mes</span>
                       <span className="block text-[9px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded uppercase text-center w-full">
                         {ld.status}
                       </span>
@@ -1088,7 +1088,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
                       <div className="text-right">
                         <span className="text-[9px] text-slate-400 font-semibold font-mono block">Plan Est.:</span>
-                        <span className="text-base font-black text-indigo-750 font-mono">${(ld.estimatedPrice || 0).toFixed(2)}<span className="text-[10px] font-normal">/m</span></span>
+                        <span className="text-base font-black text-indigo-750 font-mono">${Number(ld.estimatedPrice || 0).toFixed(2)}<span className="text-[10px] font-normal">/m</span></span>
                       </div>
                     </div>
 

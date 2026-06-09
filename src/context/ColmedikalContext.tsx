@@ -182,7 +182,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               : (l.quote_data ?? l.quoteData ?? {});
           } catch { return l.quoteData ?? {}; }
         })(),
-        estimatedPrice: l.estimated_price ?? l.estimatedPrice ?? 0,
+        estimatedPrice: Number(l.estimated_price ?? l.estimatedPrice ?? 0),
         timestamp: l.timestamp ?? l.created_at ?? new Date().toISOString(),
       })));
       setError(null);
