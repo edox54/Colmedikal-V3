@@ -33,6 +33,15 @@ interface ColmedikalContextType {
   deleteAdmin: (email: string) => Promise<void>;
   toggleAdminActiveStatus: (email: string) => Promise<void>;
   fetchDashboard: () => Promise<any>;
+  // SEO & CMS
+  seoSettings: Record<string, string>;
+  seoMetaOverrides: Record<string, { title: string; description: string; keywords: string }>;
+  saveSEOSettings: (settings: Record<string, string>) => Promise<void>;
+  saveSeoMetaOverride: (path: string, meta: { title: string; description: string; keywords: string }) => Promise<void>;
+  blogPostsCMS: any[];
+  createCMSBlogPost: (post: any) => Promise<void>;
+  updateCMSBlogPost: (id: string, post: any) => Promise<void>;
+  deleteCMSBlogPost: (id: string) => Promise<void>;
 }
 
 const ColmedikalContext = createContext<ColmedikalContextType | undefined>(undefined);
@@ -105,6 +114,9 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch { return []; }
   });
   const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [seoSettings, setSeoSettings] = useState<Record<string, string>>({});
+  const [seoMetaOverrides, setSeoMetaOverrides] = useState<Record<string, any>>({});
+  const [blogPostsCMS, setBlogPostsCMS] = useState<any[]>([]);
   const [token, setToken] = useState<string | null>(() => {
     return sessionStorage.getItem('colmedikal_token');
   });
@@ -114,10 +126,27 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Initialize: Load data on mount
   useEffect(() => {
-    if (token) {
-      fetchAllData();
-    }
+    fetchPublicData();
+    if (token) fetchAllData();
   }, [token]);
+
+  const fetchPublicData = async () => {
+    try {
+      const [settingsRes, blogRes] = await Promise.all([
+        apiCall('/api/public/settings').catch(() => ({ data: {} })),
+        apiCall('/api/public/blog').catch(() => ({ data: [] })),
+      ]);
+      const flat: Record<string, string> = {};
+      const metaOverrides: Record<string, any> = {};
+      Object.entries(settingsRes.data || {}).forEach(([k, v]) => {
+        if (k.startsWith('meta_')) metaOverrides[k.replace('meta_', '')] = JSON.parse(v as string);
+        else flat[k] = v as string;
+      });
+      setSeoSettings(flat);
+      setSeoMetaOverrides(metaOverrides);
+      setBlogPostsCMS(blogRes.data || []);
+    } catch { /* silent */ }
+  };
 
   // Login function
   const login = async (email: string, password: string) => {
@@ -212,6 +241,9 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       })));
 
       // Transform API leads: snake_case → camelCase, parse JSON quote_data
+      // Load CMS blog posts (admin sees all, including drafts)
+      fetchAdminBlog(authToken);
+
       setLeads((leadsRes.data || []).map((l: any) => ({
         ...l,
         quoteData: (() => {
@@ -619,6 +651,46 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  // SEO Settings
+  const saveSEOSettings = async (settings: Record<string, string>) => {
+    if (!token) throw new Error('Not authenticated');
+    await apiCall('/api/admin/settings', 'PUT', settings, token);
+    setSeoSettings(prev => ({ ...prev, ...settings }));
+  };
+
+  const saveSeoMetaOverride = async (path: string, meta: { title: string; description: string; keywords: string }) => {
+    if (!token) throw new Error('Not authenticated');
+    const key = `meta_${path}`;
+    await apiCall('/api/admin/settings', 'PUT', { [key]: JSON.stringify(meta) }, token);
+    setSeoMetaOverrides(prev => ({ ...prev, [path]: meta }));
+  };
+
+  // Blog CMS
+  const fetchAdminBlog = async (authToken: string) => {
+    try {
+      const res = await apiCall('/api/admin/blog', 'GET', undefined, authToken);
+      setBlogPostsCMS(res.data || []);
+    } catch { /* silent */ }
+  };
+
+  const createCMSBlogPost = async (post: any) => {
+    if (!token) throw new Error('Not authenticated');
+    await apiCall('/api/admin/blog', 'POST', post, token);
+    await fetchAdminBlog(token);
+  };
+
+  const updateCMSBlogPost = async (id: string, post: any) => {
+    if (!token) throw new Error('Not authenticated');
+    await apiCall(`/api/admin/blog/${id}`, 'PUT', post, token);
+    await fetchAdminBlog(token);
+  };
+
+  const deleteCMSBlogPost = async (id: string) => {
+    if (!token) throw new Error('Not authenticated');
+    await apiCall(`/api/admin/blog/${id}`, 'DELETE', undefined, token);
+    setBlogPostsCMS(prev => prev.filter(p => p.id !== id));
+  };
+
   // Merge API leads with locally-stored public leads; deduplicate by id
   const mergedLeads = [
     ...localLeads.filter(l => !leads.some(al => al.id === l.id)),
@@ -657,6 +729,14 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     deleteAdmin,
     toggleAdminActiveStatus,
     fetchDashboard,
+    seoSettings,
+    seoMetaOverrides,
+    saveSEOSettings,
+    saveSeoMetaOverride,
+    blogPostsCMS,
+    createCMSBlogPost,
+    updateCMSBlogPost,
+    deleteCMSBlogPost,
   };
 
   return (

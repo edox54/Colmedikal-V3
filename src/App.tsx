@@ -23,6 +23,7 @@ import SEOController from './seo/SEOController';
 import { ColmedikalProvider } from './context/ColmedikalContext';
 import AdminPanel from './components/AdminPanel';
 import NotFound from './components/NotFound';
+import TrackingManager from './components/TrackingManager';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -51,6 +52,7 @@ export default function App() {
       <BrowserRouter>
         <ScrollToTop />
         <SEOController />
+        <TrackingManager />
         <Routes>
           <Route path="/" element={<HomeLayout component={Home} />} />
           <Route path="/servicios" element={<HomeLayout component={Services} />} />

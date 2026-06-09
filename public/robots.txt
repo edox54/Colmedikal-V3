@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Bloquear panel administrativo
+Disallow: /admin
+Disallow: /admin/
+
+# Bloquear cotizador de indexación directa
+Disallow: /cotizador
+
+Sitemap: https://colmedikal.com/sitemap.xml

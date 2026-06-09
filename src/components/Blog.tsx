@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BlogPost, Page } from '../types';
 import { BLOG_POSTS, AUTHORS } from '../data/blogData';
+import { useColmedikal } from '../context/ColmedikalContext';
 import { 
   Calendar, 
   Clock, 
@@ -38,8 +39,29 @@ export default function Blog({
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  const { blogPostsCMS } = useColmedikal();
+
+  // Adapt CMS DB posts to BlogPost shape
+  const cmsPosts: BlogPost[] = useMemo(() => blogPostsCMS
+    .filter((p: any) => p.published)
+    .map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      excerpt: p.excerpt || '',
+      content: typeof p.content === 'string' ? p.content.split(/\n\n+/) : (p.content || []),
+      publishDate: (p.publish_date || '').split('T')[0],
+      readTime: p.read_time || '5 min',
+      category: p.category || 'Salud',
+      author: { id: 'cms', name: p.author_name || 'Equipo Colmedikal', role: 'Redacción', specialty: '', experience: '', avatar: '', bio: '' },
+      image: p.image_url || '',
+      tags: (p.tags || '').split(',').map((t: string) => t.trim()).filter(Boolean),
+    })), [blogPostsCMS]);
+
+  const allPosts = useMemo(() => [...BLOG_POSTS, ...cmsPosts], [cmsPosts]);
+
   // Determine active post from URL slug
-  const activeBlogPost = slug ? BLOG_POSTS.find(post => post.slug === slug || post.id === slug) : null;
+  const activeBlogPost = slug ? allPosts.find(post => post.slug === slug || post.id === slug) : null;
 
   const categories = ['todos', 'Planes y Cobertura', 'Prevención y Bienestar', 'Salud Familiar'];
 
@@ -60,7 +82,7 @@ export default function Blog({
   };
 
   // Filter logic for Blog List
-  const filteredPosts = BLOG_POSTS.filter(post => {
+  const filteredPosts = allPosts.filter(post => {
     const matchesCategory = selectedCategory === 'todos' || post.category === selectedCategory;
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
