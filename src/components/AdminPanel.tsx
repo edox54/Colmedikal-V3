@@ -124,11 +124,13 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   const [newAdmin, setNewAdmin] = useState<{
     email: string;
     name: string;
-    role: 'Administrador' | 'Auditor Clínico';
+    role: 'Super Admin' | 'Mid Admin' | 'Equipo Comercial' | 'Auditor';
+    password: string;
   }>({
     email: '',
     name: '',
-    role: 'Administrador'
+    role: 'Mid Admin',
+    password: '',
   });
   const [isSubmittingAdmin, setIsSubmittingAdmin] = useState(false);
   const [adminSuccessMsg, setAdminSuccessMsg] = useState('');
@@ -136,13 +138,16 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
   const handleRegisterAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAdmin.email || !newAdmin.name) {
+    if (!newAdmin.email || !newAdmin.name || !newAdmin.password) {
       setAdminErrorMsg('Por favor complete todos los campos.');
       return;
     }
-    
     if (!newAdmin.email.match(/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/)) {
       setAdminErrorMsg('Por favor ingrese un correo válido.');
+      return;
+    }
+    if (newAdmin.password.length < 8) {
+      setAdminErrorMsg('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
 
@@ -150,13 +155,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     setAdminErrorMsg('');
     setAdminSuccessMsg('');
     try {
-      await addAdmin(newAdmin.email, newAdmin.name, newAdmin.role);
-      setAdminSuccessMsg(`¡Acceso administrador otorgado con éxito para ${newAdmin.name}!`);
-      setNewAdmin({
-        email: '',
-        name: '',
-        role: 'Administrador'
-      });
+      await addAdmin(newAdmin.email, newAdmin.name, newAdmin.role, newAdmin.password);
+      setAdminSuccessMsg(`¡Acceso otorgado con éxito para ${newAdmin.name}!`);
+      setNewAdmin({ email: '', name: '', role: 'Mid Admin', password: '' });
       setTimeout(() => setAdminSuccessMsg(''), 4000);
     } catch (err: any) {
       setAdminErrorMsg('Ocurrió un error al registrar el acceso seguro.');
@@ -164,6 +165,27 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       setIsSubmittingAdmin(false);
     }
   };
+
+  // Role of the currently logged-in user
+  const currentUserRole = (() => {
+    try {
+      const stored = sessionStorage.getItem('colmedikal_user');
+      if (!stored) return 'Super Admin' as const;
+      const userObj = JSON.parse(stored);
+      const match = admins.find(a => a.email === userObj?.email);
+      return (match?.role as 'Super Admin' | 'Mid Admin' | 'Equipo Comercial' | 'Auditor') || 'Super Admin';
+    } catch { return 'Super Admin' as const; }
+  })();
+
+  const canSeeTab = (tab: string) => {
+    if (currentUserRole === 'Super Admin') return true;
+    if (currentUserRole === 'Mid Admin') return tab !== 'seo';
+    if (currentUserRole === 'Equipo Comercial') return tab === 'kpis' || tab === 'leads' || tab === 'auths';
+    if (currentUserRole === 'Auditor') return tab === 'refunds';
+    return false;
+  };
+
+  const canDeleteLeads = currentUserRole === 'Super Admin' || currentUserRole === 'Mid Admin';
 
   // Doctors form state
   const [newDoc, setNewDoc] = useState({
@@ -193,6 +215,13 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     const interval = setInterval(() => { refreshData(); }, 10000);
     return () => clearInterval(interval);
   }, [isAuthenticated]);
+
+  // Redirect to the only accessible tab when user role is restrictive
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (currentUserRole === 'Auditor' && activeTab !== 'refunds') setActiveTab('refunds');
+    if (currentUserRole === 'Equipo Comercial' && !['kpis', 'leads', 'auths'].includes(activeTab)) setActiveTab('kpis');
+  }, [isAuthenticated, currentUserRole]);
 
   // Sound notification when new leads arrive
   useEffect(() => {
@@ -495,112 +524,114 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
       {/* 2. INNER NAVIGATION ACCORD */}
       <div className="flex flex-wrap gap-2.5 bg-slate-100 p-2.5 rounded-2xl border border-slate-200">
-        <button
-          onClick={() => setActiveTab('kpis')}
-          className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-            activeTab === 'kpis'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-650 hover:bg-slate-200'
-          }`}
-          id="admin-tab-kpis"
-        >
-          Consola General (KPIs)
-        </button>
+        {canSeeTab('kpis') && (
+          <button
+            onClick={() => setActiveTab('kpis')}
+            className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+              activeTab === 'kpis' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-650 hover:bg-slate-200'
+            }`}
+            id="admin-tab-kpis"
+          >
+            Consola General (KPIs)
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveTab('refunds')}
-          className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'refunds'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-655 hover:bg-slate-200'
-          }`}
-          id="admin-tab-refunds"
-        >
-          <span>Auditar Reembolsos</span>
-          {pendingRefunds.length > 0 && (
-            <span className="bg-rose-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono">{pendingRefunds.length}</span>
-          )}
-        </button>
+        {canSeeTab('refunds') && (
+          <button
+            onClick={() => setActiveTab('refunds')}
+            className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'refunds' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-655 hover:bg-slate-200'
+            }`}
+            id="admin-tab-refunds"
+          >
+            <span>Auditar Reembolsos</span>
+            {pendingRefunds.length > 0 && (
+              <span className="bg-rose-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono">{pendingRefunds.length}</span>
+            )}
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveTab('appointments')}
-          className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'appointments'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-655 hover:bg-slate-200'
-          }`}
-          id="admin-tab-appointments"
-        >
-          <span>Citas Médicas</span>
-          {activeAppointmentsCount > 0 && (
-            <span className="bg-teal-500 text-slate-950 text-[9px] px-1.5 py-0.2 rounded-full font-mono">{activeAppointmentsCount}</span>
-          )}
-        </button>
+        {canSeeTab('appointments') && (
+          <button
+            onClick={() => setActiveTab('appointments')}
+            className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'appointments' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-655 hover:bg-slate-200'
+            }`}
+            id="admin-tab-appointments"
+          >
+            <span>Citas Médicas</span>
+            {activeAppointmentsCount > 0 && (
+              <span className="bg-teal-500 text-slate-950 text-[9px] px-1.5 py-0.2 rounded-full font-mono">{activeAppointmentsCount}</span>
+            )}
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveTab('auths')}
-          className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'auths'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-655 hover:bg-slate-200'
-          }`}
-          id="admin-tab-auths"
-        >
-          <span>Autorizaciones</span>
-          {pendingAuthsCount > 0 && (
-            <span className="bg-indigo-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono">{pendingAuthsCount}</span>
-          )}
-        </button>
+        {canSeeTab('auths') && (
+          <button
+            onClick={() => setActiveTab('auths')}
+            className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'auths' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-655 hover:bg-slate-200'
+            }`}
+            id="admin-tab-auths"
+          >
+            <span>Autorizaciones</span>
+            {pendingAuthsCount > 0 && (
+              <span className="bg-indigo-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono">{pendingAuthsCount}</span>
+            )}
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveTab('leads')}
-          className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'leads'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-655 hover:bg-slate-200'
-          }`}
-          id="admin-tab-leads"
-        >
-          <Bell className="w-3.5 h-3.5 shrink-0" />
-          <span>Cotizaciones Recibidas</span>
-          {totalLeadsUncontacted > 0 && (
-            <span className="bg-emerald-500 text-slate-950 text-[9px] px-1.5 py-0.2 rounded-full font-mono">{totalLeadsUncontacted}</span>
-          )}
-        </button>
+        {canSeeTab('leads') && (
+          <button
+            onClick={() => setActiveTab('leads')}
+            className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'leads' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-655 hover:bg-slate-200'
+            }`}
+            id="admin-tab-leads"
+          >
+            <Bell className="w-3.5 h-3.5 shrink-0" />
+            <span>Cotizaciones Recibidas</span>
+            {totalLeadsUncontacted > 0 && (
+              <span className="bg-emerald-500 text-slate-950 text-[9px] px-1.5 py-0.2 rounded-full font-mono">{totalLeadsUncontacted}</span>
+            )}
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveTab('doctors')}
-          className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'doctors'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-655 hover:bg-slate-200'
-          }`}
-          id="admin-tab-doctors"
-        >
-          <span>Directorio Médico</span>
-          <span className="text-[10px] text-slate-400 font-mono font-normal">({doctors.length})</span>
-        </button>
+        {canSeeTab('doctors') && (
+          <button
+            onClick={() => setActiveTab('doctors')}
+            className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'doctors' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-655 hover:bg-slate-200'
+            }`}
+            id="admin-tab-doctors"
+          >
+            <span>Directorio Médico</span>
+            <span className="text-[10px] text-slate-400 font-mono font-normal">({doctors.length})</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveTab('admins')}
-          className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'admins'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-655 hover:bg-slate-200'
-          }`}
-          id="admin-tab-admins"
-        >
-          <Users className="w-4 h-4 shrink-0" />
-          <span>Gestionar Accesos</span>
-          <span className="text-[10px] text-slate-450 font-mono font-normal">({admins ? admins.length : 0})</span>
-        </button>
+        {canSeeTab('admins') && (
+          <button
+            onClick={() => setActiveTab('admins')}
+            className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'admins' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-655 hover:bg-slate-200'
+            }`}
+            id="admin-tab-admins"
+          >
+            <Users className="w-4 h-4 shrink-0" />
+            <span>Gestionar Accesos</span>
+            <span className="text-[10px] text-slate-450 font-mono font-normal">({admins ? admins.length : 0})</span>
+          </button>
+        )}
 
-        <a
-          href="/seo-panel"
-          className="px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200"
-        >
-          🔍 <span>Panel SEO</span>
-        </a>
+        {canSeeTab('seo') && (
+          <a
+            href="/seo-panel"
+            className="px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200"
+          >
+            🔍 <span>Panel SEO</span>
+          </a>
+        )}
       </div>
 
       {/* 3. CONDITIONAL RENDER AREA */}
@@ -1243,17 +1274,19 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                         </button>
                       )}
 
-                      <button
-                        onClick={() => {
-                          if (confirm(`¿Eliminar la cotización de ${ld.quoteData?.fullName || ld.id}?`)) {
-                            deleteLead(ld.id);
-                          }
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                        title="Eliminar cotización"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {canDeleteLeads && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`¿Eliminar la cotización de ${ld.quoteData?.fullName || ld.id}?`)) {
+                              deleteLead(ld.id);
+                            }
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Eliminar cotización"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1573,13 +1606,13 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
             <div className="space-y-1.5">
               <label htmlFor="new-admin-email" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                Correo de Google (Gmail / Workspace):
+                Correo Electrónico:
               </label>
               <input
                 id="new-admin-email"
                 type="email"
                 required
-                placeholder="ejemplo@gmail.com o @colmedikal.com"
+                placeholder="correo@colmedikal.com"
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-950 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 font-medium font-sans"
                 value={newAdmin.email}
                 onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
@@ -1602,6 +1635,21 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
             </div>
 
             <div className="space-y-1.5">
+              <label htmlFor="new-admin-password" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Contraseña de Acceso:
+              </label>
+              <input
+                id="new-admin-password"
+                type="password"
+                required
+                placeholder="Mínimo 8 caracteres"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-205 rounded-xl text-xs text-slate-950 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 font-medium font-sans"
+                value={newAdmin.password}
+                onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-1.5">
               <label htmlFor="new-admin-role" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 Rol Administrativo Corp:
               </label>
@@ -1611,24 +1659,26 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                 value={newAdmin.role}
                 onChange={(e) => setNewAdmin({ ...newAdmin, role: e.target.value as any })}
               >
-                <option value="Administrador">Administrador de Red</option>
-                <option value="Auditor Clínico">Auditor Clínico</option>
+                <option value="Super Admin">Super Admin — Acceso completo</option>
+                <option value="Mid Admin">Mid Admin — Sin Panel SEO</option>
+                <option value="Equipo Comercial">Equipo Comercial — Solo leads y autorizaciones</option>
+                <option value="Auditor">Auditor — Solo reembolsos</option>
               </select>
             </div>
 
             <button
               type="submit"
               disabled={isSubmittingAdmin}
-              className="w-full py-3 bg-indigo-650 hover:bg-indigo-600 disabled:bg-slate-350 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-indigo-500/10 cursor-pointer transition text-center uppercase tracking-widest font-sans"
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition text-center uppercase tracking-widest font-sans"
             >
               {isSubmittingAdmin ? 'Registrando...' : 'Otorgar Acceso Seguro ✓'}
             </button>
           </form>
 
-          <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/50 text-amber-950 text-[10px] space-y-1 font-sans">
-            <span className="font-bold uppercase tracking-wider block">🔒 Protección y Regla de Acceso</span>
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-600 text-[10px] space-y-1 font-sans">
+            <span className="font-bold uppercase tracking-wider block text-slate-700">🔒 Niveles de Acceso</span>
             <p className="leading-relaxed">
-              Las cuentas asignadas aquí son persistidas en la base de datos cloud de Google Firebase y validadas por firma criptográfica de Google Token.
+              Super Admin y Mid Admin tienen acceso completo a todos los módulos (Mid Admin sin SEO). Equipo Comercial solo ve cotizaciones y autorizaciones, sin opción de eliminar. Auditor solo accede a reembolsos.
             </p>
           </div>
         </div>
@@ -1672,8 +1722,12 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       </td>
                       <td className="py-3.5 text-slate-750">
                         <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider font-sans ${
-                          adm.role === 'Administrador'
+                          adm.role === 'Super Admin'
+                            ? 'bg-violet-50 border-violet-200 text-violet-700'
+                            : adm.role === 'Mid Admin'
                             ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                            : adm.role === 'Equipo Comercial'
+                            ? 'bg-teal-50 border-teal-200 text-teal-700'
                             : 'bg-amber-50 border-amber-200 text-amber-700'
                         }`}>
                           {adm.role}

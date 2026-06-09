@@ -140,7 +140,7 @@ export interface AppointmentItem {
 export interface AdminUser {
   email: string;
   name: string;
-  role: 'Administrador' | 'Auditor Clínico';
+  role: 'Super Admin' | 'Mid Admin' | 'Equipo Comercial' | 'Auditor';
   addedAt: string;
   addedBy: string;
   active: boolean;

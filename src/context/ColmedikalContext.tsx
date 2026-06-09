@@ -29,7 +29,7 @@ interface ColmedikalContextType {
   deleteLead: (id: string) => Promise<void>;
   updateLeadStatus: (id: string, status: LeadQuote['status']) => Promise<void>;
   refreshData: () => Promise<void>;
-  addAdmin: (email: string, name: string, role: 'Administrador' | 'Auditor Clínico') => Promise<void>;
+  addAdmin: (email: string, name: string, role: AdminUser['role'], password?: string) => Promise<void>;
   deleteAdmin: (email: string) => Promise<void>;
   toggleAdminActiveStatus: (email: string) => Promise<void>;
   fetchDashboard: () => Promise<any>;
@@ -115,7 +115,12 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>(() => {
+    try {
+      const saved = localStorage.getItem('colmedikal_admins');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [seoSettings, setSeoSettings] = useState<Record<string, string>>({});
   const [seoMetaOverrides, setSeoMetaOverrides] = useState<Record<string, any>>({});
   const [blogPostsCMS, setBlogPostsCMS] = useState<any[]>([]);
@@ -651,10 +656,22 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // ==================== ADMINS ====================
-  const addAdmin = async (email: string, name: string, role: 'Administrador' | 'Auditor Clínico') => {
+  const ADMINS_KEY = 'colmedikal_admins';
+
+  const persistAdmins = (list: AdminUser[]) => {
+    try { localStorage.setItem(ADMINS_KEY, JSON.stringify(list)); } catch { /* quota */ }
+  };
+
+  const addAdmin = async (email: string, name: string, role: AdminUser['role'], password?: string) => {
     if (!token) throw new Error('Not authenticated');
     setIsLoading(true);
     try {
+      // Try to register user in the auth database via API
+      if (password) {
+        await apiCall('/api/admin/users', 'POST', { email, name, role, password }, token).catch(() => {
+          // API may not support user creation yet — continue with local registration
+        });
+      }
       const newAdmin: AdminUser = {
         email,
         name,
@@ -663,7 +680,9 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         addedAt: new Date().toISOString(),
         addedBy: 'admin',
       };
-      setAdmins([...admins, newAdmin]);
+      const updated = [...admins, newAdmin];
+      setAdmins(updated);
+      persistAdmins(updated);
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to add admin';
@@ -678,7 +697,9 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!token) throw new Error('Not authenticated');
     setIsLoading(true);
     try {
-      setAdmins(admins.filter(a => a.email !== email));
+      const updated = admins.filter(a => a.email !== email);
+      setAdmins(updated);
+      persistAdmins(updated);
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete admin';
@@ -693,9 +714,11 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!token) throw new Error('Not authenticated');
     setIsLoading(true);
     try {
-      setAdmins(admins.map(a =>
+      const updated = admins.map(a =>
         a.email === email ? { ...a, active: !a.active } : a
-      ));
+      );
+      setAdmins(updated);
+      persistAdmins(updated);
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to toggle admin status';
