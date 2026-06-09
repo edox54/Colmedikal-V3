@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { HeartPulse, Mail, Phone, MapPin, ShieldCheck, Clock, ArrowUpRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Logo from './Logo';
 
 interface VersionInfo {
@@ -10,7 +10,6 @@ interface VersionInfo {
 }
 
 export default function Footer() {
-  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
 
@@ -28,13 +27,13 @@ export default function Footer() {
 
           {/* Logo & Vision Block */}
           <div className="md:col-span-1 space-y-4">
-            <div
-              onClick={() => navigate('/')}
-              className="flex items-center gap-3 cursor-pointer group"
+            <Link
+              to="/"
+              className="flex items-center gap-3 group"
               id="footer-logo"
             >
               <Logo className="w-auto h-10 transition-transform duration-300 group-hover:scale-105 brightness-0 invert opacity-90 group-hover:opacity-100" />
-            </div>
+            </Link>
             <p className="text-sm text-slate-400 leading-relaxed">
               Cuidamos lo que más importa con la red de atención médica, hospitalización y apoyo preventivo de mayor prestigio en el país. Inspirados en estándares de excelencia.
             </p>
@@ -49,49 +48,49 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Enlaces Corporativos</h3>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <button onClick={() => navigate('/')} className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
                   Inicio <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => navigate('/servicios')} className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/servicios" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
                   Servicios de Salud <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => navigate('/directorio')} className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/directorio" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
                   Directorio de Médicos <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => navigate('/tramites')} className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/tramites" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
                   Trámites y Reembolsos <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => navigate('/agendamiento')} className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/agendamiento" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
                   Agendar Cita Médica <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => navigate('/faqs')} className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/faqs" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
                   Preguntas Frecuentes (FAQs) <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => navigate('/nosotros')} className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/nosotros" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
                   Sobre Nosotros <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => navigate('/blog')} className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/blog" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
                   Blog de Salud <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+                </Link>
               </li>
               <li className="pt-2 border-t border-slate-800">
-                <button onClick={() => navigate('/admin')} className="text-amber-450 hover:text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                <Link to="/admin" className="text-amber-450 hover:text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
                   🔒 Portal Administrativo <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
+                </Link>
               </li>
             </ul>
           </div>
@@ -100,10 +99,10 @@ export default function Footer() {
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Planes Disponibles</h3>
             <ul className="space-y-2.5 text-sm text-slate-400">
-              <li><button onClick={() => navigate('/cotizador')} className="hover:text-teal-400 transition-colors text-left">Plan Colmedikal Basico</button></li>
-              <li><button onClick={() => navigate('/cotizador')} className="hover:text-teal-400 transition-colors text-left">Plan Colmedikal Esencial</button></li>
-              <li><button onClick={() => navigate('/cotizador')} className="hover:text-teal-400 transition-colors text-left">Plan Colmedikal Premium</button></li>
-              <li><button onClick={() => navigate('/cotizador')} className="hover:text-teal-400 transition-colors text-left">Planes Corporativos para Pymes y Grandes Empresas</button></li>
+              <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Plan Colmedikal Basico</Link></li>
+              <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Plan Colmedikal Esencial</Link></li>
+              <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Plan Colmedikal Premium</Link></li>
+              <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Planes Corporativos para Pymes y Grandes Empresas</Link></li>
             </ul>
           </div>
 
@@ -153,9 +152,9 @@ export default function Footer() {
                 {versionInfo.version} • {versionInfo.commit} • {versionInfo.deployedAt}
               </span>
             )}
-            <button onClick={() => navigate('/privacy')} className="hover:text-slate-400">
+            <Link to="/privacy" className="hover:text-slate-400">
               Políticas de Privacidad
-            </button>
+            </Link>
           </div>
         </div>
 

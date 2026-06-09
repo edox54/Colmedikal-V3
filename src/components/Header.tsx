@@ -19,7 +19,7 @@ import {
   LogOut,
   Settings
 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Logo from './Logo';
 import { useColmedikal } from '../context/ColmedikalContext';
 
@@ -132,7 +132,7 @@ export default function Header() {
           <span className="text-slate-700">|</span>
           <a href="https://wa.me/593987028756" target="_blank" rel="noreferrer" className="hover:text-emerald-450 text-emerald-400 transition-colors">💬 WhatsApp: 098 702 8756</a>
           <span className="text-slate-700">|</span>
-          <button onClick={() => navigate('/admin')} className="text-slate-500 hover:text-slate-300 transition-colors text-[10px]">🔐 Admin</button>
+          <Link to="/admin" className="text-slate-500 hover:text-slate-300 transition-colors text-[10px]">🔐 Admin</Link>
         </div>
       </div>
 
@@ -144,13 +144,14 @@ export default function Header() {
           <div className={`flex justify-between items-center transition-all duration-300 ${isScrolled ? 'h-14 lg:h-16' : 'h-16 lg:h-20'}`}>
             
             {/* Logo Branding */}
-            <div 
-              onClick={() => handleNavClick('/')} 
-              className="flex items-center gap-3 cursor-pointer group"
+            <Link
+              to="/"
+              onClick={() => { setIsOpen(false); setActiveMegamenu(null); }}
+              className="flex items-center gap-3 group"
               id="colmedikal-brand-logo"
             >
               <Logo className={`w-auto transition-all duration-300 group-hover:scale-105 ${isScrolled ? 'h-8 sm:h-9' : 'h-10 sm:h-11'}`} />
-            </div>
+            </Link>
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex space-x-4 xl:space-x-7 items-center h-full">
@@ -173,31 +174,32 @@ export default function Header() {
                   >
                     {hasDropdown ? (
                       <div className="relative group">
-                          <button
-                            onClick={() => item.path && handleNavClick(item.path)}
-                            className="flex items-center gap-1 px-1 py-2 text-xs xl:text-sm font-medium text-slate-600 hover:text-[#4597CA] cursor-pointer"
-                          >
-                              <span>{item.label}</span>
-                              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                          </button>
-                          <div className="absolute top-full left-0 bg-white shadow-xl border border-slate-100 rounded-xl p-2 min-w-[180px] hidden group-hover:block z-50">
-                              {item.items?.map(subItem => (
-                                  <button
-                                    key={subItem.path}
-                                    onClick={() => handleNavClick(subItem.path)}
-                                    className="block w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 hover:text-[#4597CA] rounded-lg cursor-pointer"
-                                  >
-                                      {subItem.label}
-                                  </button>
-                              ))}
-                          </div>
+                        <button
+                          className="flex items-center gap-1 px-1 py-2 text-xs xl:text-sm font-medium text-slate-600 hover:text-[#4597CA] cursor-pointer"
+                        >
+                          <span>{item.label}</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        </button>
+                        <div className="absolute top-full left-0 bg-white shadow-xl border border-slate-100 rounded-xl p-2 min-w-[180px] hidden group-hover:block z-50">
+                          {item.items?.map(subItem => (
+                            <Link
+                              key={subItem.path}
+                              to={subItem.path}
+                              onClick={() => setActiveMegamenu(null)}
+                              className="block px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 hover:text-[#4597CA] rounded-lg"
+                            >
+                              {subItem.label}
+                            </Link>
+                          ))}
+                        </div>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => handleNavClick(item.path!)}
-                        className={`relative flex items-center gap-1 px-1 py-2 text-xs xl:text-sm font-medium transition-colors duration-200 cursor-pointer ${
-                          isCurrent 
-                            ? 'text-[#4597CA] font-semibold' 
+                      <Link
+                        to={item.path!}
+                        onClick={() => setActiveMegamenu(null)}
+                        className={`relative flex items-center gap-1 px-1 py-2 text-xs xl:text-sm font-medium transition-colors duration-200 ${
+                          isCurrent
+                            ? 'text-[#4597CA] font-semibold'
                             : 'text-slate-600 hover:text-[#4597CA]'
                         }`}
                         id={`nav-${item.id || item.label}`}
@@ -211,7 +213,7 @@ export default function Header() {
                         {isCurrent && (
                           <span className="absolute bottom-0 left-0 w-full h-[2.5px] bg-[#4597CA] rounded-full" />
                         )}
-                      </button>
+                      </Link>
                     )}
                   </div>
                 );
@@ -223,15 +225,15 @@ export default function Header() {
               {user && (
                 <div className="flex items-center gap-2 mr-2">
                   {isAdminUser && (
-                    <button
-                      onClick={() => handleNavClick('/admin')}
+                    <Link
+                      to="/admin"
                       className={`p-2.5 rounded-full transition-all duration-300 border border-slate-200 ${
                         location.pathname === '/admin' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-50'
                       }`}
                       title="Panel Administrativo"
                     >
                       <Settings className="w-4 h-4" />
-                    </button>
+                    </Link>
                   )}
                   <button
                     onClick={() => logout()}
@@ -245,8 +247,8 @@ export default function Header() {
                 </div>
               )}
 
-              <button
-                onClick={() => handleNavClick('/cotizador')}
+              <Link
+                to="/cotizador"
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 shadow-md ${
                   location.pathname === '/cotizador'
                     ? 'bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white shadow-[#0C4169]/20 scale-95'
@@ -256,7 +258,7 @@ export default function Header() {
               >
                 <Calculator className="w-4 h-4" />
                 <span>Cotizar Plan</span>
-              </button>
+              </Link>
             </div>
 
             {/* Mobile Menu Button */}
@@ -301,17 +303,18 @@ export default function Header() {
                           >
                             <div className="py-1 space-y-1 bg-slate-50/50 rounded-xl mt-1">
                               {item.items.map((subItem) => (
-                                <button
+                                <Link
                                   key={subItem.path}
-                                  onClick={() => handleNavClick(subItem.path)}
-                                  className={`block w-full text-left pl-8 pr-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                                  to={subItem.path}
+                                  onClick={() => setIsOpen(false)}
+                                  className={`block pl-8 pr-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                                   location.pathname === subItem.path
                                       ? 'bg-[#4597CA]/10 text-[#0C4169] font-semibold border-l-2 border-[#4597CA]'
                                       : 'text-slate-600 hover:bg-white hover:text-[#4597CA]'
                                   }`}
                                 >
                                   <span className="text-[#4597CA] opacity-50 mr-2">•</span>{subItem.label}
-                                </button>
+                                </Link>
                               ))}
                             </div>
                           </motion.div>
@@ -319,9 +322,10 @@ export default function Header() {
                       </AnimatePresence>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => item.path ? handleNavClick(item.path) : void 0}
-                      className={`block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                    <Link
+                      to={item.path || '/'}
+                      onClick={() => setIsOpen(false)}
+                      className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                       location.pathname === item.path
                           ? 'bg-[#4597CA]/10 text-[#0C4169] font-semibold border-l-4 border-[#4597CA]'
                           : 'text-slate-600 hover:bg-slate-50 hover:text-[#4597CA]'
@@ -329,7 +333,7 @@ export default function Header() {
                       id={`mobile-nav-${item.id}`}
                     >
                       {item.label}
-                    </button>
+                    </Link>
                   )}
                 </div>
               ))}
@@ -337,13 +341,14 @@ export default function Header() {
               {user && (
                 <div className="pt-2 flex flex-col gap-2">
                   {isAdminUser && (
-                    <button
-                      onClick={() => handleNavClick('/admin')}
-                      className="flex items-center w-full gap-3 px-4 py-3 rounded-xl bg-slate-100 text-slate-900 font-bold text-xs cursor-pointer"
+                    <Link
+                      to="/admin"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center w-full gap-3 px-4 py-3 rounded-xl bg-slate-100 text-slate-900 font-bold text-xs"
                     >
                       <Settings className="w-4 h-4" />
                       <span>Panel Administrativo</span>
-                    </button>
+                    </Link>
                   )}
                   <button
                     onClick={() => {
@@ -359,14 +364,15 @@ export default function Header() {
               )}
 
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
-                <button
-                  onClick={() => handleNavClick('/cotizador')}
-                  className="flex items-center justify-center w-full gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs shadow-md shadow-[#0C4169]/15 active:scale-98 transition-all cursor-pointer"
+                <Link
+                  to="/cotizador"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-center w-full gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs shadow-md shadow-[#0C4169]/15 active:scale-98 transition-all"
                   id="mobile-nav-cotizador"
                 >
                   <Calculator className="w-4 h-4" />
                   <span>Cotizar Plan</span>
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -392,9 +398,10 @@ export default function Header() {
                       🩺 Atención Primaria y Control
                     </h3>
                     <div className="space-y-4">
-                      <button 
-                        onClick={() => handleNavClick('/servicios')}
-                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
+                      <Link
+                        to="/servicios"
+                        onClick={() => setActiveMegamenu(null)}
+                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
                           <Activity className="w-4 h-4 text-emerald-500" />
@@ -403,11 +410,12 @@ export default function Header() {
                         <p className="text-xs text-slate-500 mt-1 pl-5">
                           Atención directa en más de 25 especialidades médicas sin médico general.
                         </p>
-                      </button>
+                      </Link>
 
-                      <button 
-                        onClick={() => handleNavClick('/servicios')}
-                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
+                      <Link
+                        to="/servicios"
+                        onClick={() => setActiveMegamenu(null)}
+                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
                           <Sparkles className="w-4 h-4 text-teal-550" />
@@ -416,11 +424,12 @@ export default function Header() {
                         <p className="text-xs text-slate-500 mt-1 pl-5">
                           Limpiezas anuales gratuitas, cirugías y atención odontológica.
                         </p>
-                      </button>
+                      </Link>
 
-                      <button 
-                        onClick={() => handleNavClick('/servicios')}
-                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
+                      <Link
+                        to="/servicios"
+                        onClick={() => setActiveMegamenu(null)}
+                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
                           <FileText className="w-4 h-4 text-sky-500" />
@@ -429,7 +438,7 @@ export default function Header() {
                         <p className="text-xs text-slate-500 mt-1 pl-5">
                           Convenios con las principales cadenas para medicamentos de marca.
                         </p>
-                      </button>
+                      </Link>
                     </div>
                   </div>
 
@@ -439,9 +448,10 @@ export default function Header() {
                       🏥 Alta Complejidad y Maternidad
                     </h3>
                     <div className="space-y-4">
-                      <button 
-                        onClick={() => handleNavClick('/servicios')}
-                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
+                      <Link
+                        to="/servicios"
+                        onClick={() => setActiveMegamenu(null)}
+                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
                           <Hospital className="w-4 h-4 text-blue-500" />
@@ -450,11 +460,12 @@ export default function Header() {
                         <p className="text-xs text-slate-500 mt-1 pl-5">
                           Cobertura del 100% en suite privada y honorarios quirúrgicos programados.
                         </p>
-                      </button>
+                      </Link>
 
-                      <button 
-                        onClick={() => handleNavClick('/servicios')}
-                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
+                      <Link
+                        to="/servicios"
+                        onClick={() => setActiveMegamenu(null)}
+                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
                           <PhoneCall className="w-4 h-4 text-orange-500" />
@@ -463,11 +474,12 @@ export default function Header() {
                         <p className="text-xs text-slate-500 mt-1 pl-5">
                           Cuidados críticos neonatales y controles prenatales con ecografía 4D.
                         </p>
-                      </button>
+                      </Link>
 
-                      <button 
-                        onClick={() => handleNavClick('/servicios')}
-                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50 cursor-pointer"
+                      <Link
+                        to="/servicios"
+                        onClick={() => setActiveMegamenu(null)}
+                        className="group text-left block w-full p-2.5 rounded-xl transition-colors hover:bg-slate-50"
                       >
                         <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 group-hover:text-[#4597CA]">
                           <CheckCircle className="w-4 h-4 text-emerald-600" />
@@ -476,7 +488,7 @@ export default function Header() {
                         <p className="text-xs text-slate-500 mt-1 pl-5">
                           Línea telefónica dedicada, ambulancias equipadas y traslados sin esperas.
                         </p>
-                      </button>
+                      </Link>
                     </div>
                   </div>
 
@@ -496,13 +508,14 @@ export default function Header() {
                     </div>
 
                     <div className="pt-4">
-                      <button
-                        onClick={() => handleNavClick('/cotizador')}
-                        className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#4597CA] hover:bg-[#4597CA]/90 active:scale-98 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
+                      <Link
+                        to="/cotizador"
+                        onClick={() => setActiveMegamenu(null)}
+                        className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#4597CA] hover:bg-[#4597CA]/90 active:scale-98 text-white text-xs font-bold rounded-xl shadow-md transition-all"
                       >
                         <Calculator className="w-4 h-4" />
                         <span>Simular Plan Familiar</span>
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </>
@@ -524,14 +537,15 @@ export default function Header() {
                         'Oftalmología',
                         'Nutriología'
                       ].map((specialty) => (
-                        <button
+                        <Link
                           key={specialty}
-                          onClick={() => handleNavClick('/directorio', specialty)}
-                          className="text-left py-1.5 px-2.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors w-full cursor-pointer flex items-center gap-1.5"
+                          to={`/directorio?especialidad=${encodeURIComponent(specialty)}`}
+                          onClick={() => setActiveMegamenu(null)}
+                          className="text-left py-1.5 px-2.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors w-full flex items-center gap-1.5"
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
                           <span>{specialty}</span>
-                        </button>
+                        </Link>
                       ))}
                     </div>
                   </div>
@@ -581,13 +595,14 @@ export default function Header() {
                     </div>
 
                     <div className="pt-4">
-                      <button
-                        onClick={() => handleNavClick('/directorio')}
-                        className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-[#0C4169] hover:bg-[#0C4169]/90 active:scale-98 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                      <Link
+                        to="/directorio"
+                        onClick={() => setActiveMegamenu(null)}
+                        className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-[#0C4169] hover:bg-[#0C4169]/90 active:scale-98 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
                       >
                         <span>Buscar Médico o Clínica</span>
                         <ChevronRight className="w-4 h-4" />
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </>
