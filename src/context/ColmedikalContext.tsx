@@ -192,12 +192,13 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     setIsLoading(true);
     try {
+      const empty = { data: [] };
       const [doctorsRes, refundsRes, appointmentsRes, authorizationsRes, leadsRes] = await Promise.all([
-        apiCall('/api/admin/doctors?limit=500', 'GET', undefined, authToken),
-        apiCall('/api/admin/refunds?limit=100', 'GET', undefined, authToken),
-        apiCall('/api/admin/appointments?limit=100', 'GET', undefined, authToken),
-        apiCall('/api/admin/authorizations?limit=100', 'GET', undefined, authToken),
-        apiCall('/api/admin/leads?limit=100', 'GET', undefined, authToken),
+        apiCall('/api/admin/doctors?limit=500', 'GET', undefined, authToken).catch(() => empty),
+        apiCall('/api/admin/refunds?limit=100', 'GET', undefined, authToken).catch(() => empty),
+        apiCall('/api/admin/appointments?limit=100', 'GET', undefined, authToken).catch(() => empty),
+        apiCall('/api/admin/authorizations?limit=100', 'GET', undefined, authToken).catch(() => empty),
+        apiCall('/api/admin/leads?limit=100', 'GET', undefined, authToken).catch(() => empty),
       ]);
 
       let fetchedDoctors: any[] = doctorsRes.data || [];
