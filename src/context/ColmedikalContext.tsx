@@ -42,6 +42,8 @@ interface ColmedikalContextType {
   createCMSBlogPost: (post: any) => Promise<void>;
   updateCMSBlogPost: (id: string, post: any) => Promise<void>;
   deleteCMSBlogPost: (id: string) => Promise<void>;
+  publishSitemap: (xml: string) => Promise<void>;
+  publishRobots: (txt: string) => Promise<void>;
 }
 
 const ColmedikalContext = createContext<ColmedikalContextType | undefined>(undefined);
@@ -691,6 +693,16 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setBlogPostsCMS(prev => prev.filter(p => p.id !== id));
   };
 
+  const publishSitemap = async (xml: string) => {
+    if (!token) throw new Error('Not authenticated');
+    await apiCall('/api/admin/sitemap/publish', 'POST', { content: xml }, token);
+  };
+
+  const publishRobots = async (txt: string) => {
+    if (!token) throw new Error('Not authenticated');
+    await apiCall('/api/admin/robots/publish', 'POST', { content: txt }, token);
+  };
+
   // Merge API leads with locally-stored public leads; deduplicate by id
   const mergedLeads = [
     ...localLeads.filter(l => !leads.some(al => al.id === l.id)),
@@ -737,6 +749,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     createCMSBlogPost,
     updateCMSBlogPost,
     deleteCMSBlogPost,
+    publishSitemap,
+    publishRobots,
   };
 
   return (

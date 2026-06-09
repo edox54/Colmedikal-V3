@@ -26,8 +26,8 @@ import { Doctor } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
 
 export default function DirectorioMedico() {
-  const { doctors: adminDoctors, token } = useColmedikal();
-  const [publicDoctors, setPublicDoctors] = useState<Doctor[]>([]);
+  const { token } = useColmedikal();
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -38,17 +38,13 @@ export default function DirectorioMedico() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
 
-  // Public fetch when not authenticated
+  // Always fetch from public endpoint so the directory shows consistently regardless of auth state
   useEffect(() => {
-    if (!token) {
-      fetch('https://api.colmedikal.com/api/doctors?limit=500')
-        .then(r => r.json())
-        .then(d => setPublicDoctors(d.data || []))
-        .catch(() => {});
-    }
-  }, [token]);
-
-  const doctors = token ? adminDoctors : publicDoctors;
+    fetch('https://api.colmedikal.com/api/doctors?limit=500')
+      .then(r => r.json())
+      .then(d => setDoctors(d.data || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const specialtyParam = searchParams.get('especialidad');

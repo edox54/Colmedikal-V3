@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Copy, CheckCircle, Globe, Code, Map, Bot, RefreshCw } from 'lucide-react';
+import { Save, Copy, CheckCircle, Globe, Code, Map, Bot, Upload } from 'lucide-react';
 import { useColmedikal } from '../context/ColmedikalContext';
 import { BLOG_POSTS } from '../data/blogData';
+import { SEO_MATRIX } from '../seo/seoMatrix';
 
 const ROUTES = [
   { path: '/', label: 'Inicio' },
@@ -26,9 +27,18 @@ const FIELD_LABELS: Record<string, { label: string; placeholder: string; hint: s
   google_ads_id:    { label: 'Google Ads Conversion ID',     placeholder: 'AW-XXXXXXXXXX',     hint: 'ID de conversión de Google Ads' },
 };
 
+const ROUTE_TO_KEY: Record<string, string> = {
+  '/': 'home', '/servicios': 'servicios', '/directorio': 'directorio',
+  '/nosotros': 'nosotros', '/cotizador': 'cotizador', '/faqs': 'faqs',
+  '/contacto': 'contacto', '/blog': 'blog',
+};
+
 export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
-  const { seoSettings, saveSEOSettings, seoMetaOverrides, saveSeoMetaOverride, blogPostsCMS } = useColmedikal();
+  const { seoSettings, saveSEOSettings, seoMetaOverrides, saveSeoMetaOverride, blogPostsCMS, publishSitemap, publishRobots } = useColmedikal();
   const [activeTab, setActiveTab] = useState<SeoTab>(initialTab || 'tracking');
+
+  // Fix: sync when sidebar nav changes tab
+  useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
   const [tracking, setTracking] = useState<Record<string, string>>({});
   const [savedTracking, setSavedTracking] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState('/');
@@ -37,6 +47,11 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
   const [copied, setCopied] = useState(false);
   const [robotsText, setRobotsText] = useState('');
   const [savedRobots, setSavedRobots] = useState(false);
+  const [publishingSitemap, setPublishingSitemap] = useState(false);
+  const [publishedSitemap, setPublishedSitemap] = useState(false);
+  const [publishingRobots, setPublishingRobots] = useState(false);
+  const [publishedRobots, setPublishedRobots] = useState(false);
+  const [metaSource, setMetaSource] = useState<'matrix' | 'override'>('matrix');
 
   // Initialize tracking from seoSettings
   useEffect(() => {
@@ -45,13 +60,17 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
     setTracking(t);
   }, [seoSettings]);
 
-  // Initialize meta form when route changes
+  // Initialize meta form when route changes — prefer saved override, fall back to seoMatrix
   useEffect(() => {
     const override = seoMetaOverrides?.[selectedRoute];
+    const matrixKey = ROUTE_TO_KEY[selectedRoute];
+    const matrix = matrixKey ? SEO_MATRIX[matrixKey] : null;
+    const hasOverride = !!(override?.title || override?.description);
+    setMetaSource(hasOverride ? 'override' : 'matrix');
     setMetaForm({
-      title: override?.title || '',
-      description: override?.description || '',
-      keywords: override?.keywords || '',
+      title: override?.title || matrix?.title || '',
+      description: override?.description || matrix?.description || '',
+      keywords: override?.keywords || matrix?.keywords || '',
     });
   }, [selectedRoute, seoMetaOverrides]);
 
@@ -90,6 +109,20 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
     navigator.clipboard.writeText(sitemap);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePublishSitemap = async () => {
+    setPublishingSitemap(true);
+    try { await publishSitemap(sitemap); setPublishedSitemap(true); setTimeout(() => setPublishedSitemap(false), 3000); }
+    catch (e: any) { alert('Error al publicar sitemap: ' + (e?.message || 'desconocido')); }
+    finally { setPublishingSitemap(false); }
+  };
+
+  const handlePublishRobots = async () => {
+    setPublishingRobots(true);
+    try { await publishRobots(robotsText); setPublishedRobots(true); setTimeout(() => setPublishedRobots(false), 3000); }
+    catch (e: any) { alert('Error al publicar robots.txt: ' + (e?.message || 'desconocido')); }
+    finally { setPublishingRobots(false); }
   };
 
   const tabs: { id: SeoTab; label: string; icon: React.ReactNode }[] = [
@@ -171,6 +204,12 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
             >
               {ROUTES.map(r => <option key={r.path} value={r.path}>{r.label} ({r.path})</option>)}
             </select>
+            <p className="text-[10px] mt-1">
+              {metaSource === 'override'
+                ? <span className="text-emerald-600 font-bold">✓ Override guardado en BD — sobreescribe el código</span>
+                : <span className="text-amber-600 font-bold">⚠ Usando valores del código (seoMatrix.ts) — guarda para crear override</span>
+              }
+            </p>
           </div>
 
           <div className="space-y-4">
@@ -224,31 +263,26 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
       {/* SITEMAP */}
       {activeTab === 'sitemap' && (
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4 max-w-3xl">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <h4 className="text-sm font-bold text-slate-900">Sitemap XML</h4>
-              <p className="text-[11px] text-slate-500 mt-0.5">Generado con {ROUTES.length + BLOG_POSTS.length + blogPostsCMS.filter(p=>p.published).length} URLs. Copia y sube a Google Search Console.</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">{ROUTES.length + BLOG_POSTS.length + blogPostsCMS.filter(p=>p.published).length} URLs — se regenera automáticamente al publicar artículos.</p>
             </div>
-            <button
-              onClick={handleCopySitemap}
-              className="flex items-center gap-1.5 px-4 py-2 bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold rounded-xl cursor-pointer transition-all border border-teal-200"
-            >
-              {copied ? <><CheckCircle className="w-3.5 h-3.5" /> Copiado</> : <><Copy className="w-3.5 h-3.5" /> Copiar XML</>}
-            </button>
+            <div className="flex gap-2 shrink-0">
+              <button onClick={handleCopySitemap}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer transition-all">
+                {copied ? <><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Copiado</> : <><Copy className="w-3.5 h-3.5" /> Copiar</>}
+              </button>
+              <button onClick={handlePublishSitemap} disabled={publishingSitemap}
+                className="flex items-center gap-1.5 px-3 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
+                {publishedSitemap ? <><CheckCircle className="w-3.5 h-3.5" /> Publicado</> : publishingSitemap ? 'Publicando...' : <><Upload className="w-3.5 h-3.5" /> Publicar en servidor</>}
+              </button>
+            </div>
           </div>
 
-          <pre className="bg-slate-950 text-teal-300 text-[10px] font-mono p-4 rounded-2xl overflow-auto max-h-96 leading-relaxed">
+          <pre className="bg-slate-950 text-teal-300 text-[10px] font-mono p-4 rounded-2xl overflow-auto max-h-80 leading-relaxed">
             {sitemap}
           </pre>
-
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 space-y-1">
-            <p className="font-bold">¿Cómo usar este sitemap?</p>
-            <ol className="list-decimal list-inside space-y-0.5">
-              <li>Copia el XML con el botón de arriba</li>
-              <li>Pégalo en <code className="bg-amber-100 px-1 rounded">~/colmedikal.com/public/sitemap.xml</code> desde el File Manager de cPanel</li>
-              <li>Verifica en <a href="https://search.google.com/search-console" target="_blank" rel="noreferrer" className="underline">Google Search Console</a> → Sitemaps</li>
-            </ol>
-          </div>
         </div>
       )}
 
@@ -267,23 +301,19 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
             className="w-full px-3 py-3 border border-slate-200 rounded-xl text-xs font-mono resize-none outline-none focus:border-[#4597CA] bg-slate-950 text-teal-300 leading-relaxed"
           />
 
-          <div className="flex gap-3">
-            <button
-              onClick={handleSaveRobots}
-              className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl cursor-pointer transition-all"
-            >
-              {savedRobots ? <><CheckCircle className="w-4 h-4 text-emerald-400" /> Guardado</> : <><Save className="w-4 h-4" /> Guardar</>}
+          <div className="flex gap-3 flex-wrap">
+            <button onClick={handleSaveRobots}
+              className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
+              {savedRobots ? <><CheckCircle className="w-4 h-4 text-emerald-400" /> Guardado en BD</> : <><Save className="w-4 h-4" /> Guardar en BD</>}
             </button>
-            <button
-              onClick={() => { navigator.clipboard.writeText(robotsText); }}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
-            >
+            <button onClick={handlePublishRobots} disabled={publishingRobots}
+              className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
+              {publishedRobots ? <><CheckCircle className="w-4 h-4" /> Publicado</> : publishingRobots ? 'Publicando...' : <><Upload className="w-4 h-4" /> Publicar en servidor</>}
+            </button>
+            <button onClick={() => navigator.clipboard.writeText(robotsText)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">
               <Copy className="w-3.5 h-3.5" /> Copiar
             </button>
-          </div>
-
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600">
-            Después de guardar, ve a <strong>cPanel → File Manager → colmedikal.com/public/robots.txt</strong> y pega el contenido copiado.
           </div>
         </div>
       )}

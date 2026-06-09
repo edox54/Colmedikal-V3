@@ -18,19 +18,18 @@ const NAV: { id: PanelTab; label: string; icon: React.ReactNode; desc: string }[
   { id: 'robots',   label: 'Robots.txt',        icon: <Bot className="w-4 h-4" />,     desc: 'Control de rastreo' },
 ];
 
-function LoginForm({ onSuccess }: { onSuccess: () => void }) {
-  const { login, error } = useColmedikal();
+function LoginForm({ onLogin }: { onLogin: (email: string, pass: string) => Promise<void> }) {
+  const { error } = useColmedikal();
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(email, pass);
-      onSuccess();
+      await onLogin(email, pass);
     } catch {
       /* error shown via context */
     } finally {
@@ -49,7 +48,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
           </div>
         </div>
 
-        <form onSubmit={handleLogin} className="bg-white/5 backdrop-blur border border-white/10 rounded-3xl p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur border border-white/10 rounded-3xl p-6 space-y-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-400">Correo electrónico</label>
             <input
@@ -84,13 +83,24 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
+const SEO_SESSION_KEY = 'seo_panel_session';
+
 export default function SEOPanel() {
   const navigate = useNavigate();
-  const { token, logout } = useColmedikal();
+  const { login: ctxLogin, logout: ctxLogout } = useColmedikal();
   const [activeTab, setActiveTab] = useState<PanelTab>('blog');
-  const [authed, setAuthed] = useState(!!token);
+  const [authed, setAuthed] = useState(() => !!sessionStorage.getItem(SEO_SESSION_KEY));
 
-  useEffect(() => { setAuthed(!!token); }, [token]);
+  const handleLogin = async (email: string, pass: string) => {
+    await ctxLogin(email, pass);
+    sessionStorage.setItem(SEO_SESSION_KEY, '1');
+    setAuthed(true);
+  };
+
+  const handleLogout = async () => {
+    sessionStorage.removeItem(SEO_SESSION_KEY);
+    setAuthed(false);
+  };
 
   // Inject noindex while on this page
   useEffect(() => {
@@ -100,7 +110,7 @@ export default function SEOPanel() {
     return () => { if (meta) meta.content = 'index, follow'; };
   }, []);
 
-  if (!authed) return <LoginForm onSuccess={() => setAuthed(true)} />;
+  if (!authed) return <LoginForm onLogin={handleLogin} />;
 
   return (
     <div className="min-h-screen bg-slate-950 flex">
@@ -140,7 +150,7 @@ export default function SEOPanel() {
             <Lock className="w-3.5 h-3.5" /> Panel Admin
           </button>
           <button
-            onClick={async () => { await logout(); setAuthed(false); }}
+            onClick={handleLogout}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 text-xs cursor-pointer transition-all"
           >
             <LogOut className="w-3.5 h-3.5" /> Cerrar sesión
