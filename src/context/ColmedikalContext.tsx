@@ -237,6 +237,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         city: a.city || '',
         cost: Number(a.cost || 0),
         status: a.status || 'Pendiente',
+        notes: a.notes || '',
       })));
       setAuthorizations((authorizationsRes.data || []).map((a: any) => ({
         id: a.id,
@@ -344,10 +345,15 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const doctor = doctors.find(d => d.id === id);
     if (!doctor) throw new Error('Doctor not found');
 
-    await updateDoctor({
-      ...doctor,
-      active: !doctor.active,
-    });
+    const newActive = doctor.active === false ? true : false;
+    // Optimistic update — instant visual feedback
+    setDoctors(prev => prev.map(d => d.id === id ? { ...d, active: newActive } : d));
+    try {
+      await apiCall(`/api/admin/doctors/${id}`, 'PUT', { ...doctor, active: newActive }, token);
+    } catch {
+      // Revert on failure
+      setDoctors(prev => prev.map(d => d.id === id ? { ...d, active: doctor.active } : d));
+    }
   };
 
   // ==================== REFUNDS ====================

@@ -61,6 +61,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
 
   const [facilitySearch, setFacilitySearch] = useState('');
   const [facilityOpen, setFacilityOpen] = useState(false);
+  const [facilityEditing, setFacilityEditing] = useState(false);
 
   const filteredFacilities = useMemo(() => {
     const q = facilitySearch.toLowerCase();
@@ -83,6 +84,10 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
     e.preventDefault();
     if (!privacyAccepted) {
       alert('Debe aceptar las políticas de protección de datos personales.');
+      return;
+    }
+    if (!facility) {
+      alert('Por favor seleccione un establecimiento.');
       return;
     }
     if (!preferredDate) {
@@ -113,6 +118,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
         city,
         cost: 0,
         status: 'Pendiente',
+        notes: additionalNotes || '',
       });
     } catch { /* continue even if API call fails */ }
 
@@ -272,22 +278,22 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                 </div>
 
                 <div className="space-y-1 relative">
-                  <label className="block text-xs font-bold text-slate-700">Establecimiento:</label>
+                  <label className="block text-xs font-bold text-slate-700">Establecimiento: <span className="text-rose-500">*</span></label>
                   <input
                     type="text"
-                    value={facilitySearch || facility}
-                    placeholder={facility || 'Buscar clínica u hospital...'}
-                    onFocus={() => { setFacilitySearch(''); setFacilityOpen(true); }}
+                    value={facilityEditing ? facilitySearch : facility}
+                    placeholder="Buscar clínica u hospital..."
+                    onFocus={() => { setFacilityEditing(true); setFacilitySearch(''); setFacilityOpen(true); }}
                     onChange={(e) => { setFacilitySearch(e.target.value); setFacilityOpen(true); }}
-                    onBlur={() => setTimeout(() => setFacilityOpen(false), 150)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-[#4597CA]"
+                    onBlur={() => setTimeout(() => { setFacilityOpen(false); setFacilityEditing(false); setFacilitySearch(''); }, 150)}
+                    className={`w-full px-3 py-2 bg-white border rounded-xl text-xs outline-none focus:border-[#4597CA] ${!facility ? 'border-slate-200' : 'border-emerald-300'}`}
                   />
                   {facilityOpen && filteredFacilities.length > 0 && (
                     <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto text-xs">
                       {filteredFacilities.map((f) => (
                         <li
                           key={f}
-                          onMouseDown={() => { setFacility(f); setFacilitySearch(''); setFacilityOpen(false); }}
+                          onMouseDown={() => { setFacility(f); setFacilitySearch(''); setFacilityOpen(false); setFacilityEditing(false); }}
                           className={`px-3 py-2 cursor-pointer hover:bg-[#4597CA]/10 hover:text-[#0C4169] ${f === facility ? 'bg-[#4597CA]/10 font-semibold text-[#0C4169]' : 'text-slate-700'}`}
                         >
                           {f}

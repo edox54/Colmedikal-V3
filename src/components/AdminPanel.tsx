@@ -5,29 +5,29 @@ import {
   useColmedikal 
 } from '../context/ColmedikalContext';
 import { 
-  Building2, 
-  Users, 
+  Building2,
+  Users,
   LogOut,
-  DollarSign, 
-  FileCheck, 
-  Calendar, 
-  Plus, 
-  Trash2, 
-  Search, 
-  CheckCircle, 
-  XCircle, 
-  TrendingUp, 
-  Briefcase, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Clock, 
-  MessageSquare, 
-  HeartPulse, 
-  UserCheck, 
-  FileText, 
-  Stethoscope, 
-  Eye, 
+  DollarSign,
+  FileCheck,
+  Calendar,
+  Plus,
+  Trash2,
+  Search,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+  Briefcase,
+  MapPin,
+  Phone,
+  Mail,
+  Clock,
+  MessageSquare,
+  HeartPulse,
+  UserCheck,
+  FileText,
+  Stethoscope,
+  Eye,
   X,
   Sparkles,
   ArrowRight,
@@ -35,7 +35,10 @@ import {
   Download,
   Edit,
   Bell,
-  RefreshCw
+  RefreshCw,
+  Hospital,
+  Activity,
+  FlaskConical,
 } from 'lucide-react';
 import { Page, Doctor } from '../types';
 import avatarGomez from '../assets/images/avatar_gomez_1780024902226.png';
@@ -250,7 +253,12 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       doctor_m: avatarGomez,
       doctor_f: avatarRestrepo,
       doctor_m2: avatarDoctorM2,
-      doctor_f2: avatarDoctorF2
+      doctor_f2: avatarDoctorF2,
+      // Establishment icons stored as sentinel values — resolved in DirectorioMedico
+      icon_hospital: 'icon_hospital',
+      icon_lab: 'icon_lab',
+      icon_dental: 'icon_dental',
+      icon_building: 'icon_building',
     };
 
     const imageUrl = imageMap[newDoc.image] || newDoc.image || avatarGomez;
@@ -932,6 +940,11 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                           </span>
                           <p className="font-bold text-slate-900 text-sm">{apt.patientName}</p>
                           <p className="text-[10px] text-slate-400 font-mono">ID: {apt.patientId} | Tel: {apt.patientPhone}</p>
+                          {apt.notes && apt.notes !== 'Sin comentarios adicionales' && (
+                            <p className="text-[10px] text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg mt-1 italic">
+                              💬 {apt.notes}
+                            </p>
+                          )}
                         </td>
 
                         <td className="p-4 space-y-1">
@@ -1299,19 +1312,28 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                 <div className="grid grid-cols-2 gap-3">
                   {/* Specialty */}
                   <div className="space-y-0.5">
-                    <label className="block text-[11px] font-bold text-slate-700">Especialidad:</label>
+                    <label className="block text-[11px] font-bold text-slate-700">Especialidad / Tipo:</label>
                     <select
                       value={newDoc.specialty}
                       onChange={(e) => setNewDoc({...newDoc, specialty: e.target.value})}
                       className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
                     >
-                      <option value="Dermatología">Dermatología</option>
-                      <option value="Cardiología">Cardiología</option>
-                      <option value="Ginecología y Obstetricia">Ginecología</option>
-                      <option value="Pediatría y Neonatología">Pediatría</option>
-                      <option value="Traumatología y Ortopedia">Traumatología</option>
-                      <option value="Odontología y Maxilofacial">Odontología</option>
-                      <option value="Medicina General">Medicina General</option>
+                      <optgroup label="— Establecimientos —">
+                        <option value="Hospital">Hospital</option>
+                        <option value="Clínica">Clínica</option>
+                        <option value="Centro Médico">Centro Médico</option>
+                        <option value="Laboratorio Clínico">Laboratorio Clínico</option>
+                        <option value="Odontología">Odontología</option>
+                      </optgroup>
+                      <optgroup label="— Especialidades médicas —">
+                        <option value="Dermatología">Dermatología</option>
+                        <option value="Cardiología">Cardiología</option>
+                        <option value="Ginecología y Obstetricia">Ginecología</option>
+                        <option value="Pediatría y Neonatología">Pediatría</option>
+                        <option value="Traumatología y Ortopedia">Traumatología</option>
+                        <option value="Odontología y Maxilofacial">Odontología Espec.</option>
+                        <option value="Medicina General">Medicina General</option>
+                      </optgroup>
                     </select>
                   </div>
 
@@ -1383,26 +1405,38 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                   />
                 </div>
 
-                {/* Photo profile choose mock */}
+                {/* Icon / Photo selector */}
                 <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-slate-700">Foto del Especialista (Mockup):</label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <label className="block text-[11px] font-bold text-slate-700">Ícono / Foto:</label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {/* Establishment icons */}
                     {[
-                      { id: 'doctor_m', alias: 'M-1', img: avatarGomez },
-                      { id: 'doctor_f', alias: 'F-1', img: avatarRestrepo },
-                      { id: 'doctor_m2', alias: 'M-2', img: avatarDoctorM2 },
-                      { id: 'doctor_f2', alias: 'F-2', img: avatarDoctorF2 }
+                      { id: 'icon_hospital', label: 'Hospital', Icon: Hospital,     bg: 'bg-rose-50   border-rose-200   text-rose-600'   },
+                      { id: 'icon_lab',      label: 'Lab',      Icon: FlaskConical, bg: 'bg-amber-50  border-amber-200  text-amber-600'  },
+                      { id: 'icon_dental',   label: 'Dental',   Icon: Sparkles,     bg: 'bg-sky-50    border-sky-200    text-sky-600'    },
+                      { id: 'icon_building', label: 'Centro',   Icon: Building2,    bg: 'bg-teal-50   border-teal-200   text-teal-600'   },
+                    ].map(({ id, label, Icon, bg }) => (
+                      <button type="button" key={id} onClick={() => setNewDoc({...newDoc, image: id})}
+                        className={`p-1.5 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${newDoc.image === id ? 'border-indigo-600 scale-95' : 'border-slate-200'}`}>
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center border ${bg}`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <span className="text-[8px] font-bold text-slate-500">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5 mt-1">
+                    {/* Doctor avatars */}
+                    {[
+                      { id: 'doctor_m',  alias: 'Dr. M1', img: avatarGomez },
+                      { id: 'doctor_f',  alias: 'Dra. F1', img: avatarRestrepo },
+                      { id: 'doctor_m2', alias: 'Dr. M2', img: avatarDoctorM2 },
+                      { id: 'doctor_f2', alias: 'Dra. F2', img: avatarDoctorF2 }
                     ].map((avatar) => (
-                      <button
-                        type="button"
-                        key={avatar.id}
-                        onClick={() => setNewDoc({...newDoc, image: avatar.id})}
-                        className={`p-1 rounded-xl border-2 transition-all overflow-hidden ${
-                          newDoc.image === avatar.id ? 'border-indigo-600 scale-95' : 'border-slate-200'
-                        }`}
-                      >
+                      <button type="button" key={avatar.id} onClick={() => setNewDoc({...newDoc, image: avatar.id})}
+                        className={`p-1 rounded-xl border-2 transition-all overflow-hidden ${newDoc.image === avatar.id ? 'border-indigo-600 scale-95' : 'border-slate-200'}`}>
                         <img src={avatar.img} alt="" className="w-full h-8 object-cover rounded-lg" referrerPolicy="no-referrer" />
-                        <span className="text-[8px] font-bold text-slate-500 block text-center mt-1">{avatar.alias}</span>
+                        <span className="text-[8px] font-bold text-slate-500 block text-center mt-0.5">{avatar.alias}</span>
                       </button>
                     ))}
                   </div>

@@ -250,10 +250,11 @@ export default function DirectorioMedico() {
         {filteredDoctors.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {filteredDoctors.map((doc) => {
-              const isHospital = doc.specialty.toLowerCase().includes('hospital') || doc.specialty.toLowerCase().includes('clínica') || doc.specialty.toLowerCase().includes('clinica');
-              const isLab = doc.specialty.toLowerCase().includes('laboratorio') || doc.specialty.toLowerCase().includes('cruz vital') || doc.name.toLowerCase().includes('lab');
-              const isDent = doc.specialty.toLowerCase().includes('odontología') || doc.specialty.toLowerCase().includes('odontologia') || doc.specialty.toLowerCase().includes('dental') || doc.name.toLowerCase().includes('dent') || doc.name.toLowerCase().includes('odont');
-              
+              const imgVal = doc.image || '';
+              const isHospital = imgVal === 'icon_hospital' || doc.specialty.toLowerCase().includes('hospital') || doc.specialty.toLowerCase().includes('clínica') || doc.specialty.toLowerCase().includes('clinica');
+              const isLab = imgVal === 'icon_lab' || doc.specialty.toLowerCase().includes('laboratorio') || doc.specialty.toLowerCase().includes('cruz vital') || doc.name.toLowerCase().includes('lab');
+              const isDent = imgVal === 'icon_dental' || doc.specialty.toLowerCase().includes('odontología') || doc.specialty.toLowerCase().includes('odontologia') || doc.specialty.toLowerCase().includes('dental') || doc.name.toLowerCase().includes('dent') || doc.name.toLowerCase().includes('odont');
+
               let IconComponent = Building2;
               let bgClass = 'bg-teal-50 border-teal-200 text-teal-600';
               if (isHospital) {
@@ -380,9 +381,10 @@ export default function DirectorioMedico() {
             <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white p-6 flex justify-between items-center relative shrink-0">
               <div className="flex items-center gap-3">
                 {(() => {
-                  const isHospital = selectedDoctor.specialty.toLowerCase().includes('hospital') || selectedDoctor.specialty.toLowerCase().includes('clínica') || selectedDoctor.specialty.toLowerCase().includes('clinica');
-                  const isLab = selectedDoctor.specialty.toLowerCase().includes('laboratorio') || selectedDoctor.specialty.toLowerCase().includes('cruz vital') || selectedDoctor.name.toLowerCase().includes('lab');
-                  const isDent = selectedDoctor.specialty.toLowerCase().includes('odontología') || selectedDoctor.specialty.toLowerCase().includes('odontologia') || selectedDoctor.specialty.toLowerCase().includes('dental') || selectedDoctor.name.toLowerCase().includes('dent') || selectedDoctor.name.toLowerCase().includes('odont');
+                  const imgValM = selectedDoctor.image || '';
+                  const isHospital = imgValM === 'icon_hospital' || selectedDoctor.specialty.toLowerCase().includes('hospital') || selectedDoctor.specialty.toLowerCase().includes('clínica') || selectedDoctor.specialty.toLowerCase().includes('clinica');
+                  const isLab = imgValM === 'icon_lab' || selectedDoctor.specialty.toLowerCase().includes('laboratorio') || selectedDoctor.specialty.toLowerCase().includes('cruz vital') || selectedDoctor.name.toLowerCase().includes('lab');
+                  const isDent = imgValM === 'icon_dental' || selectedDoctor.specialty.toLowerCase().includes('odontología') || selectedDoctor.specialty.toLowerCase().includes('odontologia') || selectedDoctor.specialty.toLowerCase().includes('dental') || selectedDoctor.name.toLowerCase().includes('dent') || selectedDoctor.name.toLowerCase().includes('odont');
                   
                   let IconComponent = Building2;
                   let colorClass = 'text-rose-400 bg-rose-500/10 border-rose-500/20';

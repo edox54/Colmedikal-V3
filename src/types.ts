@@ -134,6 +134,7 @@ export interface AppointmentItem {
   city: string;
   cost: number;
   status: 'Pendiente' | 'Confirmada' | 'Cancelada' | 'Completada';
+  notes?: string;
 }
 
 export interface AdminUser {
