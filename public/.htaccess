@@ -1,19 +1,10 @@
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
+RewriteEngine On
+RewriteBase /
 
-  # Redirect www → non-www (HTTP and HTTPS)
-  RewriteCond %{HTTP_HOST} ^www\.colmedikal\.com [NC]
-  RewriteCond %{HTTPS} off
-  RewriteRule ^ http://colmedikal.com%{REQUEST_URI} [R=301,L]
+# Serve existing files and directories directly (JS, CSS, images, etc.)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
 
-  RewriteCond %{HTTP_HOST} ^www\.colmedikal\.com [NC]
-  RewriteCond %{HTTPS} on
-  RewriteRule ^ https://colmedikal.com%{REQUEST_URI} [R=301,L]
-
-  # SPA fallback
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /index.html [L]
-</IfModule>
+# Route all page requests through PHP for per-route meta injection
+RewriteRule ^ /seo-render.php [L]
