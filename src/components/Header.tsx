@@ -61,7 +61,7 @@ export default function Header() {
   }, [topBarItems.length]);
 
   const menuItems = [
-    { label: 'Inicio', id: 'inicio', items: [
+    { label: 'Inicio', id: 'inicio', path: '/', items: [
         { label: 'Nosotros', path: '/nosotros' },
         { label: 'FAQ\'s', path: '/faqs' },
     ]},
@@ -131,6 +131,8 @@ export default function Header() {
           <a href="tel:022567191" className="hover:text-white transition-colors">📞 02-2567191</a>
           <span className="text-slate-700">|</span>
           <a href="https://wa.me/593987028756" target="_blank" rel="noreferrer" className="hover:text-emerald-450 text-emerald-400 transition-colors">💬 WhatsApp: 098 702 8756</a>
+          <span className="text-slate-700">|</span>
+          <button onClick={() => navigate('/admin')} className="text-slate-500 hover:text-slate-300 transition-colors text-[10px]">🔐 Admin</button>
         </div>
       </div>
 
@@ -171,7 +173,10 @@ export default function Header() {
                   >
                     {hasDropdown ? (
                       <div className="relative group">
-                          <button className="flex items-center gap-1 px-1 py-2 text-xs xl:text-sm font-medium text-slate-600 hover:text-[#4597CA] cursor-pointer">
+                          <button
+                            onClick={() => item.path && handleNavClick(item.path)}
+                            className="flex items-center gap-1 px-1 py-2 text-xs xl:text-sm font-medium text-slate-600 hover:text-[#4597CA] cursor-pointer"
+                          >
                               <span>{item.label}</span>
                               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                           </button>

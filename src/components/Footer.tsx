@@ -194,7 +194,8 @@ export default function Footer() {
         {/* Bottom Legal / Attributions */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
           <div>
-            © {currentYear} Colmedikal S.A. Todos los derechos reservados. Inspirado en el diseño líder de Humana Medicina Prepagada.
+            © {currentYear} Colmedikal S.A. Todos los derechos reservados. Hecho con cariño (y un ♥) por{' '}
+            <a href="https://seoefectivo.com" target="_blank" rel="noreferrer" className="hover:text-slate-400 underline underline-offset-2">SeoEfectivo</a>.
           </div>
           <div className="flex gap-6">
             <button 

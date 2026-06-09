@@ -1,6 +1,12 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  # Redirect www to non-www (301 permanent)
+  RewriteCond %{HTTP_HOST} ^www\.colmedikal\.com [NC]
+  RewriteRule ^ https://colmedikal.com%{REQUEST_URI} [R=301,L]
+
+  # SPA fallback
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

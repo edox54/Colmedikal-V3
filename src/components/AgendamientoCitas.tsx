@@ -59,6 +59,16 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
     }
   }, []);
 
+  const [facilitySearch, setFacilitySearch] = useState('');
+  const [facilityOpen, setFacilityOpen] = useState(false);
+
+  const filteredFacilities = useMemo(() => {
+    const q = facilitySearch.toLowerCase();
+    if (!q) return facilitiesByCity[city] || [];
+    // Search across ALL cities when typing
+    return Object.values(facilitiesByCity).flat().filter((f) => f.toLowerCase().includes(q));
+  }, [facilitySearch, city, facilitiesByCity]);
+
   const [preferredDate, setPreferredDate] = useState('');
   const [preferredTimeRange, setPreferredTimeRange] = useState('Mañana (08:00 - 12:00)');
   const [additionalNotes, setAdditionalNotes] = useState('');
@@ -261,17 +271,30 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                   </select>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 relative">
                   <label className="block text-xs font-bold text-slate-700">Establecimiento:</label>
-                  <select
-                    value={facility}
-                    onChange={(e) => setFacility(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"
-                  >
-                    {(facilitiesByCity[city] || []).map((f) => (
-                      <option key={f} value={f}>{f}</option>
-                    ))}
-                  </select>
+                  <input
+                    type="text"
+                    value={facilitySearch || facility}
+                    placeholder={facility || 'Buscar clínica u hospital...'}
+                    onFocus={() => { setFacilitySearch(''); setFacilityOpen(true); }}
+                    onChange={(e) => { setFacilitySearch(e.target.value); setFacilityOpen(true); }}
+                    onBlur={() => setTimeout(() => setFacilityOpen(false), 150)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-[#4597CA]"
+                  />
+                  {facilityOpen && filteredFacilities.length > 0 && (
+                    <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto text-xs">
+                      {filteredFacilities.map((f) => (
+                        <li
+                          key={f}
+                          onMouseDown={() => { setFacility(f); setFacilitySearch(''); setFacilityOpen(false); }}
+                          className={`px-3 py-2 cursor-pointer hover:bg-[#4597CA]/10 hover:text-[#0C4169] ${f === facility ? 'bg-[#4597CA]/10 font-semibold text-[#0C4169]' : 'text-slate-700'}`}
+                        >
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
               </div>

@@ -22,6 +22,7 @@ import FloatingWidget from './components/FloatingWidget';
 import SEOController from './seo/SEOController';
 import { ColmedikalProvider } from './context/ColmedikalContext';
 import AdminPanel from './components/AdminPanel';
+import NotFound from './components/NotFound';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -63,7 +64,7 @@ export default function App() {
           <Route path="/blog/*" element={<HomeLayout component={Blog} />} />
           <Route path="/cotizador" element={<AdminLayout component={Cotizador} />} />
           <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<HomeLayout component={NotFound} />} />
         </Routes>
       </BrowserRouter>
     </ColmedikalProvider>
@@ -88,6 +89,16 @@ function HomeLayout({ component: Component }: { component: React.ElementType }) 
 
 function AdminLayout({ component: Component }: { component: React.ElementType }) {
   const setCurrentPage = useSetCurrentPageMapper();
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'robots';
+      document.head.appendChild(meta);
+    }
+    meta.content = 'noindex, nofollow';
+    return () => { if (meta) meta.content = 'index, follow'; };
+  }, []);
   return (
     <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id="colmedikal-portal-layout-root">
       <main className="flex-grow">
