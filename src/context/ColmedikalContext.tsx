@@ -372,20 +372,30 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ==================== LEADS ====================
   const addLead = async (quote: QuoteState, estimatedPrice: number) => {
-    // Public submission path — no admin token required
+    // Public submission path — save to API (public endpoint) + localStorage fallback
     if (!token) {
+      const localId = 'local-' + Date.now();
       const newLead: LeadQuote = {
-        id: 'local-' + Date.now(),
+        id: localId,
         timestamp: new Date().toISOString(),
         quoteData: quote,
         estimatedPrice,
         status: 'Nuevo Plan',
       };
+      // Always save to localStorage for instant UI feedback
       setLocalLeads(prev => {
         const updated = [newLead, ...prev];
         try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
         return updated;
       });
+      // Also POST to public API so admin can see it regardless of device/session
+      try {
+        await apiCall('/api/leads', 'POST', {
+          quote_data: quote,
+          estimated_price: estimatedPrice,
+          status: 'Nuevo Plan',
+        });
+      } catch { /* silent fail — localStorage already captured it */ }
       return newLead;
     }
 
