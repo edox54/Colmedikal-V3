@@ -647,11 +647,11 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                 {leads.slice(0, 3).map((ld) => (
                   <div key={ld.id} className="py-3 flex justify-between items-start text-xs">
                     <div>
-                      <h5 className="font-bold text-slate-900">{ld.quoteData.fullName}</h5>
-                      <p className="text-[10px] text-slate-500">Plan: {ld.quoteData.basePlanId.toUpperCase()} • Tlf: {ld.quoteData.phone}</p>
+                      <h5 className="font-bold text-slate-900">{ld.quoteData?.fullName || '—'}</h5>
+                      <p className="text-[10px] text-slate-500">Plan: {ld.quoteData?.basePlanId?.toUpperCase() || 'N/A'} • Tlf: {ld.quoteData?.phone || '—'}</p>
                     </div>
                     <div className="text-right space-y-1">
-                      <span className="font-bold text-slate-900 font-mono">${ld.estimatedPrice.toFixed(2)}/mes</span>
+                      <span className="font-bold text-slate-900 font-mono">${(ld.estimatedPrice || 0).toFixed(2)}/mes</span>
                       <span className="block text-[9px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded uppercase text-center w-full">
                         {ld.status}
                       </span>
@@ -1083,12 +1083,12 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
                         <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">{ld.id}</span>
-                        <h4 className="text-base font-black text-slate-900 leading-tight">{ld.quoteData.fullName}</h4>
+                        <h4 className="text-base font-black text-slate-900 leading-tight">{ld.quoteData?.fullName || '—'}</h4>
                       </div>
 
                       <div className="text-right">
                         <span className="text-[9px] text-slate-400 font-semibold font-mono block">Plan Est.:</span>
-                        <span className="text-base font-black text-indigo-750 font-mono">${ld.estimatedPrice.toFixed(2)}<span className="text-[10px] font-normal">/m</span></span>
+                        <span className="text-base font-black text-indigo-750 font-mono">${(ld.estimatedPrice || 0).toFixed(2)}<span className="text-[10px] font-normal">/m</span></span>
                       </div>
                     </div>
 
@@ -1096,21 +1096,21 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                     <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-2xl border border-slate-150">
                       <div>
                         <span className="block text-[9px] text-slate-400 font-bold uppercase">Contacto:</span>
-                        <a href={`tel:${ld.quoteData.phone}`} className="font-bold text-indigo-650 hover:underline flex items-center gap-1 mt-0.5">
+                        <a href={`tel:${ld.quoteData?.phone}`} className="font-bold text-indigo-650 hover:underline flex items-center gap-1 mt-0.5">
                           <Phone className="w-3 h-3" />
-                          <span>{ld.quoteData.phone}</span>
+                          <span>{ld.quoteData?.phone || '—'}</span>
                         </a>
-                        <a href={`mailto:${ld.quoteData.email}`} className="text-[10px] text-slate-500 truncate block hover:underline">
-                          {ld.quoteData.email}
+                        <a href={`mailto:${ld.quoteData?.email}`} className="text-[10px] text-slate-500 truncate block hover:underline">
+                          {ld.quoteData?.email || '—'}
                         </a>
                       </div>
 
                       <div>
                         <span className="block text-[9px] text-slate-400 font-bold uppercase">Estructura Plan:</span>
-                        <span className="font-semibold text-slate-800 capitalize leading-none">{ld.quoteData.type}</span>
+                        <span className="font-semibold text-slate-800 capitalize leading-none">{ld.quoteData?.type || '—'}</span>
                         <span className="block text-[10px] text-slate-500">
-                          {ld.quoteData.primaryAge} años 
-                          {ld.quoteData.childrenCount > 0 ? ` • Hijos: ${ld.quoteData.childrenCount}` : ''}
+                          {ld.quoteData?.primaryAge} años
+                          {(ld.quoteData?.childrenCount ?? 0) > 0 ? ` • Hijos: ${ld.quoteData?.childrenCount}` : ''}
                         </span>
                       </div>
                     </div>
@@ -1120,16 +1120,16 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       <span className="block text-[9px] text-slate-400 font-bold uppercase">Coberturas Adicionales Elegidas:</span>
                       <div className="flex flex-wrap gap-1.5">
                         <span className="inline-block bg-slate-100 text-slate-700 text-[9px] px-2 py-0.5 rounded font-medium">
-                          Dental: {ld.quoteData.dentalAddon ? 'Sí' : 'No'}
+                          Dental: {ld.quoteData?.dentalAddon ? 'Sí' : 'No'}
                         </span>
                         <span className="inline-block bg-slate-100 text-slate-700 text-[9px] px-2 py-0.5 rounded font-medium">
-                          Maternidad: {ld.quoteData.maternityAddon ? 'Sí' : 'No'}
+                          Maternidad: {ld.quoteData?.maternityAddon ? 'Sí' : 'No'}
                         </span>
                         <span className="inline-block bg-slate-100 text-slate-700 text-[9px] px-2 py-0.5 rounded font-medium">
-                          Internacional: {ld.quoteData.intlAddon ? 'Sí' : 'No'}
+                          Internacional: {ld.quoteData?.intlAddon ? 'Sí' : 'No'}
                         </span>
                         <span className="inline-block bg-slate-100 text-slate-700 text-[9px] px-2 py-0.5 rounded font-medium">
-                          Fármacos: {ld.quoteData.rxAddon ? 'Sí' : 'No'}
+                          Fármacos: {ld.quoteData?.rxAddon ? 'Sí' : 'No'}
                         </span>
                       </div>
                     </div>
