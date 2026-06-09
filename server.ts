@@ -60,14 +60,26 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Security: Apply helmet middleware for automatic security headers
-  app.use(helmet());
+  // Security: Apply helmet middleware (CSP desactivado para configuración manual)
+  app.use(helmet({ contentSecurityPolicy: false }));
 
   // Security: Add custom security headers
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Content-Security-Policy', "default-src 'self'");
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    // CSP: permite self + api externa + CDNs necesarios
+    res.setHeader(
+      'Content-Security-Policy',
+      [
+        "default-src 'self'",
+        "connect-src 'self' https://api.colmedikal.com https://www.googletagmanager.com https://www.google-analytics.com",
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https:",
+        "font-src 'self' data:",
+        "frame-ancestors 'none'",
+      ].join('; ')
+    );
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     next();
   });
