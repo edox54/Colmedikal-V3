@@ -16,12 +16,15 @@ import {
   PhoneCall
 } from 'lucide-react';
 import { Page } from '../types';
+import { useColmedikal } from '../context/ColmedikalContext';
 
 interface AgendamientoCitasProps {
   setCurrentPage: (page: Page) => void;
 }
 
 export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasProps) {
+  const { addAppointment } = useColmedikal();
+
   // FORM FIELDS
   const [fullName, setFullName] = useState('');
   const [cedula, setCedula] = useState('');
@@ -42,7 +45,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
   const [ticketDetails, setTicketDetails] = useState<any>(null);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!privacyAccepted) {
       alert('Debe aceptar las políticas de protección de datos personales.');
@@ -55,34 +58,50 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
 
     setIsSubmitting(true);
 
-    // Simulate sending data and CRM response matching constraints
-    setTimeout(() => {
-      // Determine responsible coordinator based on city
-      let coordinatorName = 'Lcda. Carmen Falconí - Sede Quito';
-      if (city === 'Guayaquil') coordinatorName = 'Ing. Christian Solórzano - Sede Guayaquil';
-      if (city === 'Cuenca') coordinatorName = 'Dra. Verónica Arizaga - Sede Austro';
+    let coordinatorName = 'Lcda. Carmen Falconí - Sede Quito';
+    if (city === 'Guayaquil') coordinatorName = 'Ing. Christian Solórzano - Sede Guayaquil';
+    if (city === 'Cuenca') coordinatorName = 'Dra. Verónica Arizaga - Sede Austro';
 
-      const data = {
-        opportunityId: 'OP-APT-' + Math.floor(Math.random() * 90000 + 10000),
-        timestamp: new Date().toLocaleString(),
-        fullName,
-        cedula,
-        phone,
-        email,
-        city,
+    const opportunityId = 'OP-APT-' + Math.floor(Math.random() * 90000 + 10000);
+
+    // Save to backend (public endpoint, no auth required)
+    try {
+      await addAppointment({
+        doctorName: 'Por Asignar',
         specialty,
-        facility,
-        preferredDate,
-        preferredTimeRange,
-        additionalNotes: additionalNotes || 'Sin comentarios adicionales',
-        coordinator: coordinatorName,
-        status: 'Pendiente de Confirmación con el Especialista',
-      };
+        patientName: fullName,
+        patientId: cedula,
+        patientPhone: phone,
+        aptDate: preferredDate,
+        aptTime: preferredTimeRange,
+        modality: 'presencial',
+        clinic: facility,
+        city,
+        cost: 0,
+        status: 'Pendiente',
+      });
+    } catch { /* continue even if API call fails */ }
 
-      setTicketDetails(data);
-      setIsSubmitting(false);
-      setSuccess(true);
-    }, 1800);
+    const data = {
+      opportunityId,
+      timestamp: new Date().toLocaleString(),
+      fullName,
+      cedula,
+      phone,
+      email,
+      city,
+      specialty,
+      facility,
+      preferredDate,
+      preferredTimeRange,
+      additionalNotes: additionalNotes || 'Sin comentarios adicionales',
+      coordinator: coordinatorName,
+      status: 'Pendiente de Confirmación con el Especialista',
+    };
+
+    setTicketDetails(data);
+    setIsSubmitting(false);
+    setSuccess(true);
   };
 
   const handleReset = () => {

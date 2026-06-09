@@ -330,7 +330,8 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
       setAssignedRep(repName);
 
       // Save lead inside central context and send to Kommo CRM
-      const estimatedPrice = planType === 'corporativo' ? Number(numberOfPeople || 10) * 18 : calculateDynamicPrice(45);
+      const basePlanPrice = planType === 'masivo' ? 8 : 12;
+      const estimatedPrice = planType === 'corporativo' ? Number(numberOfPeople || 10) * 18 : calculateDynamicPrice(basePlanPrice);
       addLead({
         fullName: `${firstName} ${lastName}`,
         email: email,
@@ -339,7 +340,9 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
         primaryAge: 35,
         childrenCount: dependants.length,
         childrenAges: dependants.map(d => d.ageRange === '0-17' ? 10 : 25),
-        basePlanId: planType === 'masivo' ? 'esencial' : 'premium'
+        basePlanId: planType === 'masivo' ? 'esencial' : 'premium',
+        leadCode: code,
+        selectedPlanName: planType === 'masivo' ? 'Plan Masivo' : planType === 'individual' ? 'Plan Individual' : 'Plan Corporativo',
       }, estimatedPrice);
 
       sendLeadToKommoCRM({

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 // import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 // import { auth } from '../firebase';
 import { 
@@ -33,7 +33,9 @@ import {
   ArrowRight,
   Filter,
   Download,
-  Edit
+  Edit,
+  Bell,
+  RefreshCw
 } from 'lucide-react';
 import { Page, Doctor } from '../types';
 import avatarGomez from '../assets/images/avatar_gomez_1780024902226.png';
@@ -62,10 +64,31 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     updateAuthorizationStatus,
     updateAppointmentStatus,
     updateLeadStatus,
+    deleteLead,
+    refreshData,
     addAdmin,
     deleteAdmin,
     toggleAdminActiveStatus
   } = useColmedikal();
+
+  const prevLeadsCountRef = useRef(leads.length);
+
+  const playNotificationSound = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.4);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
+    } catch {}
+  };
 
   // Secure Authentication States
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -160,6 +183,21 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     // Firebase auth disabled
     return () => {};
   }, []);
+
+  // Auto-refresh every 10 seconds when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => { refreshData(); }, 10000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  // Sound notification when new leads arrive
+  useEffect(() => {
+    if (leads.length > prevLeadsCountRef.current && isAuthenticated) {
+      playNotificationSound();
+    }
+    prevLeadsCountRef.current = leads.length;
+  }, [leads.length]);
 
   const handleGoogleLogin = async () => {
     setIsLoggingIn(true);
@@ -515,6 +553,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
           }`}
           id="admin-tab-leads"
         >
+          <Bell className="w-3.5 h-3.5 shrink-0" />
           <span>Cotizaciones Recibidas</span>
           {totalLeadsUncontacted > 0 && (
             <span className="bg-emerald-500 text-slate-950 text-[9px] px-1.5 py-0.2 rounded-full font-mono">{totalLeadsUncontacted}</span>
@@ -648,7 +687,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                   <div key={ld.id} className="py-3 flex justify-between items-start text-xs">
                     <div>
                       <h5 className="font-bold text-slate-900">{ld.quoteData?.fullName || '—'}</h5>
-                      <p className="text-[10px] text-slate-500">Plan: {ld.quoteData?.basePlanId?.toUpperCase() || 'N/A'} • Tlf: {ld.quoteData?.phone || '—'}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">{ld.quoteData?.leadCode || ld.id.slice(0, 12).toUpperCase()} • {ld.quoteData?.phone || '—'}</p>
+                      <p className="text-[9px] text-slate-400">{new Date(ld.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}</p>
                     </div>
                     <div className="text-right space-y-1">
                       <span className="font-bold text-slate-900 font-mono">${Number(ld.estimatedPrice || 0).toFixed(2)}/mes</span>
@@ -1066,28 +1106,45 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       {/* 3.5 LEADS FROM PLAN QUOTER (CRM MODULE) */}
       {activeTab === 'leads' && (
         <div className="space-y-6 animate-in fade-in duration-200" id="admin-leads-panel">
-          <div className="border-b border-slate-100 pb-4">
-            <h3 className="text-xl font-bold text-slate-950">Cotizaciones Emitidas desde el Panel</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Visualiza en tiempo real las cotizaciones de seguros de salud realizadas por tus usuarios. Comunícate para brindar asesoramiento.
-            </p>
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-slate-950">Cotizaciones Emitidas desde el Panel</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Visualiza en tiempo real las cotizaciones de seguros de salud realizadas por tus usuarios. Se actualiza cada 10 segundos.
+              </p>
+            </div>
+            <button
+              onClick={() => refreshData()}
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold rounded-xl transition cursor-pointer"
+              title="Actualizar ahora"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Actualizar</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {leads.length > 0 ? (
               leads.map((ld) => (
                 <div key={ld.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between" id={`admin-lead-card-${ld.id}`}>
-                  
+
                   {/* Lead details header */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">{ld.id}</span>
+                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest font-mono">
+                          {ld.quoteData?.leadCode || ld.id.slice(0, 14).toUpperCase()}
+                        </span>
                         <h4 className="text-base font-black text-slate-900 leading-tight">{ld.quoteData?.fullName || '—'}</h4>
+                        {ld.quoteData?.selectedPlanName && (
+                          <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase">
+                            {ld.quoteData.selectedPlanName}
+                          </span>
+                        )}
                       </div>
 
                       <div className="text-right">
-                        <span className="text-[9px] text-slate-400 font-semibold font-mono block">Plan Est.:</span>
+                        <span className="text-[9px] text-slate-400 font-semibold font-mono block">Valor Est.:</span>
                         <span className="text-base font-black text-indigo-750 font-mono">${Number(ld.estimatedPrice || 0).toFixed(2)}<span className="text-[10px] font-normal">/m</span></span>
                       </div>
                     </div>
@@ -1109,7 +1166,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                         <span className="block text-[9px] text-slate-400 font-bold uppercase">Estructura Plan:</span>
                         <span className="font-semibold text-slate-800 capitalize leading-none">{ld.quoteData?.type || '—'}</span>
                         <span className="block text-[10px] text-slate-500">
-                          {ld.quoteData?.primaryAge} años
+                          {ld.quoteData?.primaryAge ? `${ld.quoteData.primaryAge} años` : ''}
                           {(ld.quoteData?.childrenCount ?? 0) > 0 ? ` • Hijos: ${ld.quoteData?.childrenCount}` : ''}
                         </span>
                       </div>
@@ -1117,51 +1174,66 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
                     {/* Addons preference ledger */}
                     <div className="space-y-1.5">
-                      <span className="block text-[9px] text-slate-400 font-bold uppercase">Coberturas Adicionales Elegidas:</span>
+                      <span className="block text-[9px] text-slate-400 font-bold uppercase">Tipo de Segmento:</span>
                       <div className="flex flex-wrap gap-1.5">
                         <span className="inline-block bg-slate-100 text-slate-700 text-[9px] px-2 py-0.5 rounded font-medium">
-                          Dental: {ld.quoteData?.dentalAddon ? 'Sí' : 'No'}
+                          Plan base: {ld.quoteData?.basePlanId?.toUpperCase() || 'N/A'}
                         </span>
-                        <span className="inline-block bg-slate-100 text-slate-700 text-[9px] px-2 py-0.5 rounded font-medium">
-                          Maternidad: {ld.quoteData?.maternityAddon ? 'Sí' : 'No'}
-                        </span>
-                        <span className="inline-block bg-slate-100 text-slate-700 text-[9px] px-2 py-0.5 rounded font-medium">
-                          Internacional: {ld.quoteData?.intlAddon ? 'Sí' : 'No'}
-                        </span>
-                        <span className="inline-block bg-slate-100 text-slate-700 text-[9px] px-2 py-0.5 rounded font-medium">
-                          Fármacos: {ld.quoteData?.rxAddon ? 'Sí' : 'No'}
-                        </span>
+                        {(ld.quoteData?.childrenCount ?? 0) > 0 && (
+                          <span className="inline-block bg-teal-50 text-teal-700 text-[9px] px-2 py-0.5 rounded font-medium">
+                            {ld.quoteData?.childrenCount} dependiente(s)
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400 font-mono">Fecha: {new Date(ld.timestamp).toLocaleDateString()}</span>
-                    
-                    <div className="flex gap-2">
+                  <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-mono block">
+                        {new Date(ld.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
+                      </span>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase mt-0.5 inline-block ${
+                        ld.status === 'Cierre Efectivo'
+                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                          : ld.status === 'Contactado'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                      }`}>
+                        {ld.status}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-2 items-center">
                       {ld.status === 'Nuevo Plan' && (
                         <button
                           onClick={() => updateLeadStatus(ld.id, 'Contactado')}
-                          className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] rounded-lg shadow-sm cursor-pointer"
+                          className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] rounded-lg shadow-sm cursor-pointer"
                         >
-                          Marcar Contactado
+                          Contactado
                         </button>
                       )}
 
                       {ld.status === 'Contactado' && (
                         <button
                           onClick={() => updateLeadStatus(ld.id, 'Cierre Efectivo')}
-                          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg shadow-sm cursor-pointer"
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg shadow-sm cursor-pointer"
                         >
                           Cierre Exitoso ✔
                         </button>
                       )}
 
-                      <span className={`px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wider ${
-                        ld.status === 'Cierre Efectivo' ? 'bg-indigo-50 text-indigo-700 border border-indigo-150' : ''
-                      }`}>
-                        {ld.status !== 'Nuevo Plan' && ld.status !== 'Contactado' ? ld.status : ''}
-                      </span>
+                      <button
+                        onClick={() => {
+                          if (confirm(`¿Eliminar la cotización de ${ld.quoteData?.fullName || ld.id}?`)) {
+                            deleteLead(ld.id);
+                          }
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        title="Eliminar cotización"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
 

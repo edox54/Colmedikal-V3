@@ -46,6 +46,8 @@ export interface QuoteState {
   childrenCount: number;
   childrenAges: number[];
   basePlanId: string;
+  leadCode?: string;
+  selectedPlanName?: string;
 }
 
 export interface LeadQuote {

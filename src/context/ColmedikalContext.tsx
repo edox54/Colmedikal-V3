@@ -25,8 +25,10 @@ interface ColmedikalContextType {
   updateAuthorizationStatus: (id: string, status: AuthorizationItem['status'], comment?: string) => Promise<void>;
   addAppointment: (appointment: Omit<AppointmentItem, 'id'>) => Promise<void>;
   updateAppointmentStatus: (id: string, status: AppointmentItem['status']) => Promise<void>;
-  addLead: (quote: QuoteState, estimatedPrice: number) => Promise<void>;
+  addLead: (quote: QuoteState, estimatedPrice: number) => Promise<any>;
+  deleteLead: (id: string) => Promise<void>;
   updateLeadStatus: (id: string, status: LeadQuote['status']) => Promise<void>;
+  refreshData: () => Promise<void>;
   addAdmin: (email: string, name: string, role: 'Administrador' | 'Auditor Clínico') => Promise<void>;
   deleteAdmin: (email: string) => Promise<void>;
   toggleAdminActiveStatus: (email: string) => Promise<void>;
@@ -270,7 +272,22 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ==================== REFUNDS ====================
   const addRefund = async (refund: Omit<RefundItem, 'id' | 'refundDate'>) => {
-    if (!token) throw new Error('Not authenticated');
+    if (!token) {
+      try {
+        await apiCall('/api/refunds', 'POST', {
+          family_member: refund.familyMember,
+          specialty: refund.specialty,
+          amount: refund.amount,
+          status: refund.status || 'Procesando',
+          invoice_number: refund.invoiceNumber,
+          file_name: refund.fileName,
+          file_data: refund.fileData,
+          user_email: refund.userEmail,
+          user_phone: refund.userPhone,
+        });
+      } catch { /* silent fail */ }
+      return;
+    }
     setIsLoading(true);
     try {
       const result = await apiCall('/api/admin/refunds', 'POST', refund, token);
@@ -304,7 +321,21 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ==================== AUTHORIZATIONS ====================
   const addAuthorization = async (auth: Omit<AuthorizationItem, 'id' | 'requestDate'>) => {
-    if (!token) throw new Error('Not authenticated');
+    if (!token) {
+      try {
+        await apiCall('/api/authorizations', 'POST', {
+          patient: auth.patient,
+          procedure: auth.procedure,
+          facility: auth.facility,
+          status: auth.status || 'Pendiente',
+          file_name: auth.fileName,
+          file_data: auth.fileData,
+          user_email: auth.userEmail,
+          user_phone: auth.userPhone,
+        });
+      } catch { /* silent fail */ }
+      return;
+    }
     setIsLoading(true);
     try {
       const result = await apiCall('/api/admin/authorizations', 'POST', auth, token);
@@ -338,7 +369,25 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ==================== APPOINTMENTS ====================
   const addAppointment = async (appointment: Omit<AppointmentItem, 'id'>) => {
-    if (!token) throw new Error('Not authenticated');
+    if (!token) {
+      try {
+        await apiCall('/api/appointments', 'POST', {
+          patient_name: appointment.patientName,
+          patient_id: appointment.patientId,
+          patient_phone: appointment.patientPhone,
+          doctor_name: appointment.doctorName,
+          specialty: appointment.specialty,
+          apt_date: appointment.aptDate,
+          apt_time: appointment.aptTime,
+          modality: appointment.modality,
+          clinic: appointment.clinic,
+          city: appointment.city,
+          cost: appointment.cost || 0,
+          status: appointment.status || 'Pendiente',
+        });
+      } catch { /* silent fail */ }
+      return;
+    }
     setIsLoading(true);
     try {
       const result = await apiCall('/api/admin/appointments', 'POST', appointment, token);
@@ -382,19 +431,25 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         estimatedPrice,
         status: 'Nuevo Plan',
       };
-      // Always save to localStorage for instant UI feedback
       setLocalLeads(prev => {
         const updated = [newLead, ...prev];
         try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
         return updated;
       });
-      // Also POST to public API so admin can see it regardless of device/session
       try {
-        await apiCall('/api/leads', 'POST', {
+        const result = await apiCall('/api/leads', 'POST', {
           quote_data: quote,
           estimated_price: estimatedPrice,
           status: 'Nuevo Plan',
         });
+        // Update localLead ID to API ID to prevent duplicate display
+        if (result?.id) {
+          setLocalLeads(prev => {
+            const updated = prev.map(l => l.id === localId ? { ...l, id: result.id } : l);
+            try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
+            return updated;
+          });
+        }
       } catch { /* silent fail — localStorage already captured it */ }
       return newLead;
     }
@@ -419,7 +474,6 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateLeadStatus = async (id: string, status: LeadQuote['status']) => {
-    // Handle local leads
     if (id.startsWith('local-')) {
       setLocalLeads(prev => {
         const updated = prev.map(l => l.id === id ? { ...l, status } : l);
@@ -442,6 +496,34 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const deleteLead = async (id: string) => {
+    if (id.startsWith('local-')) {
+      setLocalLeads(prev => {
+        const updated = prev.filter(l => l.id !== id);
+        try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      return;
+    }
+    if (!token) throw new Error('Not authenticated');
+    setIsLoading(true);
+    try {
+      await apiCall(`/api/admin/leads/${id}`, 'DELETE', undefined, token);
+      await fetchAllData(token);
+      setError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete lead';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshData = async () => {
+    if (token) await fetchAllData(token);
   };
 
   // ==================== ADMINS ====================
@@ -531,7 +613,9 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     addAppointment,
     updateAppointmentStatus,
     addLead,
+    deleteLead,
     updateLeadStatus,
+    refreshData,
     addAdmin,
     deleteAdmin,
     toggleAdminActiveStatus,
