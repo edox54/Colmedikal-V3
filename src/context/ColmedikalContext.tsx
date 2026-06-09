@@ -32,6 +32,7 @@ interface ColmedikalContextType {
   addAdmin: (email: string, name: string, role: AdminUser['role'], password?: string) => Promise<void>;
   deleteAdmin: (email: string) => Promise<void>;
   toggleAdminActiveStatus: (email: string) => Promise<void>;
+  updateAdminRole: (email: string, role: AdminUser['role']) => Promise<void>;
   fetchDashboard: () => Promise<any>;
   // SEO & CMS
   seoSettings: Record<string, string>;
@@ -706,6 +707,12 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  const updateAdminRole = async (email: string, role: AdminUser['role']) => {
+    if (!token) throw new Error('Not authenticated');
+    await apiCall(`/api/admin/users/${encodeURIComponent(email)}`, 'PUT', { role }, token);
+    setAdmins(prev => prev.map(a => a.email === email ? { ...a, role } : a));
+  };
+
   const fetchAdmins = async (authToken: string) => {
     try {
       const res = await apiCall('/api/admin/users', 'GET', undefined, authToken);
@@ -808,6 +815,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     addAdmin,
     deleteAdmin,
     toggleAdminActiveStatus,
+    updateAdminRole,
     fetchDashboard,
     seoSettings,
     seoMetaOverrides,

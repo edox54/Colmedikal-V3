@@ -71,7 +71,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     refreshData,
     addAdmin,
     deleteAdmin,
-    toggleAdminActiveStatus
+    toggleAdminActiveStatus,
+    updateAdminRole
   } = useColmedikal();
 
   const prevLeadsCountRef = useRef(leads.length);
@@ -1723,18 +1724,28 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                           Registrado el {new Date(adm.addedAt).toLocaleDateString()} por <span className="font-semibold">{adm.addedBy}</span>
                         </div>
                       </td>
-                      <td className="py-3.5 text-slate-750">
-                        <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider font-sans ${
-                          adm.role === 'Super Admin'
-                            ? 'bg-violet-50 border-violet-200 text-violet-700'
-                            : adm.role === 'Mid Admin'
-                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                            : adm.role === 'Equipo Comercial'
-                            ? 'bg-teal-50 border-teal-200 text-teal-700'
-                            : 'bg-amber-50 border-amber-200 text-amber-700'
-                        }`}>
-                          {adm.role}
-                        </span>
+                      <td className="py-3.5">
+                        <select
+                          value={adm.role}
+                          onChange={async (e) => {
+                            const newRole = e.target.value as typeof adm.role;
+                            try { await updateAdminRole(adm.email, newRole); } catch { /* ignore */ }
+                          }}
+                          className={`px-2 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider font-sans cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-400 ${
+                            adm.role === 'Super Admin'
+                              ? 'bg-violet-50 border-violet-200 text-violet-700'
+                              : adm.role === 'Mid Admin'
+                              ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                              : adm.role === 'Equipo Comercial'
+                              ? 'bg-teal-50 border-teal-200 text-teal-700'
+                              : 'bg-amber-50 border-amber-200 text-amber-700'
+                          }`}
+                        >
+                          <option value="Super Admin">Super Admin</option>
+                          <option value="Mid Admin">Mid Admin</option>
+                          <option value="Equipo Comercial">Equipo Comercial</option>
+                          <option value="Auditor">Auditor</option>
+                        </select>
                       </td>
                       <td className="py-3.5 text-center">
                         <button
