@@ -171,7 +171,20 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setRefunds(refundsRes.data || []);
       setAppointments(appointmentsRes.data || []);
       setAuthorizations(authorizationsRes.data || []);
-      setLeads(leadsRes.data || []);
+
+      // Transform API leads: snake_case → camelCase, parse JSON quote_data
+      setLeads((leadsRes.data || []).map((l: any) => ({
+        ...l,
+        quoteData: (() => {
+          try {
+            return typeof l.quote_data === 'string'
+              ? JSON.parse(l.quote_data)
+              : (l.quote_data ?? l.quoteData ?? {});
+          } catch { return l.quoteData ?? {}; }
+        })(),
+        estimatedPrice: l.estimated_price ?? l.estimatedPrice ?? 0,
+        timestamp: l.timestamp ?? l.created_at ?? new Date().toISOString(),
+      })));
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch data';
