@@ -423,7 +423,7 @@ export default function DirectorioMedico() {
                       Convenio Integrado Activo
                     </span>
                     <span className="text-[10px] font-mono text-indigo-300">
-                      CÓD.: COL-{(1000 + selectedDoctor.id.charCodeAt(0) * 3)}
+                      CÓD.: COL-{String(selectedDoctor.id.split('').reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) & 0xffff, 7) + 10000).slice(-5)}
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-white tracking-tight leading-tight mt-0.5">

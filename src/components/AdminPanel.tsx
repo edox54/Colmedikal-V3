@@ -1416,17 +1416,30 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                   </div>
                 </div>
 
-                {/* Clinic */}
+                {/* Address / clinic */}
                 <div className="space-y-0.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Clínica de Convenio:</label>
-                  <input 
+                  <label className="block text-[11px] font-bold text-slate-700">Dirección:</label>
+                  <input
                     type="text"
                     required
-                    placeholder="Ej. Hospital Metropolitano, Clínica Kennedy..."
+                    placeholder="Ej. Av. República E6-447 y Eloy Alfaro, Quito"
                     value={newDoc.clinic}
                     onChange={(e) => setNewDoc({...newDoc, clinic: e.target.value})}
                     className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
                   />
+                </div>
+
+                {/* Schedule / availability */}
+                <div className="space-y-0.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Horario de Atención:</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Lu-Vi 08:00-17:00 | Sáb 09:00-13:00"
+                    value={newDoc.availability}
+                    onChange={(e) => setNewDoc({...newDoc, availability: e.target.value})}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
+                  />
+                  <p className="text-[9px] text-slate-400 pt-0.5">Puede usar | para separar bloques. Ej: Lu-Vi 08:30-18:30 | Sáb 09:00-13:00</p>
                 </div>
 
                 {/* Education and degree */}
