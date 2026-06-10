@@ -72,12 +72,16 @@ async function startServer() {
       'Content-Security-Policy',
       [
         "default-src 'self'",
-        "connect-src 'self' https://api.colmedikal.com https://www.googletagmanager.com https://www.google-analytics.com",
+        "connect-src 'self' https://api.colmedikal.com https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net",
         "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
-        "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: https:",
-        "font-src 'self' data:",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "img-src 'self' data: blob: https:",
+        "frame-src 'self' https://www.google.com https://maps.google.com https://www.openstreetmap.org",
+        "media-src 'self' blob: data:",
+        "worker-src 'self' blob:",
         "frame-ancestors 'none'",
+        "object-src 'none'",
       ].join('; ')
     );
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
