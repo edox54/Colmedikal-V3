@@ -57,7 +57,7 @@ export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuen
     },
     {
       id: 'preexistencias',
-      name: 'Preexistencias, Límites de Edad y Transición',
+      name: 'Preexistencias y Cobertura Especial',
       icon: ShieldCheck,
       items: [
         {
@@ -65,8 +65,8 @@ export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuen
           answer: '• Preexistencias Declaradas: Cualquier patología detallada de forma exhaustiva tendrá cobertura obligatoria a partir del mes 25 de vigencia consecutiva del plan, hasta el límite anual contratado.\n• Preexistencias No Declaradas: Cualquier condición omitida o falseada al momento de suscripción se considera no declarada y queda permanentemente excluida de todo financiamiento, reembolso o servicio.'
         },
         {
-          question: '5. ¿Qué ocurre con mis coberturas al cumplir los 65 años de edad?',
-          answer: 'Al cumplir los 65 años, la Ley Orgánica (LOPAM) estipula una cláusula de transición automática y preferencial hacia el "Plan Colmedikal Sénior 65+". Esto garantiza la continuidad de su cobertura médica, respetando la antigüedad en la compañía y eximiéndolo de nuevos períodos de carencia, aplicando la tarifa técnica aprobada por la SCVS para dicho segmento.'
+          question: '5. ¿Tiene Colmedikal planes para todas las edades?',
+          answer: 'Sí. Colmedikal ofrece cobertura médica sin restricciones de edad. Contamos con planes adaptados a cada etapa de vida, desde niños hasta adultos mayores, garantizando continuidad de cobertura y sin discriminación por edad. Un asesor puede orientarle sobre el plan más conveniente para su perfil.'
         }
       ]
     },

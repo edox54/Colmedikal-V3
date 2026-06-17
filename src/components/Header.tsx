@@ -150,7 +150,7 @@ export default function Header() {
               className="flex items-center gap-3 group"
               id="colmedikal-brand-logo"
             >
-              <Logo className={`w-auto transition-all duration-300 group-hover:scale-105 ${isScrolled ? 'h-8 sm:h-9' : 'h-10 sm:h-11'}`} />
+              <Logo className={`w-auto transition-all duration-300 group-hover:scale-105 ${isScrolled ? 'h-10 sm:h-12' : 'h-13 sm:h-16'}`} />
             </Link>
 
             {/* Desktop Navigation */}

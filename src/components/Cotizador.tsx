@@ -74,7 +74,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
   const navigate = useNavigate();
   const { addLead } = useColmedikal();
   // 1. Selector of Plan Type: masivo | individual | corporativo
-  const [planType, setPlanType] = useState<'masivo' | 'individual' | 'corporativo'>('masivo');
+  const [planType, setPlanType] = useState<'masivo' | 'individual' | 'corporativo'>('individual');
   const [quoteStep, setQuoteStep] = useState(1); // Steps count varies depending on flow
 
   // 2. Personal & Identity state (Shared)
@@ -155,7 +155,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
       caracteristicas: [
         'Entrega de medicina al 100% (Sin costo ni copago)',
         'Especialidades: Medicina General, Familiar, Ginecología y Odontología',
-        'Carencias preferenciales (30 días ambulatorio)',
+        'Telemedicina ilimitada sin carencia (activa desde el primer día)',
         'Odontología (Consultas, profilaxis, restauraciones resina)'
       ]
     },
@@ -185,6 +185,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
       },
       caracteristicas: [
         'Especialidades: Incluye Urología y Traumatología',
+        'Telemedicina ilimitada sin carencia (activa desde el primer día)',
         'Bono de Maternidad de $500,00 para titular',
         'Entrega de medicina al 100% sin copago',
         'Soporte a cirugías programadas preautorizadas'
@@ -216,9 +217,10 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
       },
       caracteristicas: [
         'Especialidades: Medicina Interna, Cardiología y Odontología premium',
+        'Telemedicina ilimitada sin carencia (activa desde el primer día)',
         'Bono de Maternidad premium de $700,00 USD',
         'Límite de Gastos Hospitalarios de $5.000,00 USD',
-        'Exámenes de diagnóstico complementarios con cobertura'
+        'Exámenes de lab e imágenes diagnósticas: $100 totales (ambos incluidos)'
       ]
     }
   ];
@@ -253,10 +255,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
       }
 
       // Decide routing depending on plan type
-      if (planType === 'masivo') {
-        // Massive goes directly to Results! Let's submit data to generateQuoteReceipt first
-        generateQuoteReceipt();
-      } else if (planType === 'individual') {
+      if (planType === 'individual') {
         // Individual goes to Step 3 (Dependants)
         setQuoteStep(3);
       } else if (planType === 'corporativo') {
@@ -605,24 +604,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                     <span className="block text-[10px] font-black tracking-wider text-[#4597CA] uppercase font-mono">
                       Selección del Segmento de Afiliación
                     </span>
-                    <div className="grid grid-cols-3 gap-3">
-                      
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPlanType('masivo');
-                          setDependants([]);
-                          setNumberOfPeople('');
-                        }}
-                        className={`p-3 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
-                          planType === 'masivo'
-                            ? 'bg-gradient-to-br from-white to-[#4597CA]/5 border-[#4597CA] shadow-sm font-bold ring-2 ring-[#4597CA]/10'
-                            : 'bg-white border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        <Calculator className={`w-5 h-5 mb-1 ${planType === 'masivo' ? 'text-[#4597CA]' : 'text-slate-400'}`} />
-                        <span className="text-[10px] uppercase font-sans tracking-tight text-slate-800 font-bold">Plan Masivo</span>
-                      </button>
+                    <div className="grid grid-cols-2 gap-3">
 
                       <button
                         type="button"
@@ -1511,8 +1493,8 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                               <span className="font-semibold text-slate-800 text-right">{plan.ambulancia}</span>
                             </div>
                             <div className="flex justify-between items-center py-1 font-sans">
-                              <span className="text-[#4597CA] text-[10px] font-bold">Exámenes al Año (Lab/Img):</span>
-                              <span className="font-semibold text-slate-850 text-right">Hasta $100.00</span>
+                              <span className="text-[#4597CA] text-[10px] font-bold">Lab e Imágenes (total ambos):</span>
+                              <span className="font-semibold text-slate-850 text-right">$100 USD/Año</span>
                             </div>
                           </div>
 

@@ -13,9 +13,10 @@ export const MEDICAL_PLANS: Plan[] = [
     hospitalNetwork: 'Red Colmedikal',
     features: [
       'Consultas y Especialidades (Pediatría, Ginecología, Medicina Interna) con 100% de cobertura (Sin copago)',
+      'Telemedicina ilimitada sin carencia (sin período de espera)',
       'Cobertura en Cuidados Intensivos hasta $2000',
       'Honorarios médicos cubiertos hasta $2000',
-      'Exámenes de laboratorio e imagen elementales hasta $100',
+      'Exámenes de laboratorio e imágenes diagnósticas: $100 en total (ambos cubiertos juntos)',
       'Muerte por accidente y gastos de sepelio',
       'Ambulancia terrestre por accidente'
     ],
@@ -31,9 +32,10 @@ export const MEDICAL_PLANS: Plan[] = [
     hospitalNetwork: 'Red Colmedikal',
     features: [
       'Consultas y Especialidades (Pediatría, Ginecología, Urología, Traumatología) con 100% de cobertura (Sin copago)',
+      'Telemedicina ilimitada sin carencia (sin período de espera)',
       'Cobertura en Cuidados Intensivos hasta $3000',
       'Honorarios médicos cubiertos hasta $3000',
-      'Exámenes de laboratorio e imagen elementales hasta $100',
+      'Exámenes de laboratorio e imágenes diagnósticas: $100 en total (ambos cubiertos juntos)',
       'Bono de maternidad estipulado hasta $500',
       'Muerte por accidente hasta $2500 y sepelio hasta $500'
     ],
@@ -49,9 +51,10 @@ export const MEDICAL_PLANS: Plan[] = [
     hospitalNetwork: 'Red Colmedikal',
     features: [
       'Consultas y Especialidades (Pediatría, Cardiología, M. Interna, Urología, etc.) con 100% de cobertura (Sin copago)',
+      'Telemedicina ilimitada sin carencia (sin período de espera)',
       'Cobertura en Cuidados Intensivos hasta $5000',
       'Honorarios médicos cubiertos hasta $5000',
-      'Exámenes de laboratorio e imagen elementales hasta $100',
+      'Exámenes de laboratorio e imágenes diagnósticas: $100 en total (ambos cubiertos juntos)',
       'Bono de maternidad estipulado hasta $700',
       'Muerte por accidente hasta $3500 y sepelio hasta $800'
     ],

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  SERVICES_LIST, 
+import {
+  SERVICES_LIST,
 } from '../data';
+import heroBuildingImg from '../assets/images/sede_principal_building_1780025281820.png';
+import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.png';
 import { 
   Search, 
   Hospital, 
@@ -56,6 +58,38 @@ export default function Services({ setCurrentPage }: ServicesProps) {
         <p className="text-slate-600">
           En Colmedikal nos enorgullece brindar acceso preferencial a los mejores especialistas, clínicas privadas y laboratorios del país. Conoce nuestros beneficios integrales.
         </p>
+      </div>
+
+      {/* 1.5. HOSPITAL VISUAL BANNER */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 -mt-6">
+        <div className="relative rounded-3xl overflow-hidden shadow-lg h-64">
+          <img
+            src={heroBuildingImg}
+            alt="Instalaciones y Sede Hospitalaria Colmedikal"
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0C4169]/70 to-transparent flex items-end p-6">
+            <div>
+              <span className="text-xs font-bold text-teal-300 uppercase tracking-widest block mb-1">Red Hospitalaria</span>
+              <h3 className="text-lg font-extrabold text-white leading-tight">Hospitales y Clínicas de Primer Nivel</h3>
+            </div>
+          </div>
+        </div>
+        <div className="relative rounded-3xl overflow-hidden shadow-lg h-64">
+          <img
+            src={heroAppointmentImg}
+            alt="Atención médica de especialistas Colmedikal"
+            className="w-full h-full object-cover object-top"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0C4169]/70 to-transparent flex items-end p-6">
+            <div>
+              <span className="text-xs font-bold text-teal-300 uppercase tracking-widest block mb-1">Especialistas Certificados</span>
+              <h3 className="text-lg font-extrabold text-white leading-tight">Atención Médica Especializada sin Barreras</h3>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 2. SERVICES GRID CARD MODULE */}

@@ -252,7 +252,7 @@ export default function Home() {
             </div>
             <h3 className="text-xl font-bold text-slate-900">Telemedicina Integral 24/7</h3>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Consultas ilimitadas online de atención primaria en medicina general, nutrición y psicología, directo desde cualquier dispositivo y sin necesidad de copagos.
+              Consultas ilimitadas online de atención primaria en medicina general, nutrición y psicología, directo desde cualquier dispositivo y sin necesidad de copagos. <span className="font-semibold text-teal-700">Sin período de carencia</span> — activa desde el primer día.
             </p>
           </div>
 

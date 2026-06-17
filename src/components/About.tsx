@@ -116,12 +116,12 @@ export default function About({ setCurrentPage }: AboutProps) {
       {/* 3. CORPORATE VALUES */}
       <section className="space-y-12 bg-white p-8 sm:p-12 rounded-3xl border border-slate-200 shadow-sm">
         <div className="max-w-2xl mx-auto text-center space-y-3">
-          <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest block">Código Etico</span>
+          <h2 className="text-3xl sm:text-4xl font-display font-black text-indigo-700 uppercase tracking-wide">Código Ético</h2>
           <h3 className="text-2xl sm:text-3xl font-display font-semibold text-slate-900">
             Los pilares que fundamentan cada decisión médica
           </h3>
           <p className="text-xs text-slate-500">
-            No somos solo una aseguradora de salud; somos un equipo humano dedicado a simplificar tu vida y asegurar tu futuro.
+            No somos solo una empresa de salud; somos un equipo humano dedicado a simplificar tu vida y asegurar tu futuro.
           </p>
         </div>
 
