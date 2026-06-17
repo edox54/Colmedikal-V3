@@ -329,19 +329,21 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
       setAssignedRep(repName);
 
       // Save lead inside central context and send to Kommo CRM
-      const basePlanPrice = planType === 'masivo' ? 8 : 12;
-      const estimatedPrice = planType === 'corporativo' ? Number(numberOfPeople || 10) * 18 : calculateDynamicPrice(basePlanPrice);
+      // estimatedPrice: use Plan 2 ($12) as reasonable default since specific plan not yet chosen
+      const estimatedPrice = planType === 'corporativo'
+        ? Number(numberOfPeople || 10) * 18
+        : calculateDynamicPrice(12); // Plan 2 ($12) as estimate — updated when user selects specific plan
       addLead({
         fullName: `${firstName} ${lastName}`,
         email: email,
         phone: phone,
-        type: planType === 'masivo' ? 'individual' : 'familiar',
+        type: dependants.length > 0 ? 'familiar' : 'individual',
         primaryAge: 35,
         childrenCount: dependants.length,
         childrenAges: dependants.map(d => d.ageRange === '0-17' ? 10 : 25),
-        basePlanId: planType === 'masivo' ? 'esencial' : 'premium',
+        basePlanId: 'esencial',
         leadCode: code,
-        selectedPlanName: planType === 'masivo' ? 'Plan Masivo' : planType === 'individual' ? 'Plan Individual' : 'Plan Corporativo',
+        selectedPlanName: planType === 'corporativo' ? 'Plan Corporativo' : 'Plan Individual (pendiente de selección)',
       }, estimatedPrice);
 
       sendLeadToKommoCRM({
@@ -1551,6 +1553,31 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                             onClick={() => {
                               setSelectedPlanToBuy(plan);
                               setCheckoutStep(1);
+                              // Save specific plan lead so admin sees correct plan + price
+                              const specificPrice = calculateDynamicPrice(plan.basePrice);
+                              addLead({
+                                fullName: `${firstName} ${lastName}`,
+                                email: email,
+                                phone: phone,
+                                type: dependants.length > 0 ? 'familiar' : 'individual',
+                                primaryAge: 35,
+                                childrenCount: dependants.length,
+                                childrenAges: dependants.map((d: any) => d.ageRange === '0-17' ? 10 : 25),
+                                basePlanId: plan.id,
+                                leadCode: leadCode,
+                                selectedPlanName: `${plan.name} — $${plan.basePrice}/mes`,
+                              }, specificPrice);
+                              sendLeadToKommoCRM({
+                                name: `${firstName} ${lastName}`,
+                                email: email,
+                                phone: phone,
+                                subject: `Contratación: ${plan.name}`,
+                                amount: specificPrice,
+                                province: province,
+                                details: `PLAN SELECCIONADO: ${plan.name} | Base: $${plan.basePrice}/mes | Total con familiares: $${specificPrice}/mes | Ref: ${leadCode} | Dependientes: ${dependants.length}`,
+                                leadCode: leadCode,
+                                planName: plan.name
+                              });
                             }}
                             className="w-full py-3 rounded-xl bg-[#0C4169] hover:bg-slate-900 text-xs font-black uppercase tracking-wider text-center cursor-pointer shadow hover:shadow-md transition active:scale-97 text-white"
                           >
