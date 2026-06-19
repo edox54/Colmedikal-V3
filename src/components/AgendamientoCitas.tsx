@@ -1,13 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { initialDoctors } from '../data/doctors';
-import { 
-  Calendar, 
-  MapPin, 
-  Clock, 
-  User, 
-  Sparkles, 
-  CheckCircle, 
-  Send, 
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  User,
+  Sparkles,
+  CheckCircle,
+  Send,
   ArrowLeft,
   Mail,
   ShieldCheck,
@@ -16,7 +15,7 @@ import {
   HelpCircle,
   PhoneCall
 } from 'lucide-react';
-import { Page } from '../types';
+import { Page, Doctor } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
 
 interface AgendamientoCitasProps {
@@ -37,27 +36,38 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
   const [specialty, setSpecialty] = useState('Pediatría');
   const [facility, setFacility] = useState('');
 
+  const [facilityDoctors, setFacilityDoctors] = useState<Doctor[]>([]);
+
+  useEffect(() => {
+    fetch('https://api.colmedikal.com/api/doctors?limit=500')
+      .then(r => r.json())
+      .then(d => {
+        const medCenters = (d.data || []).filter(
+          (doc: Doctor) => doc.active !== false &&
+            (doc.specialty === 'Hospital' || doc.specialty === 'Clínica')
+        );
+        setFacilityDoctors(medCenters);
+      })
+      .catch(() => {});
+  }, []);
+
   const { facilityCities, facilitiesByCity } = useMemo(() => {
-    const medCenters = initialDoctors.filter(
-      (d) => d.specialty === 'Hospital' || d.specialty === 'Clínica'
-    );
     const byCity: Record<string, string[]> = {};
-    medCenters.forEach((d) => {
-      const cityKey = d.city.trim();
+    facilityDoctors.forEach((d) => {
+      const cityKey = (d.city || '').trim();
       if (!byCity[cityKey]) byCity[cityKey] = [];
       if (!byCity[cityKey].includes(d.name)) byCity[cityKey].push(d.name);
     });
     const cities = Object.keys(byCity).sort();
     return { facilityCities: cities, facilitiesByCity: byCity };
-  }, []);
+  }, [facilityDoctors]);
 
   useEffect(() => {
+    if (facilityCities.length === 0) return;
     const defaultCity = facilityCities.includes('QUITO') ? 'QUITO' : facilityCities[0];
-    if (defaultCity) {
-      setCity(defaultCity);
-      setFacility(facilitiesByCity[defaultCity]?.[0] || '');
-    }
-  }, []);
+    setCity(defaultCity);
+    setFacility(facilitiesByCity[defaultCity]?.[0] || '');
+  }, [facilityCities]);
 
   const [facilitySearch, setFacilitySearch] = useState('');
   const [facilityOpen, setFacilityOpen] = useState(false);
