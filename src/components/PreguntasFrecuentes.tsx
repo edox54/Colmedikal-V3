@@ -30,6 +30,21 @@ interface FAQCategory {
   items: FAQItem[];
 }
 
+const renderAnswer = (answer: string) => (
+  <div className="space-y-1.5">
+    {answer.split('\n').map((line, i) => (
+      <p key={i} className={line.startsWith('•') ? 'flex gap-2' : ''}>
+        {line.startsWith('•') ? (
+          <>
+            <span className="text-teal-500 shrink-0 mt-0.5">•</span>
+            <span>{line.slice(1).trim()}</span>
+          </>
+        ) : line}
+      </p>
+    ))}
+  </div>
+);
+
 export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuentesProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('carencias');
@@ -199,7 +214,7 @@ export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuen
 
                     {isOpen && (
                       <div className="mt-3 text-xs text-slate-600 leading-relaxed bg-slate-50/50 p-4 rounded-xl border border-slate-100 animate-in fade-in slide-in-from-top-1">
-                        {item.answer}
+                        {renderAnswer(item.answer)}
                       </div>
                     )}
                   </div>
@@ -224,9 +239,9 @@ export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuen
                     {categoryName}
                   </span>
                   <h4 className="text-sm font-bold text-slate-900 leading-snug">{item.question}</h4>
-                  <p className="text-xs text-slate-600 leading-relaxed bg-slate-50/40 p-3 rounded-lg border border-slate-100">
-                    {item.answer}
-                  </p>
+                  <div className="text-xs text-slate-600 leading-relaxed bg-slate-50/40 p-3 rounded-lg border border-slate-100">
+                    {renderAnswer(item.answer)}
+                  </div>
                 </div>
               ))}
             </div>
