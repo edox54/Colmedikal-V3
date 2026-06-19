@@ -118,11 +118,11 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                   <Phone className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="block text-xs text-slate-400 font-semibold uppercase tracking-wider">Centro de Asistencia</span>
+                  <span className="block text-xs text-slate-400 font-semibold uppercase tracking-wider">Centro de Atención al Cliente</span>
                   <a href="tel:022567191" className="block text-base font-bold text-slate-900 font-mono hover:text-teal-600 transition-colors">
                     02-2567191
                   </a>
-                  <span className="text-[11px] text-slate-500">Asistencia telefónica y soporte nacional</span>
+                  <span className="text-[11px] text-slate-500">Atiende equipo comercial Colmedikal — ventas y afiliaciones</span>
                 </div>
               </div>
 
@@ -131,11 +131,11 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                   <span className="text-lg font-bold">💬</span>
                 </div>
                 <div>
-                  <span className="block text-xs text-slate-400 font-semibold uppercase tracking-wider">WhatsApp Citas</span>
+                  <span className="block text-xs text-slate-400 font-semibold uppercase tracking-wider">WhatsApp — Equipo de Agendamiento</span>
                   <a href="https://wa.me/593987028756" target="_blank" rel="noreferrer" className="block text-base font-bold text-slate-900 font-mono hover:text-emerald-650 transition-colors">
                     098 702 8756
                   </a>
-                  <span className="text-[11px] text-slate-500">Reserva de citas médicas y consultas</span>
+                  <span className="text-[11px] text-slate-500">Atiende coordinación médica — citas, autorizaciones y consultas de afiliados</span>
                 </div>
               </div>
 
@@ -144,7 +144,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="block text-xs text-slate-400 font-semibold uppercase tracking-wider">Correo Corporativo</span>
+                  <span className="block text-xs text-slate-400 font-semibold uppercase tracking-wider">Correo de Contacto</span>
                   <a href="mailto:info@colmedikal.com" className="block text-base font-bold text-slate-900 hover:text-indigo-600 transition-colors">
                     info@colmedikal.com
                   </a>
@@ -217,8 +217,8 @@ export default function Contact({ setCurrentPage }: ContactProps) {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6" id="contact-form-submit">
               <div>
-                <h3 className="text-xl font-bold text-slate-950 mb-1">Envíanos un Mensaje</h3>
-                <p className="text-xs text-slate-400">Te responderemos a la brevedad posible.</p>
+                <h3 className="text-xl font-bold text-slate-950 mb-1">Indícame tu información de contacto</h3>
+                <p className="text-xs text-slate-400">Me encargaré de diseñar la mejor opción para ti y tu familia.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -291,7 +291,6 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                   id="contact-topic"
                 >
                   <option value="Información de Planes">Quiero información para afiliarme a planes de salud</option>
-                  <option value=" Planes Corporativos Colectivos">Planes gubernamentales o para colaboradores pymes</option>
                   <option value="Servicio al Afiliado Reclamos">Servicio al afiliado / Autorizaciones pendientes</option>
                   <option value="Proveedor de Salud Medico">Deseo ser proveedor de salud en red</option>
                 </select>

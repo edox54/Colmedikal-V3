@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SERVICES_LIST,
 } from '../data';
+import { Doctor } from '../types';
 import heroBuildingImg from '../assets/images/sede_principal_building_1780025281820.png';
 import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.png';
 import { 
@@ -14,7 +15,6 @@ import {
   Globe,
   Sparkles,
   PhoneCall,
-  Flame,
   Stethoscope,
   Heart,
   CalendarDays
@@ -27,24 +27,20 @@ interface ServicesProps {
 
 export default function Services({ setCurrentPage }: ServicesProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'clinica' | 'especialidad'>('all');
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
 
-  // Interactive diagnostic search database
-  const clinicNetworkData = [
-    { name: 'Clínica San Francisco', city: 'Quito', rating: 'Nivel A1', specialty: 'Urgencias, Cardiología, Maternidad', tel: '02-3951000' },
-    { name: 'Hospital Metropolitano', city: 'Quito', rating: 'Nivel A1 Premium', specialty: 'Cirugías de alta complejidad', tel: '02-3998000' },
-    { name: 'Clínica Kennedy', city: 'Guayaquil', rating: 'Nivel A1', specialty: 'Dermatología, Traumatología, Neo', tel: '04-2289600' },
-    { name: 'Hospital Alcívar', city: 'Guayaquil', rating: 'Nivel A2', specialty: 'Especialistas traumatología general', tel: '04-2583300' },
-    { name: 'Clínica Santa Inés', city: 'Cuenca', rating: 'Nivel A1', specialty: 'Cirugía pediátrica, Oncología', tel: '07-2815500' },
-    { name: 'Clínica Manta', city: 'Manta', rating: 'Nivel A2', specialty: 'Ginecología y urgencias respiratorias', tel: '05-2621400' }
-  ];
+  useEffect(() => {
+    fetch('https://api.colmedikal.com/api/doctors?limit=500')
+      .then(r => r.json())
+      .then(d => setDoctors((d.data || []).filter((doc: Doctor) => doc.active !== false)))
+      .catch(() => {});
+  }, []);
 
-  const filteredClinics = clinicNetworkData.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.specialty.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredDoctors = doctors.filter(doc =>
+    doc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.specialty?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.city?.toLowerCase().includes(searchTerm.toLowerCase())
+  ).slice(0, 6);
 
   return (
     <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-services-view">
@@ -211,84 +207,87 @@ export default function Services({ setCurrentPage }: ServicesProps) {
         </div>
       </section>
 
-      {/* 4. INTERACTIVE CLINICS NETWORK DIRECTORY */}
+      {/* 4. DIRECTORIO DE MÉDICOS EN RED */}
       <section className="space-y-8 bg-slate-50 p-8 rounded-3xl border border-slate-200">
-        
+
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-slate-200 pb-6">
           <div className="space-y-2">
             <h2 className="text-2xl font-bold font-display text-slate-900">
-              Directorio Interactivo de Clínicas en Red
+              Médicos de Nuestra Red
             </h2>
             <p className="text-xs text-slate-500">
-              Usa el campo de búsqueda para ubicar de inmediato cuáles clínicas cuentan con cobertura directa Colmedikal.
+              Especialistas certificados disponibles para atención directa con cobertura Colmedikal.
             </p>
           </div>
 
           <div className="relative w-full md:w-80">
             <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input 
+            <input
               type="text"
-              placeholder="Buscar por Nombre, Ciudad o Especialidad..."
+              placeholder="Buscar por nombre, especialidad o ciudad..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none placeholder:text-slate-400"
-              id="clinic-network-search"
+              id="doctor-network-search"
             />
           </div>
         </div>
 
-        {/* Clinics render table/cards */}
-        {filteredClinics.length > 0 ? (
+        {doctors.length === 0 ? (
+          <div className="bg-white text-center py-12 rounded-2xl border border-slate-200 space-y-4">
+            <Stethoscope className="w-12 h-12 text-slate-300 mx-auto" />
+            <div>
+              <p className="text-sm text-slate-600 font-semibold">Cargando directorio médico...</p>
+              <p className="text-xs text-slate-400">Los especialistas se mostrarán en un momento.</p>
+            </div>
+          </div>
+        ) : filteredDoctors.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredClinics.map((clinic, index) => (
-              <div 
-                key={index} 
-                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 hover:border-indigo-200 transition-colors"
-                id={`clinic-item-${index}`}
+            {filteredDoctors.map((doc) => (
+              <div
+                key={doc.id}
+                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 hover:border-teal-200 transition-colors"
               >
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
-                      <Hospital className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900">{clinic.name}</h4>
-                      <p className="text-[11px] text-slate-400 flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-red-500" /> {clinic.city}
-                      </p>
-                    </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0 font-black text-base">
+                    {doc.name?.charAt(0) || 'M'}
                   </div>
-                  <span className="text-[10px] bg-teal-50 text-teal-700 px-2 py-0.5 rounded font-mono font-semibold">
-                    {clinic.rating}
-                  </span>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-bold text-slate-900 truncate">{doc.name}</h4>
+                    <p className="text-[11px] text-teal-600 font-semibold">{doc.specialty}</p>
+                    <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-3 h-3 text-red-400 shrink-0" /> {doc.city}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="text-xs border-t border-slate-100 pt-3 space-y-1.5 text-slate-600">
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Especialidades con Tratamiento Directo:</span>
-                  <p>{clinic.specialty}</p>
-                </div>
+                {doc.clinic && (
+                  <div className="text-[10.5px] text-slate-600 border-t border-slate-100 pt-3">
+                    <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider block mb-0.5">Clínica</span>
+                    {doc.clinic}
+                  </div>
+                )}
 
-                <div className="flex items-center justify-between text-[11px] pt-1">
-                  <span className="text-slate-400">Teléfono Directo:</span>
-                  <a href={`tel:${clinic.tel}`} className="font-mono text-indigo-600 hover:underline font-semibold">
-                    {clinic.tel}
-                  </a>
-                </div>
+                {doc.phone && (
+                  <div className="flex items-center justify-between text-[11px] pt-1">
+                    <span className="text-slate-400">Contacto:</span>
+                    <a href={`tel:${doc.phone}`} className="font-mono text-teal-600 hover:underline font-semibold">
+                      {doc.phone}
+                    </a>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         ) : (
           <div className="bg-white text-center py-12 rounded-2xl border border-slate-200 space-y-4">
-            <Hospital className="w-12 h-12 text-slate-300 mx-auto" />
+            <Stethoscope className="w-12 h-12 text-slate-300 mx-auto" />
             <div>
-              <p className="text-sm text-slate-600 font-semibold">No se encontraron clínicas para tu criterio de búsqueda.</p>
-              <p className="text-xs text-slate-400">Prueba con "Quito", "Guayaquil", "Mantenimiento" o ingresando otro término.</p>
+              <p className="text-sm text-slate-600 font-semibold">No se encontraron médicos para ese criterio.</p>
+              <p className="text-xs text-slate-400">Prueba con otra especialidad o ciudad.</p>
             </div>
-            <button
-              onClick={() => setSearchTerm('')}
-              className="text-xs font-semibold text-teal-600 hover:underline"
-            >
-              Reiniciar búsqueda
+            <button onClick={() => setSearchTerm('')} className="text-xs font-semibold text-teal-600 hover:underline">
+              Ver todos los médicos
             </button>
           </div>
         )}
@@ -296,13 +295,13 @@ export default function Services({ setCurrentPage }: ServicesProps) {
         <div className="bg-indigo-50/50 p-4 rounded-2xl text-xs text-indigo-950 border border-indigo-100 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
             <CalendarDays className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span>¿Requieres agendar un turno con un médico en particular en estas clínicas?</span>
+            <span>¿Deseas ver el directorio completo o agendar una cita con alguno de nuestros especialistas?</span>
           </div>
           <button
-            onClick={() => setCurrentPage('contacto')}
+            onClick={() => setCurrentPage('directorio')}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shrink-0 text-xs font-mono"
           >
-            Soporte Citas Online
+            Ver Directorio Completo
           </button>
         </div>
 

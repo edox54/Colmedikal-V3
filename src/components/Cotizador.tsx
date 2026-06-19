@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Calculator, 
-  User, 
-  Users, 
-  Briefcase, 
-  ArrowRight, 
+  Calculator,
+  User,
+  Users,
+  ArrowRight,
   ArrowLeft, 
   Check, 
   MapPin, 
@@ -73,8 +72,8 @@ const PROVINCES = [
 export default function Cotizador({ selectedPlanId }: CotizadorProps) {
   const navigate = useNavigate();
   const { addLead } = useColmedikal();
-  // 1. Selector of Plan Type: masivo | individual | corporativo
-  const [planType, setPlanType] = useState<'masivo' | 'individual' | 'corporativo'>('individual');
+  // Solo plan individual
+  const planType = 'individual';
   const [quoteStep, setQuoteStep] = useState(1); // Steps count varies depending on flow
 
   // 2. Personal & Identity state (Shared)
@@ -90,8 +89,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
   const [dependants, setDependants] = useState<Dependant[]>([]);
   const [isPrimaryTitular, setIsPrimaryTitular] = useState(true);
 
-  // 4. Volume block state (For Corporate plans only)
-  const [numberOfPeople, setNumberOfPeople] = useState('');
+  // (Corporate plan removed)
 
   // 5. Finishing & CRM states
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -254,26 +252,9 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
         return;
       }
 
-      // Decide routing depending on plan type
-      if (planType === 'individual') {
-        // Individual goes to Step 3 (Dependants)
-        setQuoteStep(3);
-      } else if (planType === 'corporativo') {
-        // Corporate goes to Volume Input
-        setQuoteStep(3);
-      }
+      setQuoteStep(3);
     } else if (quoteStep === 3) {
-      // If we are individual, we advance to results. Let's submit to generateQuoteReceipt!
-      if (planType === 'individual') {
-        generateQuoteReceipt();
-      } else if (planType === 'corporativo') {
-        // Validate volume
-        if (!numberOfPeople) {
-          alert('Por favor ingrese el número proyectado de colaboradores.');
-          return;
-        }
-        generateQuoteReceipt();
-      }
+      generateQuoteReceipt();
     }
   };
 
@@ -320,19 +301,13 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
     setTimeout(() => {
       clearInterval(intervalId);
       // Assign executive based on plan type and region
-      let repName = 'Ing. Carolina Delgado (Asesor Corporativo)';
-      if (planType === 'masivo') repName = 'Lcdo. Francisco Meza (Atención Canales)';
-      else if (planType === 'individual') repName = 'Dra. Patricia Franco (Asesor de Afiliación)';
+      const repName = 'Dra. Patricia Franco (Asesora de Afiliación)';
 
       const code = 'COT-' + Math.floor(Math.random() * 900000 + 100000);
       setLeadCode(code);
       setAssignedRep(repName);
 
-      // Save lead inside central context and send to Kommo CRM
-      // estimatedPrice: use Plan 2 ($12) as reasonable default since specific plan not yet chosen
-      const estimatedPrice = planType === 'corporativo'
-        ? Number(numberOfPeople || 10) * 18
-        : calculateDynamicPrice(12); // Plan 2 ($12) as estimate — updated when user selects specific plan
+      const estimatedPrice = calculateDynamicPrice(12);
       addLead({
         fullName: `${firstName} ${lastName}`,
         email: email,
@@ -343,19 +318,19 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
         childrenAges: dependants.map(d => d.ageRange === '0-17' ? 10 : 25),
         basePlanId: 'esencial',
         leadCode: code,
-        selectedPlanName: planType === 'corporativo' ? 'Plan Corporativo' : 'Plan Individual (pendiente de selección)',
+        selectedPlanName: 'Plan Individual (pendiente de selección)',
       }, estimatedPrice);
 
       sendLeadToKommoCRM({
         name: `${firstName} ${lastName}`,
         email: email,
         phone: phone,
-        subject: `Cotización Web: Plan ${planType.toUpperCase()}`,
+        subject: `Cotización Web: Plan Individual`,
         amount: estimatedPrice,
         province: province,
-        details: `Propuesta de Plan de salud ${planType.toUpperCase()}. Provincia de cobertura: ${province}. Código de Cotización: ${code}. Dependientes: ${dependants.length || 0} familiares.`,
+        details: `Propuesta de Plan Individual. Provincia de cobertura: ${province}. Código de Cotización: ${code}. Dependientes: ${dependants.length || 0}.`,
         leadCode: code,
-        planName: `Plan ${planType.toUpperCase()}`
+        planName: 'Plan Individual'
       });
 
       setIsSubmitting(false);
@@ -456,7 +431,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                   <div className="min-h-[44px] flex items-center justify-center p-1 bg-sky-950/20 rounded-lg">
                     <p key={activePhraseIndex} className="text-xs sm:text-[13px] font-bold font-sans text-teal-300 animate-in slide-in-from-bottom-2 duration-300">
                       {activePhraseIndex === 0 && `Iniciando análisis multivariable de políticas de Colmedikal para ${firstName || 'beneficiario'} ${lastName || ''}...`}
-                      {activePhraseIndex === 1 && (planType === 'corporativo' ? `Dimensionando tasas preferenciales y volumen técnico para ${numberOfPeople || '30'} personas...` : `Evaluando el grupo de ${dependants.length + 1} beneficiario(s) asegurables...`)}
+                      {activePhraseIndex === 1 && `Evaluando el grupo de ${dependants.length + 1} beneficiario(s) asegurables...`}
                       {activePhraseIndex === 2 && `Localizando prestadores médicos acreditados en la provincia de ${province}...`}
                       {activePhraseIndex === 3 && 'Calculando cobertura al 100% en especialidades de nuestra red médica...'}
                       {activePhraseIndex === 4 && 'Aplicando descuentos de escala digital Colmedikal...'}
@@ -536,16 +511,13 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                     </p>
                     <p className="text-[11px] text-slate-600 font-medium font-sans leading-normal">
                       {quoteStep === 1 && (
-                        <>¡Hola! Qué gusto saludarte. Soy Sofía, tu asesora virtual de Colmedikal. Para empezar, indícame tu información de contacto y selecciona si cotizas un plan de salud <strong>Individual</strong>, <strong>Familiar</strong> o <strong>Corporativo</strong>. ¡Me encargaré de diseñar tu propuesta ideal!</>
+                        <>¡Hola! Soy Sofía, tu asesora virtual de Colmedikal. Indícame tu información de contacto, y me encargaré de diseñar la mejor opción para ti y tu familia.</>
                       )}
                       {quoteStep === 2 && (
                         <>¡Perfecto, {firstName || 'estimado(a)'}! He registrado tus datos de contacto iniciales. Ahora necesitaremos que indiques tu documento de identidad para realizar el pre-registro digital en Colmedikal de manera 100% segura y confidencial.</>
                       )}
-                      {quoteStep === 3 && planType === 'individual' && (
-                        <>Excelente, {firstName}. ¿Deseas añadir cónyuge o hijos? El Plan Colectivo Llave en Mano ofrece tarifas muy reducidas cuando se consolida para un grupo familiar de 3 o más personas.</>
-                      )}
-                      {quoteStep === 3 && planType === 'corporativo' && (
-                        <>Excelente decisión empresarial, {firstName}. El volumen corporativo nos permite aplicar importantes descuentos de escala grupal. Indícame cuántas personas conformarán el colectivo.</>
+                      {quoteStep === 3 && (
+                        <>Excelente, {firstName}. ¿Deseas añadir a tu cónyuge o hijos al plan? Puedes agregar dependientes para consolidar la cobertura de toda tu familia.</>
                       )}
                     </p>
                     
@@ -567,7 +539,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-slate-300 font-medium">Formulación Digital</span>
                       <span className="font-mono text-[9.5px] text-sky-300 font-bold animate-pulse">
-                        Paso {quoteStep} de {planType === 'masivo' ? '2' : '3'}
+                        Paso {quoteStep} de 3
                       </span>
                     </div>
                     <div className="h-1.5 bg-sky-950/60 rounded-full overflow-hidden border border-sky-900/20">
@@ -578,7 +550,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                     </div>
                     <div className="flex justify-between text-[9.5px] text-slate-400 font-medium pt-0.5">
                       <span>Proceso Activo</span>
-                      <span>{Math.round((quoteStep / (planType === 'masivo' ? 2 : 3)) * 100)}% Completado</span>
+                      <span>{Math.round((quoteStep / 3) * 100)}% Completado</span>
                     </div>
                   </div>
                 </div>
@@ -600,46 +572,12 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
             <div className="md:col-span-8 p-6 sm:p-10 flex flex-col justify-between">
               <div>
                 
-                {/* INITIAL PLAN TYPE CHOICE selector (Only visible in step 1) */}
+                {/* Plan type indicator */}
                 {quoteStep === 1 && (
-                  <div className="space-y-4 mb-8">
-                    <span className="block text-[10px] font-black tracking-wider text-[#4597CA] uppercase font-mono">
-                      Selección del Segmento de Afiliación
-                    </span>
-                    <div className="grid grid-cols-2 gap-3">
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPlanType('individual');
-                          setNumberOfPeople('');
-                        }}
-                        className={`p-3 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
-                          planType === 'individual'
-                            ? 'bg-gradient-to-br from-white to-teal-50/5 border-teal-500 shadow-sm font-bold ring-2 ring-teal-500/10'
-                            : 'bg-white border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        <User className={`w-5 h-5 mb-1 ${planType === 'individual' ? 'text-teal-600' : 'text-slate-400'}`} />
-                        <span className="text-[10px] uppercase tracking-tight text-slate-800 font-bold">Plan Individual</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPlanType('corporativo');
-                          setDependants([]);
-                        }}
-                        className={`p-3 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
-                          planType === 'corporativo'
-                            ? 'bg-gradient-to-br from-white to-indigo-50/5 border-indigo-500 shadow-sm font-bold ring-2 ring-indigo-500/10'
-                            : 'bg-white border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        <Briefcase className={`w-5 h-5 mb-1 ${planType === 'corporativo' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                        <span className="text-[10px] uppercase tracking-tight text-slate-800 font-bold">Corporativo</span>
-                      </button>
-
+                  <div className="mb-6">
+                    <div className="inline-flex items-center gap-2 bg-teal-50 border border-teal-200 px-4 py-2 rounded-xl">
+                      <User className="w-4 h-4 text-teal-600" />
+                      <span className="text-xs font-bold text-teal-800 uppercase tracking-wide">Plan Individual</span>
                     </div>
                   </div>
                 )}
@@ -790,16 +728,16 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                   <div className="space-y-4 animate-in fade-in duration-350">
                     <div className="flex justify-between items-center border-b border-slate-105 pb-1">
                       <span className="block text-xs font-bold text-[#0C4169] uppercase tracking-wider">
-                        Paso 3: Grupo Familiar Adicional
+                        Paso 3: Dependientes Adicionales
                       </span>
-                      
+
                       <button
                         type="button"
                         onClick={addDependant}
                         className="flex items-center gap-1 bg-teal-50 text-teal-700 hover:bg-teal-100/70 border border-teal-200 px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wide cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        <span>Agregar Familiar</span>
+                        <span>Agregar Dependiente</span>
                       </button>
                     </div>
 
@@ -822,7 +760,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                       {dependants.length === 0 ? (
                         <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                           <p className="text-xs text-slate-500 font-medium">No ha agregado dependientes a su cotización regular.</p>
-                          <p className="text-[10.5px] text-slate-400 mt-0.5">Haga clic en "Agregar Familiar" para cotizar a su cónyuge o hijos.</p>
+                          <p className="text-[10.5px] text-slate-400 mt-0.5">Haga clic en "Agregar Dependiente" para incluir a su cónyuge o hijos.</p>
                         </div>
                       ) : (
                         <div className="space-y-3.5 max-h-[220px] overflow-y-auto pr-1">
@@ -830,7 +768,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                             <div key={dep.id} className="p-4 rounded-xl bg-teal-50/30 border border-teal-500/10 grid grid-cols-1 md:grid-cols-12 gap-3 items-center animate-in zoom-in-95 duration-150">
                               
                               <div className="md:col-span-3">
-                                <span className="block text-[10px] font-bold text-[#0C4169] uppercase">Familiar #{index + 1}</span>
+                                <span className="block text-[10px] font-bold text-[#0C4169] uppercase">Dependiente #{index + 1}</span>
                               </div>
 
                               {/* Gender dropdown */}
@@ -894,41 +832,6 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                   </div>
                 )}
 
-                {/* STEP 3 (FOR CORPORATIVE ONLY): VOLUME COLLABORATOR REQUIRED INPUT */}
-                {quoteStep === 3 && planType === 'corporativo' && (
-                  <div className="space-y-4 animate-in fade-in duration-350">
-                    <span className="block text-xs font-bold text-[#0C4169] uppercase tracking-wider border-b border-slate-105 pb-1">
-                      Paso 3: Proyección del Colectivo Institucional
-                    </span>
-
-                    <div className="p-5 bg-indigo-50/25 border border-indigo-500/10 rounded-2xl space-y-6">
-                      
-                      <div className="space-y-1.5 max-w-sm">
-                        <label className="block text-xs font-bold text-slate-800">Número de personas para la cotización: <span className="text-rose-500">*</span></label>
-                        <input
-                          type="number"
-                          required
-                          min="3"
-                          placeholder="Ej. 15"
-                          value={numberOfPeople}
-                          onChange={(e) => setNumberOfPeople(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-white border border-slate-250 rounded-xl text-xs font-mono font-bold focus:ring-1 focus:ring-indigo-500 outline-none"
-                        />
-                        <span className="block text-[10px] text-slate-400 leading-tight">Mínimo legal de 3 beneficiarios o dependientes para consolidar tasas de Plan Colectivo Llave en Mano.</span>
-                      </div>
-
-                      <div className="text-xs text-slate-600 leading-relaxed space-y-2">
-                        <p className="font-bold text-[#0C4169]">Beneficios corporativos de red unificados:</p>
-                        <ul className="list-disc list-inside space-y-1 pl-1 text-[11px]">
-                          <li>Financiamiento corporativo con tasas deducibles de Impuesto a la Renta.</li>
-                          <li>Exclusiones preexistentes negociables según volumen de la cuenta.</li>
-                          <li>Precios diferenciados estables por encima de los 10 inscritos directos.</li>
-                        </ul>
-                      </div>
-
-                    </div>
-                  </div>
-                )}
 
               </div>
 
@@ -958,11 +861,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                     <span>Generando Cotización...</span>
                   ) : (
                     <>
-                      <span>{
-                        (quoteStep === 2 && planType === 'masivo') || (quoteStep === 3)
-                          ? 'Finalizar y Ver Comparativa' 
-                          : 'Siguiente Paso'
-                      }</span>
+                      <span>{quoteStep === 3 ? 'Finalizar y Ver Comparativa' : 'Siguiente Paso'}</span>
                       <ArrowRight className="w-4 h-4 text-[#4597CA]" />
                     </>
                   )}
@@ -982,7 +881,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                 <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-[#0C4169] bg-sky-50 border border-sky-100 px-2.5 py-0.5 rounded-full">
                   Cotización Generada Exitosamente
                 </span>
-                <h2 className="text-2xl font-extrabold text-[#0C4169] tracking-tight">Comparativa de Planes Diseñada para Ti</h2>
+                <h2 className="text-2xl font-extrabold text-[#0C4169] tracking-tight">Comparativo de planes diseñados para ti</h2>
                 <div className="space-y-1.5 mt-1">
                   <p className="text-xs text-slate-500 font-sans">
                     Estimación formal registrada en Colmedikal bajo el código de cotización <strong>{leadCode}</strong>
@@ -1014,47 +913,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
               </div>
             </div>
 
-            {/* If it was corporate plan type, display corporate call to action */}
-            {planType === 'corporativo' ? (
-              <div className="bg-[#0C4169] p-8 rounded-3xl text-white space-y-6 shadow-xl border border-white/5 relative overflow-hidden">
-                <div className="absolute right-0 top-0 pointer-events-none z-0 opacity-15 overflow-hidden translate-x-12 -translate-y-12">
-                  <svg className="w-72 h-72 text-white" fill="currentColor" viewBox="0 0 100 100">
-                    <path d="M 38 10 H 62 V 38 H 90 V 62 H 62 V 90 H 38 V 62 H 10 V 38 H 38 Z" />
-                  </svg>
-                </div>
-
-                <div className="relative z-10 space-y-3 max-w-2xl">
-                  <span className="text-[10px] font-bold text-sky-300 font-mono tracking-wider uppercase border border-sky-400/20 px-2.5 py-0.5 rounded bg-sky-950/30">
-                    Cotización Colectiva Corporativa
-                  </span>
-                  
-                  <h3 className="text-xl sm:text-2xl font-black font-sans leading-tight">
-                    ¡Gracias por cotizar! Nuestro comercial te contactará para un plan a la medida
-                  </h3>
-                  
-                  <p className="text-xs text-slate-200 leading-relaxed font-sans">
-                    Hemos registrado tu solicitud de cotización para el proyecto de <strong>{numberOfPeople} personas</strong> corporativas en la provincia de {province}. Tu ejecutivo comercial asignado es <strong>{assignedRep}</strong>, quien formulará una propuesta integral llave en mano con tarifas preferenciales y descuentos de escala.
-                  </p>
-                </div>
-
-                <div className="pt-4 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-white/10 relative z-10 text-xs">
-                  <div className="space-y-1">
-                    <span className="text-slate-400 block font-mono">Territorio Asignado:</span>
-                    <span className="text-white font-bold block">{province}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-slate-400 block font-mono">Colaboradores Proyectados:</span>
-                    <span className="text-white font-bold block">{numberOfPeople} Integrantes</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-slate-400 block font-mono">Canal Comercial:</span>
-                    <span className="text-sky-300 font-bold block">Canal Directo Colmedikal Premium</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* OTHERWISE: Plan Masivo or Plan Individual results comparison grid */
-              <div className="space-y-8">
+            <div className="space-y-8">
                 {selectedPlanToBuy ? (
                   /* ACTIVE CONTRACTING / CHECKOUT WIZARD FLOW */
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
@@ -1442,13 +1301,21 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                         {/* Header tier info */}
                         <div className="p-6 sm:p-7 space-y-4 border-b border-slate-100 flex-grow">
                           <div>
-                            {plan.id === 'plan2' && (
-                              <span className="inline-block bg-teal-50 border border-teal-250 text-teal-700 font-extrabold text-[8.5px] uppercase tracking-widest px-2.5 py-0.5 rounded-full mb-2">
-                                Elección Recomendada
+                            <div className="flex flex-wrap gap-1.5 mb-2.5">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                                plan.id === 'plan1' ? 'bg-sky-50 border-sky-200 text-sky-700' :
+                                plan.id === 'plan2' ? 'bg-teal-50 border-teal-250 text-teal-700' :
+                                'bg-indigo-50 border-indigo-200 text-indigo-700'
+                              }`}>
+                                {plan.name}
                               </span>
-                            )}
-                            <h3 className="text-lg font-black text-[#0C4169]">{plan.name}</h3>
-                            <p className="text-[10px] text-slate-400 mt-0.5">Asistencia médica familiar Colmedikal</p>
+                              {plan.id === 'plan2' && (
+                                <span className="inline-flex items-center bg-amber-50 border border-amber-200 text-amber-700 font-extrabold text-[8.5px] uppercase tracking-widest px-2.5 py-0.5 rounded-full">
+                                  Recomendado
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-400">Medicina Prepagada Colmedikal</p>
                           </div>
 
                           {/* Pricing block */}
@@ -1506,7 +1373,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                               Especialidades Cubiertas:
                             </span>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10.5px]">
-                              {Object.entries(plan.especialidades).map(([spec, inc]) => (
+                              {Object.entries(plan.especialidades).sort(([, a], [, b]) => Number(b) - Number(a)).map(([spec, inc]) => (
                                 <div 
                                   key={spec} 
                                   className={`flex items-start gap-1.5 px-2 py-1 rounded-md border transition-all duration-300 ${
@@ -1574,7 +1441,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                                 subject: `Contratación: ${plan.name}`,
                                 amount: specificPrice,
                                 province: province,
-                                details: `PLAN SELECCIONADO: ${plan.name} | Base: $${plan.basePrice}/mes | Total con familiares: $${specificPrice}/mes | Ref: ${leadCode} | Dependientes: ${dependants.length}`,
+                                details: `PLAN SELECCIONADO: ${plan.name} | Base: $${plan.basePrice}/mes | Total con dependientes: $${specificPrice}/mes | Ref: ${leadCode} | Dependientes: ${dependants.length}`,
                                 leadCode: leadCode,
                                 planName: plan.name
                               });
@@ -1590,7 +1457,6 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                   </div>
                 )}
               </div>
-            )}
 
           </div>
         )}
