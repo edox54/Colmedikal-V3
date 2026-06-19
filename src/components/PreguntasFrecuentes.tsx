@@ -62,7 +62,7 @@ export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuen
       items: [
         {
           question: '4. ¿Tienen cobertura las enfermedades preexistentes y qué ocurre si omito declarar una patología?',
-          answer: '• Preexistencias Declaradas: Cualquier patología detallada de forma exhaustiva tendrá cobertura obligatoria a partir del mes 25 de vigencia consecutiva del plan, hasta el límite anual contratado.\n• Preexistencias No Declaradas: Cualquier condición omitida o falseada al momento de suscripción se considera no declarada y queda permanentemente excluida de todo financiamiento, reembolso o servicio.'
+          answer: '• Preexistencias Declaradas: Cualquier patología detallada de forma exhaustiva tendrá cobertura obligatoria a partir del mes 25 de vigencia consecutiva del plan, hasta el límite anual contratado o 20 salarios básicos, de conformidad con la Ley ecuatoriana vigente.\n• Preexistencias No Declaradas: Cualquier condición omitida o falseada al momento de suscripción se considera no declarada y queda permanentemente excluida de todo financiamiento, reembolso o servicio.'
         },
         {
           question: '5. ¿Tiene Colmedikal planes para todas las edades?',
