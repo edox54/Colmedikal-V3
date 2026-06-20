@@ -257,13 +257,16 @@ export default function Header() {
 
               <Link
                 to="/cotizador"
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 shadow-md ${
+                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                   location.pathname === '/cotizador'
-                    ? 'bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white shadow-[#0C4169]/20 scale-95'
-                    : 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-[#4597CA]/10 hover:shadow-[#4597CA]/20 hover:scale-102 hover:-translate-y-0.5'
+                    ? 'bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white shadow-md shadow-[#0C4169]/20 scale-95'
+                    : 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-[0_0_18px_4px_rgba(69,151,202,0.45)] hover:shadow-[0_0_26px_6px_rgba(69,151,202,0.65)] hover:scale-102 hover:-translate-y-0.5'
                 }`}
                 id="cta-nav-cotizador"
               >
+                {location.pathname !== '/cotizador' && (
+                  <span className="absolute inset-[-4px] rounded-full border border-[#4597CA]/50 animate-pulse pointer-events-none" />
+                )}
                 <Calculator className="w-4 h-4" />
                 <span>Cotizar Plan</span>
               </Link>
