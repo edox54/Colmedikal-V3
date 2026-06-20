@@ -103,9 +103,9 @@ export default function Header() {
   };
 
   return (
-    <div className="w-full flex flex-col z-50 sticky top-0 shadow-sm border-b border-teal-50">
-      {/* Top Info Bar Mobile Animated Version */}
-      <div className={`sm:hidden bg-slate-900 text-slate-300 px-4 flex justify-center items-center text-[11px] font-medium relative overflow-hidden transition-all duration-300 ${isScrolled ? 'h-0 py-0 opacity-0' : 'h-9 py-2.5 opacity-100'}`}>
+    <div className="w-full flex flex-col">
+      {/* Top Info Bar Mobile — scrolls away naturally (not sticky) */}
+      <div className="sm:hidden bg-slate-900 text-slate-300 px-4 h-9 py-2.5 flex justify-center items-center text-[11px] font-medium relative overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentTickerIdx}
@@ -120,8 +120,8 @@ export default function Header() {
         </AnimatePresence>
       </div>
 
-      {/* Top Info Bar Desktop Static Version */}
-      <div className={`hidden sm:flex bg-slate-900 text-slate-300 px-4 sm:px-6 lg:px-8 justify-between items-center text-[10px] sm:text-xs font-medium transition-all duration-300 ${isScrolled ? 'h-0 py-0 opacity-0 overflow-hidden' : 'h-9 py-2.5 opacity-100'}`}>
+      {/* Top Info Bar Desktop — scrolls away naturally (not sticky) */}
+      <div className="hidden sm:flex bg-slate-900 text-slate-300 px-4 sm:px-6 lg:px-8 h-9 py-2.5 justify-between items-center text-[10px] sm:text-xs font-medium">
         <div className="flex items-center gap-3">
           <span>🕒 Lunes a Viernes 08:30 - 18:30</span>
           <span className="text-slate-700">|</span>
@@ -136,8 +136,9 @@ export default function Header() {
         </div>
       </div>
 
-      <header 
-        className="relative bg-white/95 backdrop-blur-md transition-all duration-300"
+      {/* Nav header — ONLY this is sticky */}
+      <header
+        className="sticky top-0 z-50 relative bg-white/95 backdrop-blur-md shadow-sm border-b border-teal-50 transition-all duration-300"
         onMouseLeave={handleCloseMenu}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
