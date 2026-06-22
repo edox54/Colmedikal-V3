@@ -9,8 +9,7 @@ import {
   Gem,
   Award,
   Quote,
-  MapPin,
-  ChevronRight
+  MapPin
 } from 'lucide-react';
 import { Page } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -86,15 +85,8 @@ export default function About({ setCurrentPage }: AboutProps) {
   return (
     <div className="space-y-24 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-about-view">
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-slate-400 font-medium mb-2">
-        <button onClick={() => navigate('/')} className="hover:text-teal-600 transition-colors cursor-pointer">Inicio</button>
-        <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-slate-700 font-semibold">Nosotros</span>
-      </div>
-
       {/* 1. HERO */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center -mt-16">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <motion.div
           className="lg:col-span-6 space-y-6"
           initial="hidden"
