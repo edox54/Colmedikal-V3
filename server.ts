@@ -60,6 +60,14 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // SEO: www → non-www 301 redirect (canonical domain)
+  app.use((req, res, next) => {
+    if (req.hostname === 'www.colmedikal.com') {
+      return res.redirect(301, 'https://colmedikal.com' + req.originalUrl);
+    }
+    next();
+  });
+
   // Security: Apply helmet middleware (CSP desactivado para configuración manual)
   app.use(helmet({ contentSecurityPolicy: false }));
 
@@ -72,7 +80,7 @@ async function startServer() {
       'Content-Security-Policy',
       [
         "default-src 'self'",
-        "connect-src 'self' https://api.colmedikal.com https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net",
+        "connect-src 'self' https://api.colmedikal.com https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://*.tile.openstreetmap.org",
         "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' data: https://fonts.gstatic.com",
