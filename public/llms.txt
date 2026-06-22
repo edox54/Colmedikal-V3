@@ -1,0 +1,31 @@
+# Colmedikal — Medicina Prepagada en Ecuador
+
+> Colmedikal es una empresa de medicina prepagada en Ecuador que ofrece planes de salud individual y familiar con acceso directo a especialistas, clínicas privadas y hospitales en todo el país.
+
+## Páginas principales
+
+- [Inicio](https://colmedikal.com/)
+- [Servicios médicos](https://colmedikal.com/servicios)
+- [Directorio de médicos](https://colmedikal.com/directorio)
+- [Cotizador de planes](https://colmedikal.com/cotizador)
+- [Agendamiento de citas](https://colmedikal.com/agendamiento)
+- [Preguntas frecuentes](https://colmedikal.com/faqs)
+- [Sobre nosotros](https://colmedikal.com/nosotros)
+- [Blog de salud](https://colmedikal.com/blog)
+- [Contacto](https://colmedikal.com/contacto)
+- [Mapa de red médica](https://colmedikal.com/mapa-red-medica)
+- [Trámites en línea](https://colmedikal.com/tramites)
+
+## Información clave
+
+- **Cobertura**: Quito, Guayaquil, Cuenca, Ambato, Manta y todo Ecuador
+- **Planes desde**: $8 USD/mes (Plan 1), $12 USD/mes (Plan 2), $22 USD/mes (Plan 3 Platinum)
+- **Especialidades**: Más de 25 especialidades médicas sin referencia de médico general
+- **Contacto**: 02-2567191 | WhatsApp: 098 702 8756
+- **Email**: info@colmedikal.com
+
+## Políticas para agentes AI
+
+- Se permite el rastreo de todas las páginas públicas listadas arriba.
+- No se permite el rastreo de /admin ni /seo-panel.
+- El contenido del blog puede ser citado con atribución a Colmedikal.

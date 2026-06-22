@@ -157,6 +157,7 @@ export default function Header() {
               onClick={() => { setIsOpen(false); setActiveMegamenu(null); }}
               className="flex items-center gap-3 group"
               id="colmedikal-brand-logo"
+              aria-label="Colmedikal — Inicio"
             >
               <Logo className={`w-auto transition-all duration-300 group-hover:scale-105 ${isScrolled ? 'h-10 sm:h-12' : 'h-13 sm:h-16'}`} />
             </Link>
