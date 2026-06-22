@@ -40,7 +40,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-2 text-xs text-teal-400 font-mono bg-teal-950/40 px-3 py-1.5 rounded-lg border border-teal-800/40 w-fit">
               <ShieldCheck className="w-4 h-4 text-teal-400" />
-              <span>Supervigilado Superintendencia de Salud</span>
+              <span>SCVS (Superintendencia de Compañías, Valores y Seguros)</span>
             </div>
           </div>
 
