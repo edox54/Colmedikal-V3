@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { Page } from '../types';
 import { useNavigate } from 'react-router-dom';
-import sedePrincipalBuilding from '../assets/images/sede_principal_building_1780025281820.png';
+import sedePrincipalBuilding from '../assets/images/sede_colmedikal_quito.jpeg';
 
 interface AboutProps {
   setCurrentPage: (page: Page) => void;

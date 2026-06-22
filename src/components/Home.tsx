@@ -21,7 +21,7 @@ import Logo from './Logo';
 import MapaRedMedica from './MapaRedMedica';
 import { useNavigate } from 'react-router-dom';
 import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.png';
-import heroBuildingImg from '../assets/images/sede_principal_building_1780025281820.png';
+import heroBuildingImg from '../assets/images/sede_colmedikal_quito.jpeg';
 import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.png';
 import avatarValentina from '../assets/images/avatar_valentina_1780025241348.png';
 import avatarCarlosElena from '../assets/images/avatar_carlos_elena_1780025264251.png';

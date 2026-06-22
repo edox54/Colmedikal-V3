@@ -3,7 +3,7 @@ import {
   SERVICES_LIST,
 } from '../data';
 import { Doctor } from '../types';
-import heroBuildingImg from '../assets/images/sede_principal_building_1780025281820.png';
+import heroBuildingImg from '../assets/images/sede_colmedikal_quito.jpeg';
 import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.png';
 import { 
   Search, 
