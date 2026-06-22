@@ -31,6 +31,7 @@ export default function Footer() {
               to="/"
               className="flex items-center gap-3 group"
               id="footer-logo"
+              aria-label="Colmedikal - Inicio"
             >
               <Logo className="w-auto h-10 transition-transform duration-300 group-hover:scale-105 brightness-0 invert opacity-90 group-hover:opacity-100" />
             </Link>
