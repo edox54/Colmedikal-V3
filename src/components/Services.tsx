@@ -108,27 +108,9 @@ export default function Services({ setCurrentPage }: ServicesProps) {
                   {service.id === 'farmacia' && <ClipboardCheck className="w-6 h-6" />}
                 </div>
 
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-slate-900 group-hover:text-teal-700 transition-colors">
-                    {service.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    {service.description}
-                  </p>
-                </div>
-
-                {/* Benefits Bullet points */}
-                <div className="pt-3 space-y-2">
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Beneficios Destacados:</span>
-                  <ul className="space-y-2">
-                    {service.benefits.map((benefit, bIdx) => (
-                      <li key={bIdx} className="flex items-center gap-2 text-xs text-slate-700">
-                        <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
-                        <span>{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <h3 className="text-xl font-bold text-slate-900 group-hover:text-teal-700 transition-colors">
+                  {service.title}
+                </h3>
               </div>
 
               <div className="pt-6 mt-6 border-t border-slate-100 flex justify-between items-center text-xs">
