@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Code, Globe, Map, Bot, BookOpen, LogOut, Lock, Eye, EyeOff, ChevronRight
+  Code, Globe, Map, Bot, BookOpen, LogOut, Lock, Eye, EyeOff, ChevronRight, ArrowRightLeft
 } from 'lucide-react';
 import { useColmedikal } from '../context/ColmedikalContext';
 import SEODashboard from './SEODashboard';
 import BlogCMS from './BlogCMS';
 import Logo from './Logo';
 
-type PanelTab = 'blog' | 'tracking' | 'meta' | 'sitemap' | 'robots';
+type PanelTab = 'blog' | 'tracking' | 'meta' | 'sitemap' | 'robots' | 'redirects';
 
 const NAV: { id: PanelTab; label: string; icon: React.ReactNode; desc: string }[] = [
   { id: 'blog',     label: 'Blog CMS',         icon: <BookOpen className="w-4 h-4" />, desc: 'Redactar y publicar artículos' },
@@ -16,6 +16,7 @@ const NAV: { id: PanelTab; label: string; icon: React.ReactNode; desc: string }[
   { id: 'meta',     label: 'Meta SEO',          icon: <Globe className="w-4 h-4" />,   desc: 'Títulos y descripciones por URL' },
   { id: 'sitemap',  label: 'Sitemap',           icon: <Map className="w-4 h-4" />,     desc: 'XML para motores de búsqueda' },
   { id: 'robots',   label: 'Robots.txt',        icon: <Bot className="w-4 h-4" />,     desc: 'Control de rastreo' },
+  { id: 'redirects', label: 'Redirecciones',    icon: <ArrowRightLeft className="w-4 h-4" />, desc: 'Redirecciones 301 y 302' },
 ];
 
 function LoginForm({ onLogin }: { onLogin: (email: string, pass: string) => Promise<void> }) {
@@ -161,7 +162,7 @@ export default function SEOPanel() {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto bg-slate-50 p-8">
         {activeTab === 'blog' && <BlogCMS />}
-        {(activeTab === 'tracking' || activeTab === 'meta' || activeTab === 'sitemap' || activeTab === 'robots') && (
+        {(activeTab === 'tracking' || activeTab === 'meta' || activeTab === 'sitemap' || activeTab === 'robots' || activeTab === 'redirects') && (
           <SEODashboard initialTab={activeTab} />
         )}
       </main>

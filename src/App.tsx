@@ -25,6 +25,8 @@ import AdminPanel from './components/AdminPanel';
 import NotFound from './components/NotFound';
 import TrackingManager from './components/TrackingManager';
 import SEOPanel from './components/SEOPanel';
+import ComparadorPlanes from './components/ComparadorPlanes';
+import MapaRedMedica from './components/MapaRedMedica';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -66,6 +68,8 @@ export default function App() {
           <Route path="/contacto" element={<HomeLayout component={Contact} />} />
           <Route path="/blog/*" element={<HomeLayout component={Blog} />} />
           <Route path="/cotizador" element={<AdminLayout component={Cotizador} />} />
+          <Route path="/comparador" element={<HomeLayout component={ComparadorPlanes} />} />
+          <Route path="/mapa-red-medica" element={<HomeLayout component={MapaRedMedica} />} />
           <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
           <Route path="/seo-panel" element={<SEOPanelLayout />} />
           <Route path="*" element={<HomeLayout component={NotFound} />} />

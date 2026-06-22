@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Copy, CheckCircle, Globe, Code, Map, Bot, Upload } from 'lucide-react';
+import { Save, Copy, CheckCircle, Globe, Code, Map, Bot, Upload, ArrowRightLeft, Plus, Trash2, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useColmedikal } from '../context/ColmedikalContext';
 import { BLOG_POSTS } from '../data/blogData';
 import { SEO_MATRIX } from '../seo/seoMatrix';
@@ -17,7 +17,17 @@ const ROUTES = [
   { path: '/blog', label: 'Blog' },
 ];
 
-type SeoTab = 'tracking' | 'meta' | 'sitemap' | 'robots';
+type SeoTab = 'tracking' | 'meta' | 'sitemap' | 'robots' | 'redirects';
+
+interface RedirectRule {
+  id: string;
+  from: string;
+  to: string;
+  type: 301 | 302;
+  reason: string;
+  active: boolean;
+  createdAt: string;
+}
 
 const FIELD_LABELS: Record<string, { label: string; placeholder: string; hint: string }> = {
   ga4_id:           { label: 'Google Analytics 4 ID',       placeholder: 'G-XXXXXXXXXX',      hint: 'Measurement ID de GA4' },
@@ -52,6 +62,12 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
   const [publishingRobots, setPublishingRobots] = useState(false);
   const [publishedRobots, setPublishedRobots] = useState(false);
   const [metaSource, setMetaSource] = useState<'matrix' | 'override'>('matrix');
+
+  // Redirects state
+  const [redirects, setRedirects] = useState<RedirectRule[]>([]);
+  const [savedRedirects, setSavedRedirects] = useState(false);
+  const [editingRedirect, setEditingRedirect] = useState<string | null>(null);
+  const [redirectForm, setRedirectForm] = useState<{ from: string; to: string; type: 301 | 302; reason: string }>({ from: '', to: '', type: 301, reason: '' });
 
   // Initialize tracking from seoSettings
   useEffect(() => {
@@ -95,6 +111,67 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
     await saveSEOSettings({ robots_txt: robotsText });
     setSavedRobots(true);
     setTimeout(() => setSavedRobots(false), 2500);
+  };
+
+  // Initialize redirects from seoSettings
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(seoSettings['redirects_json'] || '[]');
+      setRedirects(Array.isArray(parsed) ? parsed : []);
+    } catch { setRedirects([]); }
+  }, [seoSettings]);
+
+  const handleSaveRedirects = async (updated: RedirectRule[]) => {
+    await saveSEOSettings({ redirects_json: JSON.stringify(updated) });
+    setRedirects(updated);
+    setSavedRedirects(true);
+    setTimeout(() => setSavedRedirects(false), 2500);
+  };
+
+  const handleAddRedirect = async () => {
+    if (!redirectForm.from || !redirectForm.to) return;
+    const newRule: RedirectRule = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      from: redirectForm.from.startsWith('/') ? redirectForm.from : '/' + redirectForm.from,
+      to: redirectForm.to,
+      type: redirectForm.type,
+      reason: redirectForm.reason,
+      active: true,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+    await handleSaveRedirects([...redirects, newRule]);
+    setRedirectForm({ from: '', to: '', type: 301, reason: '' });
+  };
+
+  const handleUpdateRedirect = async (id: string) => {
+    const updated = redirects.map(r => r.id === id ? {
+      ...r,
+      from: redirectForm.from.startsWith('/') ? redirectForm.from : '/' + redirectForm.from,
+      to: redirectForm.to,
+      type: redirectForm.type,
+      reason: redirectForm.reason,
+    } : r);
+    await handleSaveRedirects(updated);
+    setEditingRedirect(null);
+    setRedirectForm({ from: '', to: '', type: 301, reason: '' });
+  };
+
+  const handleDeleteRedirect = async (id: string) => {
+    await handleSaveRedirects(redirects.filter(r => r.id !== id));
+  };
+
+  const handleToggleRedirect = async (id: string) => {
+    await handleSaveRedirects(redirects.map(r => r.id === id ? { ...r, active: !r.active } : r));
+  };
+
+  const startEditRedirect = (r: RedirectRule) => {
+    setEditingRedirect(r.id);
+    setRedirectForm({ from: r.from, to: r.to, type: r.type, reason: r.reason });
+  };
+
+  const cancelEditRedirect = () => {
+    setEditingRedirect(null);
+    setRedirectForm({ from: '', to: '', type: 301, reason: '' });
   };
 
   // Normalize any date to ISO 8601 (YYYY-MM-DD) — sitemap <lastmod> requires it.
@@ -146,6 +223,7 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
     { id: 'meta',     label: 'Meta SEO por URL',   icon: <Globe className="w-3.5 h-3.5" /> },
     { id: 'sitemap',  label: 'Sitemap',             icon: <Map className="w-3.5 h-3.5" /> },
     { id: 'robots',   label: 'Robots.txt',          icon: <Bot className="w-3.5 h-3.5" /> },
+    { id: 'redirects', label: 'Redirecciones',      icon: <ArrowRightLeft className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -330,6 +408,187 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
               className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">
               <Copy className="w-3.5 h-3.5" /> Copiar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* REDIRECCIONES */}
+      {activeTab === 'redirects' && (
+        <div className="space-y-6 max-w-3xl">
+          {/* Info note */}
+          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+            <p className="text-[11px] text-indigo-700 leading-relaxed">
+              <span className="font-bold">Nota:</span> Las redirecciones 301 transfieren la autoridad SEO de la URL antigua a la nueva. Use 302 para redirecciones temporales.
+            </p>
+          </div>
+
+          {/* Add / Edit form */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-slate-900">
+                {editingRedirect ? 'Editar Redirección' : 'Agregar Redirección'}
+              </h4>
+              <p className="text-[11px] text-slate-500">
+                {editingRedirect ? 'Modifica los campos y guarda los cambios.' : 'Define la ruta origen, destino y tipo de redirección.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">Ruta Origen</label>
+                <input
+                  type="text"
+                  value={redirectForm.from}
+                  onChange={e => setRedirectForm(p => ({ ...p, from: e.target.value }))}
+                  placeholder="/pagina-antigua"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:border-[#4597CA]"
+                />
+                <p className="text-[10px] text-slate-400">Ruta relativa del sitio (ej: /viejo-url)</p>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">URL Destino</label>
+                <input
+                  type="text"
+                  value={redirectForm.to}
+                  onChange={e => setRedirectForm(p => ({ ...p, to: e.target.value }))}
+                  placeholder="/nueva-pagina o https://..."
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:border-[#4597CA]"
+                />
+                <p className="text-[10px] text-slate-400">URL destino (relativa o absoluta)</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">Tipo de Redirección</label>
+                <select
+                  value={redirectForm.type}
+                  onChange={e => setRedirectForm(p => ({ ...p, type: Number(e.target.value) as 301 | 302 }))}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#4597CA]"
+                >
+                  <option value={301}>301 — Permanente (transfiere SEO)</option>
+                  <option value={302}>302 — Temporal</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">Motivo / Descripción</label>
+                <input
+                  type="text"
+                  value={redirectForm.reason}
+                  onChange={e => setRedirectForm(p => ({ ...p, reason: e.target.value }))}
+                  placeholder="Ej: Página migrada, URL obsoleta..."
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#4597CA]"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              {editingRedirect ? (
+                <>
+                  <button
+                    onClick={() => handleUpdateRedirect(editingRedirect)}
+                    disabled={!redirectForm.from || !redirectForm.to}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer transition-all"
+                  >
+                    <Save className="w-4 h-4" /> Guardar Cambios
+                  </button>
+                  <button
+                    onClick={cancelEditRedirect}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer transition-all"
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleAddRedirect}
+                  disabled={!redirectForm.from || !redirectForm.to}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer transition-all"
+                >
+                  <Plus className="w-4 h-4" /> Agregar Redirección
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Redirects table */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-slate-900">Redirecciones Activas</h4>
+                <p className="text-[11px] text-slate-500">{redirects.length} {redirects.length === 1 ? 'regla configurada' : 'reglas configuradas'}</p>
+              </div>
+              {savedRedirects && (
+                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
+                  <CheckCircle className="w-4 h-4" /> Guardado
+                </span>
+              )}
+            </div>
+
+            {redirects.length === 0 ? (
+              <div className="text-center py-8">
+                <ArrowRightLeft className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs text-slate-400">No hay redirecciones configuradas.</p>
+                <p className="text-[10px] text-slate-400 mt-1">Agrega una usando el formulario de arriba.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="text-left py-2 px-2 font-bold text-slate-500 text-[10px] uppercase tracking-wider">Origen</th>
+                      <th className="text-left py-2 px-2 font-bold text-slate-500 text-[10px] uppercase tracking-wider">Destino</th>
+                      <th className="text-center py-2 px-2 font-bold text-slate-500 text-[10px] uppercase tracking-wider">Tipo</th>
+                      <th className="text-center py-2 px-2 font-bold text-slate-500 text-[10px] uppercase tracking-wider">Estado</th>
+                      <th className="text-right py-2 px-2 font-bold text-slate-500 text-[10px] uppercase tracking-wider">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {redirects.map(r => (
+                      <tr key={r.id} className={`border-b border-slate-50 ${!r.active ? 'opacity-50' : ''}`}>
+                        <td className="py-2.5 px-2 font-mono text-slate-800">{r.from}</td>
+                        <td className="py-2.5 px-2 font-mono text-slate-600 max-w-[200px] truncate" title={r.to}>{r.to}</td>
+                        <td className="py-2.5 px-2 text-center">
+                          <span className={`inline-block px-2 py-0.5 rounded-lg text-[10px] font-bold ${
+                            r.type === 301
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {r.type}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2 text-center">
+                          <button onClick={() => handleToggleRedirect(r.id)} className="cursor-pointer" title={r.active ? 'Desactivar' : 'Activar'}>
+                            {r.active
+                              ? <ToggleRight className="w-5 h-5 text-emerald-500 mx-auto" />
+                              : <ToggleLeft className="w-5 h-5 text-slate-300 mx-auto" />
+                            }
+                          </button>
+                        </td>
+                        <td className="py-2.5 px-2 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => startEditRedirect(r)}
+                              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer transition-all"
+                              title="Editar"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRedirect(r.id)}
+                              className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 cursor-pointer transition-all"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

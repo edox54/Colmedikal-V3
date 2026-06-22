@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 // import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 // import { auth } from '../firebase';
 import { 
@@ -39,6 +39,7 @@ import {
   Hospital,
   Activity,
   FlaskConical,
+  AlertCircle,
 } from 'lucide-react';
 import { Page, Doctor } from '../types';
 import avatarGomez from '../assets/images/avatar_gomez_1780024902226.png';
@@ -397,6 +398,22 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   const pendingAuthsCount = authorizations.filter(a => a.status === 'Pendiente' || a.status === 'Auditoría').length;
   const activeAppointmentsCount = appointments.filter(a => a.status === 'Confirmada' || a.status === 'Pendiente').length;
 
+  // Duplicate lead detection
+  const duplicateGroups = useMemo(() => {
+    const byEmail: Record<string, string[]> = {};
+    const byPhone: Record<string, string[]> = {};
+    leads.forEach(ld => {
+      const email = ld.quoteData?.email?.toLowerCase().trim();
+      const phone = ld.quoteData?.phone?.replace(/\s/g, '');
+      if (email) { if (!byEmail[email]) byEmail[email] = []; byEmail[email].push(ld.id); }
+      if (phone) { if (!byPhone[phone]) byPhone[phone] = []; byPhone[phone].push(ld.id); }
+    });
+    const dupIds = new Set<string>();
+    Object.values(byEmail).filter(ids => ids.length > 1).forEach(ids => ids.forEach(id => dupIds.add(id)));
+    Object.values(byPhone).filter(ids => ids.length > 1).forEach(ids => ids.forEach(id => dupIds.add(id)));
+    return dupIds;
+  }, [leads]);
+
   return (
     <>
       {!isAuthenticated ? (
@@ -695,6 +712,45 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
               </div>
             </div>
 
+          </div>
+
+          {/* Embudo de Conversión */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+            <h4 className="text-xs font-black text-slate-950 uppercase tracking-wider flex items-center gap-1.5">
+              <Filter className="w-4 h-4 text-indigo-500" />
+              Embudo de Conversión de Prospectos
+            </h4>
+            {[
+              { label: 'Nuevo Plan', count: leads.filter(l => l.status === 'Nuevo Plan').length, color: 'bg-emerald-500', textColor: 'text-emerald-700' },
+              { label: 'Contactado', count: leads.filter(l => l.status === 'Contactado').length, color: 'bg-amber-500', textColor: 'text-amber-700' },
+              { label: 'Cierre Efectivo', count: leads.filter(l => l.status === 'Cierre Efectivo').length, color: 'bg-indigo-600', textColor: 'text-indigo-700' },
+            ].map((stage, i, arr) => {
+              const maxCount = Math.max(...arr.map(s => s.count), 1);
+              const pct = Math.round((stage.count / maxCount) * 100);
+              const convRate = i > 0 && arr[i - 1].count > 0
+                ? Math.round((stage.count / arr[i - 1].count) * 100)
+                : null;
+              return (
+                <div key={stage.label} className="flex items-center gap-3">
+                  <span className={`text-xs font-bold ${stage.textColor} w-28 shrink-0 text-right`}>{stage.label}</span>
+                  <div className="flex-1 relative">
+                    <div
+                      className={`${stage.color} h-8 rounded-lg flex items-center justify-center transition-all duration-500`}
+                      style={{ width: `${Math.max(pct, 8)}%` }}
+                    >
+                      <span className="text-white text-xs font-black drop-shadow">{stage.count}</span>
+                    </div>
+                  </div>
+                  {convRate !== null && (
+                    <span className="text-[10px] text-slate-500 font-semibold shrink-0 flex items-center gap-0.5">
+                      <ArrowRight className="w-3 h-3 text-slate-400" />
+                      {convRate}%
+                    </span>
+                  )}
+                  {convRate === null && <span className="w-10 shrink-0" />}
+                </div>
+              );
+            })}
           </div>
 
           {/* Connected state simulator guide banner */}
@@ -1178,6 +1234,13 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
             </button>
           </div>
 
+          {duplicateGroups.size > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs text-amber-800">
+              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>Se detectaron <strong>{duplicateGroups.size}</strong> leads duplicados (mismo email o teléfono).</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {leads.length > 0 ? (
               leads.map((ld) => (
@@ -1190,6 +1253,11 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                         <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest font-mono">
                           {ld.quoteData?.leadCode || ld.id.slice(0, 14).toUpperCase()}
                         </span>
+                        {duplicateGroups.has(ld.id) && (
+                          <span className="text-[8px] bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-bold uppercase">
+                            Duplicado
+                          </span>
+                        )}
                         <h4 className="text-base font-black text-slate-900 leading-tight">{ld.quoteData?.fullName || '—'}</h4>
                         {ld.quoteData?.selectedPlanName && (
                           <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase">

@@ -549,6 +549,61 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ==================== LEADS ====================
   const addLead = async (quote: QuoteState, estimatedPrice: number) => {
+    // --- Duplicate detection: upsert if email or phone already exists ---
+    const normalize = (s?: string) => s?.toLowerCase().replace(/\s/g, '').trim() || '';
+    const allLeads = [...leads, ...localLeads];
+    const existing = allLeads.find(l => {
+      const eEmail = normalize(l.quoteData?.email);
+      const ePhone = normalize(l.quoteData?.phone);
+      const nEmail = normalize(quote.email);
+      const nPhone = normalize(quote.phone);
+      return (eEmail && nEmail && eEmail === nEmail) ||
+             (ePhone && nPhone && ePhone === nPhone);
+    });
+
+    if (existing) {
+      const updated: LeadQuote = {
+        ...existing,
+        timestamp: new Date().toISOString(),
+        quoteData: quote,
+        estimatedPrice,
+        // Keep existing status — don't reset to 'Nuevo Plan' if already progressed
+      };
+
+      if (!token) {
+        // Update in localStorage
+        setLocalLeads(prev => {
+          const newLeads = prev.map(l => l.id === existing.id ? updated : l);
+          try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(newLeads)); } catch {}
+          return newLeads;
+        });
+        // Also try API update (silent fail if PUT endpoint doesn't exist)
+        try {
+          await apiCall(`/api/leads/${existing.id}`, 'PUT', {
+            quote_data: quote,
+            estimated_price: estimatedPrice,
+          });
+        } catch { /* silent */ }
+        return updated;
+      }
+
+      setIsLoading(true);
+      try {
+        await apiCall(`/api/admin/leads/${existing.id}`, 'PUT', {
+          quote_data: quote,
+          estimated_price: estimatedPrice,
+        }, token);
+        await fetchAllData(token);
+        return updated;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error updating lead');
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    // --- No duplicate found: create new lead ---
     // Public submission path — save to API (public endpoint) + localStorage fallback
     if (!token) {
       const localId = 'local-' + Date.now();

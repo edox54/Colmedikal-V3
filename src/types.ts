@@ -1,4 +1,4 @@
-export type Page = 'home' | 'servicios' | 'nosotros' | 'contacto' | 'cotizador' | 'directorio' | 'tramites' | 'agendamiento' | 'faqs' | 'blog' | 'blog-detalle' | 'admin' | 'privacy';
+export type Page = 'home' | 'servicios' | 'nosotros' | 'contacto' | 'cotizador' | 'directorio' | 'tramites' | 'agendamiento' | 'faqs' | 'blog' | 'blog-detalle' | 'admin' | 'privacy' | 'mapa-red-medica';
 
 export interface Author {
   id: string;
