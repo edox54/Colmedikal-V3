@@ -224,19 +224,19 @@ async function startServer() {
     const routes: Record<string, { title: string; description: string; keywords: string; og_image: string }> = {
       '/': {
         title: 'Colmedikal | Medicina Prepagada en Ecuador — Planes Familia e Individual',
-        description: 'Compara planes de medicina prepagada en Ecuador. Cobertura completa sin IESS obligatorio, acceso a médicos especialistas y clínicas privadas desde $35/mes.',
+        description: 'Planes de medicina prepagada en Ecuador desde $8/mes. Acceso directo a especialistas y clinicas privadas.',
         keywords: 'medicina prepagada Ecuador, seguro médico privado, plan médico familia, Colmedikal',
         og_image: 'https://colmedikal.com/og-image.jpg',
       },
       '/servicios': {
         title: 'Servicios de Medicina Prepagada | Colmedikal Ecuador',
-        description: 'Conoce todos los servicios de Colmedikal: hospitalización, cirugías, maternidad, atención ambulatoria y más. Planes desde $35 al mes.',
+        description: 'Servicios Colmedikal: hospitalizacion, cirugias, maternidad y atencion ambulatoria. Planes desde $8/mes.',
         keywords: 'servicios medicina prepagada, hospitalización privada Ecuador, maternidad prepagada',
         og_image: 'https://colmedikal.com/og-image.jpg',
       },
       '/directorio': {
         title: 'Directorio de Médicos Especialistas y Clínicas | Colmedikal Ecuador',
-        description: 'Encuentra médicos especialistas, clínicas y hospitales en Ecuador. Directorio verificado con profesionales de salud en Quito, Guayaquil y todo el país.',
+        description: 'Directorio de medicos especialistas y clinicas en Ecuador. Profesionales en Quito, Guayaquil y todo el pais.',
         keywords: 'médicos especialistas Ecuador, directorio médico Quito, clínicas privadas Ecuador',
         og_image: 'https://colmedikal.com/og-image.jpg',
       },
@@ -248,7 +248,7 @@ async function startServer() {
       },
       '/cotizador': {
         title: 'Cotiza tu Plan de Medicina Prepagada | Colmedikal Ecuador',
-        description: 'Cotiza en línea tu plan de medicina prepagada. Precios personalizados según edad y tipo de cobertura. Sin compromisos ni papeleo.',
+        description: 'Cotiza tu plan de medicina prepagada en linea. Precios segun edad y cobertura, sin compromisos.',
         keywords: 'cotizar medicina prepagada Ecuador, precio plan médico familiar, cotizador seguro salud',
         og_image: 'https://colmedikal.com/og-image.jpg',
       },
@@ -266,13 +266,13 @@ async function startServer() {
       },
       '/faqs': {
         title: 'Preguntas Frecuentes sobre Medicina Prepagada | Colmedikal',
-        description: '¿Qué es la medicina prepagada? ¿En qué se diferencia del IESS? Resolvemos todas tus dudas sobre planes médicos privados en Ecuador.',
+        description: 'Resolvemos tus dudas sobre medicina prepagada: carencias, copagos, reembolsos y preexistencias.',
         keywords: 'preguntas medicina prepagada, diferencia IESS seguro privado, cómo funciona prepagada',
         og_image: 'https://colmedikal.com/og-image.jpg',
       },
       '/contacto': {
         title: 'Contacto | Colmedikal Ecuador — Asesores de Medicina Prepagada',
-        description: 'Contáctanos para asesoría personalizada sobre planes de medicina prepagada en Ecuador. WhatsApp, email y atención presencial disponibles.',
+        description: 'Contacta a Colmedikal: asesoria sobre planes de salud. WhatsApp, email y atencion presencial.',
         keywords: 'contacto Colmedikal, asesor medicina prepagada Ecuador, WhatsApp salud',
         og_image: 'https://colmedikal.com/og-image.jpg',
       },
