@@ -1338,7 +1338,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                           {/* Coverages table details */}
                           <div className="space-y-2 text-[11px] text-slate-700 font-sans border-b border-slate-100 pb-3">
                             <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
-                              <span className="text-slate-450 text-[10px]">Límite Anual:</span>
+                              <span className="text-slate-450 text-[10px]">Cobertura Anual Máxima:</span>
                               <span className="font-extrabold text-slate-800 text-right">{plan.cobertura}</span>
                             </div>
                             <div className="flex justify-between items-center py-1 border-b border-slate-50/50">

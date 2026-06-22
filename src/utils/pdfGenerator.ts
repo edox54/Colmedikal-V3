@@ -179,9 +179,9 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
   doc.setFontSize(9);
   doc.setTextColor(28, 46, 60);
 
-  doc.text('Límite General Hospitalario:', 20, 122);
+  doc.text('Cobertura Anual Máxima:', 20, 122);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${options.maxCoverage} (Anual) por asegurado`, 70, 122);
+  doc.text(`${options.maxCoverage} por asegurado`, 70, 122);
 
   doc.setFont('helvetica', 'normal');
   doc.text('Red Clínicas Asociadas:', 20, 128);

@@ -329,7 +329,7 @@ export default function Home() {
                       </div>
                       
                       <div className="flex justify-between pt-3 text-xs">
-                        <span className="text-slate-500">Cobertura Máxima</span>
+                        <span className="text-slate-500">Cobertura Anual Máxima</span>
                         <span className="font-semibold text-slate-900 font-mono">${plan.maxCoverage.toLocaleString()} USD</span>
                       </div>
 
