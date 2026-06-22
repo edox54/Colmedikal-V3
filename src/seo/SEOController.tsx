@@ -120,7 +120,16 @@ export default function SEOController() {
       updateMetaTag('property', 'og:image', sedePrincipalBuilding);
     }
 
-    // 7. Update AIO (AI search optimization) meta headers for web crawlers
+    // 7. Twitter Card tags
+    const ogImage = (currentPage === 'blog-detalle' && activeBlogPost)
+      ? activeBlogPost.image
+      : sedePrincipalBuilding;
+    updateMetaTag('name', 'twitter:card', 'summary_large_image');
+    updateMetaTag('name', 'twitter:title', meta.title);
+    updateMetaTag('name', 'twitter:description', meta.description);
+    updateMetaTag('name', 'twitter:image', ogImage);
+
+    // 8. Update AIO (AI search optimization) meta headers for web crawlers
     updateMetaTag('name', 'aio-target-query', meta.aioQueryAnswer.targetQuery);
     updateMetaTag('name', 'aio-answer-summary', meta.aioQueryAnswer.conciseAnswer);
 

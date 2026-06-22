@@ -345,6 +345,25 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
             </div>
           </div>
 
+          {/* SEO checklist for selected page */}
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2">
+            <h5 className="text-xs font-bold text-slate-700">Checklist SEO de esta pagina</h5>
+            <ul className="text-[11px] text-slate-600 space-y-1">
+              <li className={metaForm.title.length > 0 && metaForm.title.length <= 60 ? 'text-emerald-600' : 'text-amber-600'}>
+                {metaForm.title.length > 0 && metaForm.title.length <= 60 ? '✓' : '!'} Title: {metaForm.title.length}/60 caracteres {metaForm.title.length > 60 ? '(muy largo)' : metaForm.title.length === 0 ? '(vacio)' : '(ok)'}
+              </li>
+              <li className={metaForm.description.length >= 120 && metaForm.description.length <= 160 ? 'text-emerald-600' : 'text-amber-600'}>
+                {metaForm.description.length >= 120 && metaForm.description.length <= 160 ? '✓' : '!'} Description: {metaForm.description.length}/160 caracteres {metaForm.description.length < 120 ? '(muy corta)' : metaForm.description.length > 160 ? '(muy larga)' : '(ok)'}
+              </li>
+              <li className={metaForm.keywords.length > 0 ? 'text-emerald-600' : 'text-amber-600'}>
+                {metaForm.keywords.length > 0 ? '✓' : '!'} Keywords: {metaForm.keywords ? metaForm.keywords.split(',').length + ' definidas' : 'sin definir'}
+              </li>
+              <li className="text-emerald-600">✓ Canonical: https://colmedikal.com{selectedRoute === '/' ? '' : selectedRoute}</li>
+              <li className="text-emerald-600">✓ Twitter Card: summary_large_image</li>
+              <li className="text-emerald-600">✓ Open Graph: og:title, og:description, og:url, og:image</li>
+            </ul>
+          </div>
+
           <button
             onClick={handleSaveMeta}
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl cursor-pointer transition-all"
@@ -360,7 +379,7 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h4 className="text-sm font-bold text-slate-900">Sitemap XML</h4>
-              <p className="text-[11px] text-slate-500 mt-0.5">{ROUTES.length + BLOG_POSTS.length + blogPostsCMS.filter(p=>p.published).length} URLs — se regenera automáticamente al publicar artículos.</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">{ROUTES.length + BLOG_POSTS.length + blogPostsCMS.filter(p=>p.published).length} URLs — <a href="/sitemap.xml" target="_blank" rel="noopener" className="text-teal-600 hover:underline font-semibold">/sitemap.xml se genera automaticamente</a> con todas las rutas y blog posts.</p>
             </div>
             <div className="flex gap-2 shrink-0">
               <button onClick={handleCopySitemap}

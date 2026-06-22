@@ -320,14 +320,74 @@ async function startServer() {
       }
       return overrideCache;
     };
+    // Dynamic sitemap.xml — auto-generated from routes + blog posts via API
+    app.get('/sitemap.xml', async (_req, res) => {
+      const BASE = 'https://colmedikal.com';
+      const now = new Date().toISOString().split('T')[0];
+      const staticUrls = Object.keys(routes)
+        .filter(r => r !== '/blog-detalle')
+        .map(r => `  <url><loc>${BASE}${r === '/' ? '' : r}</loc><lastmod>${now}</lastmod><changefreq>${r === '/' ? 'daily' : 'weekly'}</changefreq><priority>${r === '/' ? '1.0' : '0.8'}</priority></url>`);
+      // Fetch blog posts from API for dynamic URLs
+      let blogUrls: string[] = [];
+      try {
+        const blogJson: any = await httpsGetJson('https://api.colmedikal.com/api/public/blog');
+        const posts = blogJson?.data || [];
+        blogUrls = posts.map((p: any) => {
+          const slug = p.slug || p.id;
+          return `  <url><loc>${BASE}/blog/${slug}</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`;
+        });
+      } catch { /* static blog fallback */ }
+      // Extra routes not in the routes map
+      const extraUrls = [
+        `  <url><loc>${BASE}/mapa-red-medica</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
+        `  <url><loc>${BASE}/privacy</loc><lastmod>${now}</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>`,
+      ];
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...staticUrls, ...extraUrls, ...blogUrls].join('\n')}\n</urlset>`;
+      res.set('Content-Type', 'application/xml; charset=UTF-8');
+      res.send(xml);
+    });
+
+    // Blog post lookup for SSR — fetch from API, cached 5 min
+    let blogCache: any[] = [];
+    let blogCacheAt = 0;
+    const getBlogPosts = async () => {
+      if (Date.now() - blogCacheAt < 300_000 && blogCache.length) return blogCache;
+      try {
+        const json: any = await httpsGetJson('https://api.colmedikal.com/api/public/blog');
+        blogCache = json?.data || [];
+        blogCacheAt = Date.now();
+      } catch { /* keep stale cache */ }
+      return blogCache;
+    };
+
     // Provide general routing fallback to index.html for react-router-dom with per-route meta injection
     app.get('*', async (req, res) => {
       const pathname = req.path.replace(/\/$/, '') || '/';
       const basePath = pathname.startsWith('/blog/') ? '/blog-detalle' : pathname;
-      const base = routes[basePath] || routes['/'];
+      let base = routes[basePath] || routes['/'];
 
-      // DB override (from SEO panel) wins over the hardcoded defaults; match on the
-      // real pathname first, then the normalized basePath.
+      // Dynamic blog post SSR: resolve actual post title/description
+      if (pathname.startsWith('/blog/') && pathname !== '/blog') {
+        const slug = pathname.replace('/blog/', '');
+        if (slug) {
+          const posts = await getBlogPosts();
+          const post = posts.find((p: any) => p.slug === slug || p.id === slug);
+          if (post) {
+            base = {
+              title: `${post.title} | Blog Colmedikal`,
+              description: post.excerpt || post.description || base.description,
+              keywords: (post.tags || []).join(', ') || base.keywords,
+              og_image: post.image || base.og_image,
+            };
+          }
+        }
+      }
+
+      // Determine robots directive — noindex for admin/seo routes
+      const noindexRoutes = ['/admin', '/seo-panel'];
+      const robotsContent = noindexRoutes.some(r => pathname.startsWith(r)) ? 'noindex, nofollow' : 'index, follow';
+
+      // DB override (from SEO panel) wins over the hardcoded defaults
       const overrides = await getOverrides();
       const ov = overrides[pathname] || overrides[basePath] || {};
       const meta = {
@@ -342,19 +402,23 @@ async function startServer() {
       // Replace <title>
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(meta.title)}</title>`);
 
-      // Inject meta + OG tags before </head>
+      // Inject meta + OG + Twitter tags before </head>
+      const ogType = pathname.startsWith('/blog/') && pathname !== '/blog' ? 'article' : 'website';
       const inject = `
   <meta name="description" content="${esc(meta.description)}" />
   <meta name="keywords" content="${esc(meta.keywords)}" />
+  <meta name="robots" content="${robotsContent}" />
   <link rel="canonical" href="https://colmedikal.com${pathname}" />
   <meta property="og:title" content="${esc(meta.title)}" />
   <meta property="og:description" content="${esc(meta.description)}" />
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content="${ogType}" />
   <meta property="og:url" content="https://colmedikal.com${pathname}" />
   <meta property="og:image" content="${esc(meta.og_image)}" />
+  <meta property="og:site_name" content="Colmedikal Prepagada" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(meta.title)}" />
-  <meta name="twitter:description" content="${esc(meta.description)}" />`;
+  <meta name="twitter:description" content="${esc(meta.description)}" />
+  <meta name="twitter:image" content="${esc(meta.og_image)}" />`;
 
       html = html.replace('</head>', inject + '\n  </head>');
 
