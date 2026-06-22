@@ -2,10 +2,15 @@
 
 Options -Indexes
 
-# SPA: all routes → index.html
+# www → non-www 301 (canonical domain for SEO)
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  RewriteCond %{HTTP_HOST} ^www\.colmedikal\.com$ [NC]
+  RewriteRule ^(.*)$ https://colmedikal.com/$1 [R=301,L]
+
+  # SPA: all routes → index.html
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
@@ -27,7 +32,7 @@ script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com
 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
 font-src 'self' data: https://fonts.gstatic.com; \
 img-src 'self' data: blob: https:; \
-connect-src 'self' https://api.colmedikal.com https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net; \
+connect-src 'self' https://api.colmedikal.com https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://*.tile.openstreetmap.org; \
 frame-src 'self' https://www.google.com https://maps.google.com https://www.openstreetmap.org; \
 media-src 'self' blob: data:; \
 worker-src 'self' blob:; \
