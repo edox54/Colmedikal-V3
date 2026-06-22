@@ -159,7 +159,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
     },
     {
       id: 'plan2',
-      name: 'Plan 2 (Recomendado)',
+      name: 'Plan 2',
       basePrice: 12,
       cobertura: '$3.000,00 USD Anual',
       dedHosp: '$40,00 USD Anual',
@@ -1301,7 +1301,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
                         {/* Header tier info */}
                         <div className="p-6 sm:p-7 space-y-4 border-b border-slate-100 flex-grow">
                           <div>
-                            <div className="flex flex-wrap gap-1.5 mb-2.5">
+                            <div className="flex items-center gap-1.5 mb-2.5">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
                                 plan.id === 'plan1' ? 'bg-sky-50 border-sky-200 text-sky-700' :
                                 plan.id === 'plan2' ? 'bg-teal-50 border-teal-250 text-teal-700' :
