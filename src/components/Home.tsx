@@ -18,6 +18,7 @@ import {
 import { Plan } from '../types';
 import { MEDICAL_PLANS } from '../data';
 import Logo from './Logo';
+import MapaRedMedica from './MapaRedMedica';
 import { useNavigate } from 'react-router-dom';
 import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.png';
 import heroBuildingImg from '../assets/images/sede_principal_building_1780025281820.png';
@@ -378,6 +379,29 @@ export default function Home() {
             })}
           </div>
 
+        </div>
+      </section>
+
+      {/* 4.5 MAPA INTERACTIVO DE RED MÉDICA */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="text-center space-y-2">
+          <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">Cobertura Nacional</span>
+          <h2 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight">
+            Nuestra Red Médica en Ecuador
+          </h2>
+          <p className="text-slate-600 max-w-2xl mx-auto">
+            Explora los especialistas y centros médicos disponibles en cada ciudad del país. Haz clic en cualquier marcador para ver el detalle.
+          </p>
+        </div>
+        <MapaRedMedica embedded />
+        <div className="text-center">
+          <button
+            onClick={() => navigate('/mapa-red-medica')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
+          >
+            <span>Ver mapa completo con filtros</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </section>
 

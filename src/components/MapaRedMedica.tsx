@@ -79,7 +79,7 @@ interface CityGroup {
   specialties: string[];
 }
 
-export default function MapaRedMedica() {
+export default function MapaRedMedica({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
   const { seoSettings } = useColmedikal();
   const mapRef = useRef<L.Map | null>(null);
@@ -230,6 +230,18 @@ export default function MapaRedMedica() {
       }
     });
   };
+
+  if (embedded) {
+    return (
+      <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: '500px' }}>
+        <div ref={mapContainerRef} className="w-full h-full" />
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[400] bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg text-xs text-slate-600 flex items-center gap-2">
+          <Building2 className="w-3.5 h-3.5 text-teal-600" />
+          <span>{filtered.reduce((sum, g) => sum + g.doctors.length, 0)} profesionales en {filtered.length} ciudades</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full" style={{ height: 'calc(100vh - 120px)', minHeight: '500px' }}>
