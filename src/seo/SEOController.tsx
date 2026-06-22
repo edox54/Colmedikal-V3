@@ -98,10 +98,21 @@ export default function SEOController() {
     updateMetaTag('name', 'geo.position', meta.geoPosition);
     updateMetaTag('name', 'ICBM', meta.icbm);
 
+    // 5b. Self-referencing canonical + og:url (must match current page, not homepage)
+    const canonicalUrl = 'https://colmedikal.com' + (location.pathname === '/' ? '' : location.pathname.replace(/\/$/, ''));
+    let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', canonicalUrl);
+
     // 6. Update OpenGraph Social tags
     updateMetaTag('property', 'og:title', meta.title);
     updateMetaTag('property', 'og:description', meta.description);
     updateMetaTag('property', 'og:type', meta.ogType);
+    updateMetaTag('property', 'og:url', canonicalUrl);
     updateMetaTag('property', 'og:site_name', 'Colmedikal Prepagada');
     if (currentPage === 'blog-detalle' && activeBlogPost) {
       updateMetaTag('property', 'og:image', activeBlogPost.image);
