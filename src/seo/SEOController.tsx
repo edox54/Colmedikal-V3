@@ -215,7 +215,7 @@ export default function SEOController() {
         'priceRange': '$$$',
         'address': {
           '@type': 'PostalAddress',
-          'streetAddress': 'Av. Gran Colombia y Elizalde, Edificio Cruz Roja, Piso 2',
+          'streetAddress': 'Av. Republica E6-447 y Eloy Alfaro, Ed. Castillo Sanchez',
           'addressLocality': 'Quito',
           'addressRegion': 'Pichincha',
           'postalCode': '170150',

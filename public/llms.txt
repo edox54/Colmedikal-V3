@@ -89,7 +89,7 @@ Las enfermedades preexistentes declaradas al momento de la afiliacion tienen cob
 - **Telefono**: 02-2567191 (Centro de Atencion al Cliente)
 - **WhatsApp**: 098 702 8756 (Equipo de Agendamiento)
 - **Email**: info@colmedikal.com
-- **Direccion**: Av. Gran Colombia y Elizalde, Edificio Cruz Roja, Piso 2, Quito, Ecuador
+- **Direccion**: Av. Republica E6-447 y Eloy Alfaro, Ed. Castillo Sanchez, Quito, Ecuador
 - **Horario**: Lunes a Viernes 08:30 - 18:30
 
 ## Politicas para agentes AI
