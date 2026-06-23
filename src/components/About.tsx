@@ -76,7 +76,7 @@ export default function About({ setCurrentPage }: AboutProps) {
       location: 'Quito - Ecuador',
     },
     {
-      quote: 'Siempre he tenido miedo de ir al dentista, pero en Colmedikal me hicieron sentir cómoda desde el primer momento. Los odontólogos son amables y explican cada procedimiento con detalle. Ahora tengo una sonrisa saludable y estoy más tranquila con mis visitas regulares',
+      quote: 'Siempre he tenido miedo de ir al dentista, pero en Colmedikal me hicieron sentir cómodo desde el primer momento. Los odontólogos son amables y explican cada procedimiento con detalle. Ahora tengo una sonrisa saludable y estoy más tranquilo con mis visitas regulares',
       name: 'Eduardo Manosalvas',
       location: 'Tumbaco - Ecuador',
     },

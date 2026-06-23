@@ -34,32 +34,32 @@ export default function Home() {
     {
       id: 'cotizador',
       badge: 'BIENVENIDOS A COLMEDIKAL',
-      title: 'TRANQUILIDAD PARA TU VIDA, SEGURIDAD PARA TU FAMILIA',
-      subtitle: 'CUIDANDO DE TI Y TU FAMILIA, HOY Y SIEMPRE.',
+      title: 'CUIDAMOS DE TI Y TU FAMILIA, CUANDO MÁS LO NECESITAS',
+      subtitle: 'COTIZA TU PLAN DE MEDICINA PREPAGADA IDEAL, EN POCOS MINUTOS.',
       extraText: 'Calcula tu propuesta médica prepagada 100% personalizada en 2 minutos.',
-      buttonText: 'COTIZAR MI PLAN DE SALUD',
+      buttonText: 'COTIZA AHORA',
       image: heroBannerImg,
       targetPath: '/cotizador',
       color: 'bg-emerald-500 hover:bg-emerald-600',
     },
     {
       id: 'directorio',
-      badge: 'RED NACIONAL DE CLÍNICAS',
-      title: 'CONVENIOS DIRECTOS CON LAS MEJORES CLÍNICAS DEL PAÍS',
-      subtitle: 'FILTRA Y UBICA PRESTADORES MÉDICOS INSTANTÁNEAMENTE.',
+      badge: 'RED MÉDICA NACIONAL',
+      title: 'AMPLIA RED DE PRESTADORES MÉDICOS A TU ALCANCE',
+      subtitle: 'CONOCE NUESTRO DIRECTORIO DE CLÍNICAS, HOSPITALES Y ESPECIALISTAS CERTIFICADOS.',
       extraText: 'Accede a nuestro directorio de clínicas premium y especialistas certificados.',
-      buttonText: 'EXPLORAR RED MÉDICA',
+      buttonText: 'ACCEDE A NUESTRA RED',
       image: heroBuildingImg,
       targetPath: '/directorio',
       color: 'bg-[#4597CA] hover:bg-sky-600',
     },
     {
       id: 'agendamiento',
-      badge: 'RESERVA DE TURNOS',
-      title: 'AGENDAMIENTO DE CITAS MÉDICAS AL SEGUNDO',
-      subtitle: 'RESERVA TU CONSULTA CON ESPECIALISTAS Y CENTROS COLMEDIKAL.',
-      extraText: 'Indica la fecha, ciudad o especialidad y recibe confirmación directa en línea.',
-      buttonText: 'AGENDAR MI CITA AHORA',
+      badge: 'AGENDAMIENTO DIGITAL DE CITAS',
+      title: 'TU CITA MÉDICA A UN CLIC DE DISTANCIA',
+      subtitle: 'RESERVA CON ESPECIALISTAS Y CENTROS MÉDICOS A NIVEL NACIONAL.',
+      extraText: 'Elige la fecha, ciudad, especialidad y recibe tu confirmación de manera inmediata.',
+      buttonText: 'VER HORARIOS DISPONIBLES',
       image: heroAppointmentImg,
       targetPath: '/agendamiento',
       color: 'bg-teal-600 hover:bg-teal-700',
@@ -225,48 +225,77 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
           <span className="text-xs font-bold text-brand-light tracking-wider uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-            Nuestra Misión y Valores
+            Propósito y Bienestar
           </span>
           <h2 className="text-3xl sm:text-4xl font-display font-black text-slate-900 tracking-tight">
-            "El mejor servicio en seguros de salud para socios Cooperativistas"
+            Protegemos tu salud con los valores que nos unen
           </h2>
           <p className="text-slate-600 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
-            Guiados por nuestros pilares fundamentales de <span className="font-semibold text-brand-dark">Honestidad, Transparencia, Compromiso, Respeto</span>, ofrecemos el verdadero resguardo médico que supera las expectativas del sector.
+            Actuamos con honestidad y transparencia para darte el respaldo médico que mereces, nuestro compromiso es cuidar de ti y de tu familia con soluciones de salud reales y a tu alcance.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
+        {/* Por qué elegirnos */}
+        <div className="bg-white rounded-2xl border border-slate-150 shadow-sm p-8 sm:p-10 mb-12">
+          <div className="text-center max-w-3xl mx-auto space-y-3">
+            <span className="text-xs font-bold text-indigo-600 tracking-wider uppercase">Por qué elegirnos</span>
+            <h3 className="text-2xl sm:text-3xl font-display font-black text-slate-900 tracking-tight">
+              Colmedikal Medicina Prepagada
+            </h3>
+            <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
+              En COLMEDIKAL combinamos tecnología de punta con un equipo técnico especializado para ofrecerte la mejor experiencia en medicina prepagada. Nos diferenciamos por brindar un servicio preferencial, humano y exclusivo a nuestros afiliados, respaldados por planes flexibles y diversos que se adaptan a cada segmento del mercado.
+            </p>
+          </div>
+        </div>
+
+        {/* Nuestros Valores */}
+        <div className="text-center mb-8">
+          <h3 className="text-xl font-bold text-slate-900 mb-2">Nuestros Valores</h3>
+          <p className="text-sm text-slate-600 max-w-2xl mx-auto">
+            No solo ofrecemos servicios, creamos relaciones de confianza. Estos son los valores que guían nuestro compromiso contigo y tu familia:
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-8 rounded-2xl border border-slate-150 shadow-sm hover:shadow-md transition-all space-y-4 group">
-            <div className="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
-              <Plus className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold mb-4 group-hover:scale-110 transition-transform">
+              <ShieldCheck className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900">Red Hospitalaria Selecta</h3>
+            <h3 className="text-lg font-bold text-slate-900">Honestidad</h3>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Atención garantizada en los mejores centros y complejos hospitalarios del país. Tú decides el especialista que prefieres a través de nuestra red abierta de salud.
+              Actuamos con rectitud y transparencia en cada decisión. Tu confianza es nuestro activo más valioso.
             </p>
           </div>
 
           <div className="bg-white p-8 rounded-2xl border border-slate-150 shadow-sm hover:shadow-md transition-all space-y-4 group">
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
-              <Activity className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold mb-4 group-hover:scale-110 transition-transform">
+              <Sparkles className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900">Telemedicina Integral 24/7</h3>
+            <h3 className="text-lg font-bold text-slate-900">Transparencia</h3>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Consultas ilimitadas online de atención primaria en medicina general, nutrición y psicología, directo desde cualquier dispositivo y sin necesidad de copagos. <span className="font-semibold text-teal-700">Sin período de carencia</span> — activa desde el primer día.
+              Claridad que genera confianza, trabajamos con proactividad y procesos diseñados para asegurar tu máximo beneficio.
             </p>
           </div>
 
           <div className="bg-white p-8 rounded-2xl border border-slate-150 shadow-sm hover:shadow-md transition-all space-y-4 group">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold mb-4 group-hover:scale-110 transition-transform">
+              <Heart className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">Compromiso</h3>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Trabajamos de manera responsable porque mereces recibir el mejor servicio.
+            </p>
+          </div>
+
+          <div className="bg-white p-8 rounded-2xl border border-slate-150 shadow-sm hover:shadow-md transition-all space-y-4 group">
+            <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold mb-4 group-hover:scale-110 transition-transform">
               <Users className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900">Trámites e Historial Online</h3>
+            <h3 className="text-lg font-bold text-slate-900">Respeto</h3>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Descarga recetas, tramita autorizaciones, consulta reembolsos y actualiza tus beneficiarios directo desde nuestra app web. El control en la palma de tu mano.
+              Nos respaldamos en el marco legal vigente como herramienta clave para proteger y hacer valer los derechos de nuestros afiliados.
             </p>
           </div>
-
         </div>
       </section>
 
@@ -476,20 +505,20 @@ export default function Home() {
 
           <div className="relative z-10 max-w-2xl mx-auto space-y-6">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-white tracking-tight leading-tight">
-              ¿Listo para dar el paso hacia un cuidado médico premium?
+              Protege tu salud y patrimonio
             </h2>
             <p className="text-slate-300 text-base max-w-md mx-auto">
-              Usa nuestro cotizador personalizado instantáneo para calcular los precios de tu plan ideal en menos de 2 minutos.
+              Contrata tu plan a tiempo y asegura tu bienestar futuro y el de tu familia.
             </p>
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={() => {
-                  navigate('/cotizador');
+                  navigate('/contacto');
                 }}
                 className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-[#4597CA] to-[#0C4169] hover:from-[#0C4169] hover:to-[#4597CA] text-white font-bold transition-all shadow-md group cursor-pointer"
                 id="footer-cta-quote"
               >
-                Ingresar al Cotizador
+                Contáctanos Hoy
               </button>
               <button
                 onClick={() => navigate('/contacto')}
