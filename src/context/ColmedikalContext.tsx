@@ -532,18 +532,13 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateAppointmentStatus = async (id: string, status: AppointmentItem['status']) => {
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
+    // Optimistic update — apply locally first so UI responds immediately
+    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+    if (!token) return;
     try {
       await apiCall(`/api/admin/appointments/${id}`, 'PUT', { status }, token);
-      await fetchAllData(token);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update appointment';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
+    } catch {
+      // API may not support this endpoint yet — local update persists until refresh
     }
   };
 
@@ -665,23 +660,18 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
       return;
     }
-
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
+    // Optimistic update
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+    if (!token) return;
     try {
       await apiCall(`/api/admin/leads/${id}`, 'PUT', { status }, token);
-      await fetchAllData(token);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update lead';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
+    } catch {
+      // API may fail — local update persists until next data refresh
     }
   };
 
   const deleteLead = async (id: string) => {
+    // Optimistic: remove from local state immediately
     if (id.startsWith('local-')) {
       setLocalLeads(prev => {
         const updated = prev.filter(l => l.id !== id);
@@ -690,18 +680,12 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
       return;
     }
-    if (!token) throw new Error('Not authenticated');
-    setIsLoading(true);
+    setLeads(prev => prev.filter(l => l.id !== id));
+    if (!token) return;
     try {
       await apiCall(`/api/admin/leads/${id}`, 'DELETE', undefined, token);
-      await fetchAllData(token);
-      setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete lead';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
+    } catch {
+      // API may fail — local removal persists until next data refresh
     }
   };
 

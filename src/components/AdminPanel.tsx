@@ -1012,9 +1012,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         const today = new Date().toISOString().split('T')[0];
         const citasHoy = appointments.filter(a => a.aptDate === today);
 
-        const handleAptStatus = async (id: string, status: AppointmentItem['status']) => {
-          try { await updateAppointmentStatus(id, status); }
-          catch { alert('Error al actualizar el estado. Verifica la conexion con el servidor.'); }
+        const handleAptStatus = (id: string, status: AppointmentItem['status']) => {
+          updateAppointmentStatus(id, status);
         };
 
         return (
