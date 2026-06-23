@@ -121,7 +121,12 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   } | null>(null);
 
   const [activeTab, setActiveTab] = useState<'kpis' | 'refunds' | 'appointments' | 'auths' | 'leads' | 'doctors' | 'admins'>('kpis');
-  
+
+  // Lead filters
+  const [leadDateFilter, setLeadDateFilter] = useState('');
+  const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | 'Nuevo Plan' | 'Contactado' | 'Cierre Efectivo'>('all');
+  const [leadSearchFilter, setLeadSearchFilter] = useState('');
+
   // Administradores form and registration states
   const [newAdmin, setNewAdmin] = useState<{
     email: string;
@@ -1215,164 +1220,262 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       )}
 
       {/* 3.5 LEADS FROM PLAN QUOTER (CRM MODULE) */}
-      {activeTab === 'leads' && (
+      {activeTab === 'leads' && (() => {
+        const today = new Date().toISOString().split('T')[0];
+        const nuevos = leads.filter(l => l.status === 'Nuevo Plan');
+        const contactados = leads.filter(l => l.status === 'Contactado');
+        const cerrados = leads.filter(l => l.status === 'Cierre Efectivo');
+        const leadsHoy = leads.filter(l => l.timestamp?.startsWith(today));
+        const pipelineTotal = leads.reduce((s, l) => s + Number(l.estimatedPrice || 0), 0);
+        const pipelineNuevos = nuevos.reduce((s, l) => s + Number(l.estimatedPrice || 0), 0);
+        const pipelineContactados = contactados.reduce((s, l) => s + Number(l.estimatedPrice || 0), 0);
+
+        // Group duplicates by email/phone into clusters
+        const clusterMap = new Map<string, typeof leads>();
+        const assigned = new Set<string>();
+        leads.forEach(ld => {
+          if (assigned.has(ld.id)) return;
+          const key = (ld.quoteData?.email?.toLowerCase().trim()) || ld.id;
+          const phone = ld.quoteData?.phone?.replace(/\s/g, '') || '';
+          const cluster = leads.filter(other => {
+            if (assigned.has(other.id)) return false;
+            const oEmail = other.quoteData?.email?.toLowerCase().trim() || '';
+            const oPhone = other.quoteData?.phone?.replace(/\s/g, '') || '';
+            return other.id === ld.id || (key && oEmail === key) || (phone && oPhone === phone);
+          });
+          cluster.forEach(c => assigned.add(c.id));
+          clusterMap.set(ld.id, cluster);
+        });
+
+        // Apply filters
+        let filteredClusters = Array.from(clusterMap.entries());
+        if (leadDateFilter) {
+          filteredClusters = filteredClusters.filter(([, cluster]) =>
+            cluster.some(l => l.timestamp?.startsWith(leadDateFilter))
+          );
+        }
+        if (leadStatusFilter !== 'all') {
+          filteredClusters = filteredClusters.filter(([, cluster]) =>
+            cluster.some(l => l.status === leadStatusFilter)
+          );
+        }
+        if (leadSearchFilter) {
+          const q = leadSearchFilter.toLowerCase();
+          filteredClusters = filteredClusters.filter(([, cluster]) =>
+            cluster.some(l =>
+              l.quoteData?.fullName?.toLowerCase().includes(q) ||
+              l.quoteData?.email?.toLowerCase().includes(q) ||
+              l.quoteData?.phone?.includes(q) ||
+              l.quoteData?.docNumber?.includes(q)
+            )
+          );
+        }
+
+        return (
         <div className="space-y-6 animate-in fade-in duration-200" id="admin-leads-panel">
+          {/* Header */}
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-bold text-slate-950">Cotizaciones Emitidas desde el Panel</h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Visualiza en tiempo real las cotizaciones de seguros de salud realizadas por tus usuarios. Se actualiza cada 10 segundos.
-              </p>
+              <h3 className="text-xl font-bold text-slate-950">Cotizaciones Emitidas desde el Portal</h3>
+              <p className="text-xs text-slate-500 mt-1">CRM de prospectos con deduplicación automática.</p>
             </div>
-            <button
-              onClick={() => refreshData()}
-              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold rounded-xl transition cursor-pointer"
-              title="Actualizar ahora"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Actualizar</span>
+            <button onClick={() => refreshData()} className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold rounded-xl transition cursor-pointer">
+              <RefreshCw className="w-3.5 h-3.5" /><span>Actualizar</span>
             </button>
           </div>
 
-          {duplicateGroups.size > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs text-amber-800">
-              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>Se detectaron <strong>{duplicateGroups.size}</strong> leads duplicados (mismo email o teléfono).</span>
+          {/* Stats bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="bg-white p-3 rounded-xl border border-slate-200 text-center">
+              <span className="text-lg font-black text-slate-900 font-mono">{leads.length}</span>
+              <span className="block text-[9px] text-slate-400 font-bold uppercase">Total Leads</span>
             </div>
-          )}
+            <div className="bg-white p-3 rounded-xl border border-slate-200 text-center">
+              <span className="text-lg font-black text-emerald-600 font-mono">{leadsHoy.length}</span>
+              <span className="block text-[9px] text-slate-400 font-bold uppercase">Hoy</span>
+            </div>
+            <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-center">
+              <span className="text-lg font-black text-emerald-700 font-mono">{nuevos.length}</span>
+              <span className="block text-[9px] text-emerald-600 font-bold uppercase">Nuevos</span>
+              <span className="text-[9px] text-emerald-500 font-mono">${pipelineNuevos.toFixed(0)}/mes</span>
+            </div>
+            <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-center">
+              <span className="text-lg font-black text-amber-700 font-mono">{contactados.length}</span>
+              <span className="block text-[9px] text-amber-600 font-bold uppercase">Contactados</span>
+              <span className="text-[9px] text-amber-500 font-mono">${pipelineContactados.toFixed(0)}/mes</span>
+            </div>
+            <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-200 text-center">
+              <span className="text-lg font-black text-indigo-700 font-mono">{cerrados.length}</span>
+              <span className="block text-[9px] text-indigo-600 font-bold uppercase">Cerrados</span>
+            </div>
+            <div className="bg-slate-900 p-3 rounded-xl text-center">
+              <span className="text-lg font-black text-teal-400 font-mono">${pipelineTotal.toFixed(0)}</span>
+              <span className="block text-[9px] text-slate-400 font-bold uppercase">Pipeline/mes</span>
+            </div>
+          </div>
 
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 items-center">
+            <input
+              type="date"
+              value={leadDateFilter}
+              onChange={e => setLeadDateFilter(e.target.value)}
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-teal-500"
+            />
+            <select
+              value={leadStatusFilter}
+              onChange={e => setLeadStatusFilter(e.target.value as any)}
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-teal-500"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="Nuevo Plan">Nuevo Plan</option>
+              <option value="Contactado">Contactado</option>
+              <option value="Cierre Efectivo">Cierre Efectivo</option>
+            </select>
+            <input
+              type="text"
+              value={leadSearchFilter}
+              onChange={e => setLeadSearchFilter(e.target.value)}
+              placeholder="Buscar nombre, email, cedula..."
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-teal-500 flex-1 min-w-[180px]"
+            />
+            {(leadDateFilter || leadStatusFilter !== 'all' || leadSearchFilter) && (
+              <button onClick={() => { setLeadDateFilter(''); setLeadStatusFilter('all'); setLeadSearchFilter(''); }} className="text-[10px] text-teal-600 font-bold hover:underline cursor-pointer">
+                Limpiar filtros
+              </button>
+            )}
+            <span className="text-[10px] text-slate-400 ml-auto">{filteredClusters.length} grupo(s)</span>
+          </div>
+
+          {/* Lead cards — grouped by duplicate cluster */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {leads.length > 0 ? (
-              leads.map((ld) => (
-                <div key={ld.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between" id={`admin-lead-card-${ld.id}`}>
-
-                  {/* Lead details header */}
-                  <div className="space-y-4">
+            {filteredClusters.length > 0 ? (
+              filteredClusters.map(([clusterId, cluster]) => {
+                const primary = cluster[0];
+                const hasDupes = cluster.length > 1;
+                return (
+                <div key={clusterId} className={`bg-white p-5 rounded-2xl border shadow-sm flex flex-col justify-between ${hasDupes ? 'border-amber-200' : 'border-slate-200'}`}>
+                  <div className="space-y-3">
+                    {/* Header */}
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest font-mono">
-                          {ld.quoteData?.leadCode || ld.id.slice(0, 14).toUpperCase()}
-                        </span>
-                        {duplicateGroups.has(ld.id) && (
-                          <span className="text-[8px] bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-bold uppercase">
-                            Duplicado
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest font-mono">
+                            {primary.quoteData?.leadCode || primary.id.slice(0, 12).toUpperCase()}
                           </span>
-                        )}
-                        <h4 className="text-base font-black text-slate-900 leading-tight">{ld.quoteData?.fullName || '—'}</h4>
-                        {ld.quoteData?.selectedPlanName && (
+                          {hasDupes && (
+                            <span className="text-[8px] bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-bold">
+                              {cluster.length} registros
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-sm font-black text-slate-900">{primary.quoteData?.fullName || '—'}</h4>
+                        {primary.quoteData?.selectedPlanName && (
                           <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase">
-                            {ld.quoteData.selectedPlanName}
+                            {primary.quoteData.selectedPlanName}
                           </span>
                         )}
                       </div>
-
                       <div className="text-right">
-                        <span className="text-[9px] text-slate-400 font-semibold font-mono block">Valor Est.:</span>
-                        <span className="text-base font-black text-indigo-750 font-mono">${Number(ld.estimatedPrice || 0).toFixed(2)}<span className="text-[10px] font-normal">/m</span></span>
+                        <span className="text-[9px] text-slate-400 font-mono block">Est.:</span>
+                        <span className="text-sm font-black text-indigo-750 font-mono">${Number(primary.estimatedPrice || 0).toFixed(2)}/m</span>
                       </div>
                     </div>
 
-                    {/* Meta info tags */}
-                    <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-2xl border border-slate-150">
+                    {/* Contact + Doc info */}
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
                       <div>
                         <span className="block text-[9px] text-slate-400 font-bold uppercase">Contacto:</span>
-                        <a href={`tel:${ld.quoteData?.phone}`} className="font-bold text-indigo-650 hover:underline flex items-center gap-1 mt-0.5">
-                          <Phone className="w-3 h-3" />
-                          <span>{ld.quoteData?.phone || '—'}</span>
+                        <a href={`tel:${primary.quoteData?.phone}`} className="font-bold text-indigo-650 hover:underline flex items-center gap-1 mt-0.5">
+                          <Phone className="w-3 h-3" /><span>{primary.quoteData?.phone || '—'}</span>
                         </a>
-                        <a href={`mailto:${ld.quoteData?.email}`} className="text-[10px] text-slate-500 truncate block hover:underline">
-                          {ld.quoteData?.email || '—'}
-                        </a>
+                        <span className="text-[10px] text-slate-500 truncate block">{primary.quoteData?.email || '—'}</span>
                       </div>
-
                       <div>
-                        <span className="block text-[9px] text-slate-400 font-bold uppercase">Estructura Plan:</span>
-                        <span className="font-semibold text-slate-800 capitalize leading-none">{ld.quoteData?.type || '—'}</span>
-                        <span className="block text-[10px] text-slate-500">
-                          {ld.quoteData?.primaryAge ? `${ld.quoteData.primaryAge} años` : ''}
-                          {(ld.quoteData?.childrenCount ?? 0) > 0 ? ` • Hijos: ${ld.quoteData?.childrenCount}` : ''}
+                        <span className="block text-[9px] text-slate-400 font-bold uppercase">Identificacion:</span>
+                        <span className="font-semibold text-slate-800 font-mono text-[11px]">
+                          {primary.quoteData?.docNumber || '—'}
+                        </span>
+                        <span className="block text-[9px] text-slate-400 capitalize">
+                          {primary.quoteData?.docType === 'pasaporte' ? 'Pasaporte' : 'Cedula'} • {primary.quoteData?.type || '—'}
+                          {(primary.quoteData?.childrenCount ?? 0) > 0 ? ` • ${primary.quoteData?.childrenCount} dep.` : ''}
                         </span>
                       </div>
                     </div>
 
-                    {/* Addons preference ledger */}
-                    <div className="space-y-1.5">
-                      <span className="block text-[9px] text-slate-400 font-bold uppercase">Tipo de Segmento:</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className="inline-block bg-slate-100 text-slate-700 text-[9px] px-2 py-0.5 rounded font-medium">
-                          Plan base: {ld.quoteData?.basePlanId?.toUpperCase() || 'N/A'}
-                        </span>
-                        {(ld.quoteData?.childrenCount ?? 0) > 0 && (
-                          <span className="inline-block bg-teal-50 text-teal-700 text-[9px] px-2 py-0.5 rounded font-medium">
-                            {ld.quoteData?.childrenCount} dependiente(s)
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    {/* Duplicate history (collapsed) */}
+                    {hasDupes && (
+                      <details className="text-[10px]">
+                        <summary className="cursor-pointer text-amber-600 font-bold hover:underline">Ver {cluster.length - 1} cotizacion(es) anterior(es)</summary>
+                        <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-amber-200">
+                          {cluster.slice(1).map(dup => (
+                            <div key={dup.id} className="text-slate-500 flex justify-between">
+                              <span>{new Date(dup.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })} — ${Number(dup.estimatedPrice || 0).toFixed(2)}/m</span>
+                              <span className="text-slate-400">{dup.status}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
                   </div>
 
-                  <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                  {/* Footer: status + actions */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                     <div>
                       <span className="text-[10px] text-slate-400 font-mono block">
-                        {new Date(ld.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
+                        {new Date(primary.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
                       </span>
                       <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase mt-0.5 inline-block ${
-                        ld.status === 'Cierre Efectivo'
-                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                          : ld.status === 'Contactado'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                      }`}>
-                        {ld.status}
-                      </span>
+                        primary.status === 'Cierre Efectivo' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                        : primary.status === 'Contactado' ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                        : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                      }`}>{primary.status}</span>
                     </div>
 
-                    <div className="flex gap-2 items-center">
-                      {ld.status === 'Nuevo Plan' && (
-                        <button
-                          onClick={() => updateLeadStatus(ld.id, 'Contactado')}
-                          className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] rounded-lg shadow-sm cursor-pointer"
-                        >
+                    <div className="flex gap-1.5 items-center flex-wrap justify-end">
+                      {/* Forward buttons */}
+                      {primary.status === 'Nuevo Plan' && (
+                        <button onClick={() => updateLeadStatus(primary.id, 'Contactado')} className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] rounded-lg cursor-pointer">
                           Contactado
                         </button>
                       )}
-
-                      {ld.status === 'Contactado' && (
-                        <button
-                          onClick={() => updateLeadStatus(ld.id, 'Cierre Efectivo')}
-                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg shadow-sm cursor-pointer"
-                        >
-                          Cierre Exitoso ✔
+                      {primary.status === 'Contactado' && (
+                        <button onClick={() => updateLeadStatus(primary.id, 'Cierre Efectivo')} className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg cursor-pointer">
+                          Cierre Efectivo
                         </button>
                       )}
-
+                      {/* Revert buttons */}
+                      {primary.status === 'Contactado' && (
+                        <button onClick={() => updateLeadStatus(primary.id, 'Nuevo Plan')} className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px] rounded-lg cursor-pointer" title="Regresar a Nuevo Plan">
+                          ← Nuevo
+                        </button>
+                      )}
+                      {primary.status === 'Cierre Efectivo' && (
+                        <button onClick={() => updateLeadStatus(primary.id, 'Contactado')} className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px] rounded-lg cursor-pointer" title="Regresar a Contactado">
+                          ← Contactado
+                        </button>
+                      )}
                       {canDeleteLeads && (
                         <button
-                          onClick={() => {
-                            if (confirm(`¿Eliminar la cotización de ${ld.quoteData?.fullName || ld.id}?`)) {
-                              deleteLead(ld.id);
-                            }
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          title="Eliminar cotización"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          onClick={() => { if (confirm(`¿Eliminar la cotización de ${primary.quoteData?.fullName || primary.id}?`)) deleteLead(primary.id); }}
+                          className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        ><Trash2 className="w-3.5 h-3.5" /></button>
                       )}
                     </div>
                   </div>
-
                 </div>
-              ))
+                );
+              })
             ) : (
               <div className="col-span-2 text-center py-12 bg-white rounded-3xl border p-6">
                 <Briefcase className="w-12 h-12 text-slate-350 mx-auto mb-2" />
-                <p className="text-sm font-bold text-slate-700">No hay prospectos cotizaciones guardadas aún.</p>
+                <p className="text-sm font-bold text-slate-700">{leads.length === 0 ? 'No hay cotizaciones registradas.' : 'No hay resultados con los filtros actuales.'}</p>
               </div>
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* 3.6 LIVE MEDICAL DIRECTORY MANAGE */}
       {activeTab === 'doctors' && (

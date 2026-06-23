@@ -40,6 +40,8 @@ export interface QuoteState {
   fullName: string;
   email: string;
   phone: string;
+  docType?: 'cedula' | 'pasaporte';
+  docNumber?: string;
   type: 'individual' | 'pareja' | 'familiar';
   primaryAge: number;
   partnerAge?: number;
