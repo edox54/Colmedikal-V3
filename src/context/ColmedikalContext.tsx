@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, QuoteState, AdminUser } from '../types';
 
 interface ColmedikalContextType {
@@ -117,6 +117,20 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch { return []; }
   });
   const [admins, setAdmins] = useState<AdminUser[]>([]);
+
+  // Local override layer — survives the 10s polling refresh when the backend
+  // API doesn't persist PUT/DELETE. Keyed in refs so fetchAllData always reads
+  // the latest values without stale closures.
+  const loadOverride = <T,>(key: string, fallback: T): T => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : fallback; } catch { return fallback; }
+  };
+  const aptStatusOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_apt_overrides', {}));
+  const leadStatusOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_overrides', {}));
+  const deletedLeadIds = useRef<string[]>(loadOverride('colmedikal_deleted_leads', []));
+  const persistOverride = (key: string, value: any) => {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
+  };
+
   const [seoSettings, setSeoSettings] = useState<Record<string, string>>({});
   const [seoMetaOverrides, setSeoMetaOverrides] = useState<Record<string, any>>({});
   const [blogPostsCMS, setBlogPostsCMS] = useState<any[]>([]);
@@ -269,7 +283,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         clinic: a.clinic || '',
         city: a.city || '',
         cost: Number(a.cost || 0),
-        status: a.status || 'Pendiente',
+        // Apply local status override if the backend didn't persist the change
+        status: aptStatusOverrides.current[a.id] || a.status || 'Pendiente',
         notes: a.notes || '',
       })));
       setAuthorizations((authorizationsRes.data || []).map((a: any) => ({
@@ -289,18 +304,23 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Load CMS blog posts (admin sees all, including drafts)
       fetchAdminBlog(authToken);
 
-      setLeads((leadsRes.data || []).map((l: any) => ({
-        ...l,
-        quoteData: (() => {
-          try {
-            return typeof l.quote_data === 'string'
-              ? JSON.parse(l.quote_data)
-              : (l.quote_data ?? l.quoteData ?? {});
-          } catch { return l.quoteData ?? {}; }
-        })(),
-        estimatedPrice: Number(l.estimated_price ?? l.estimatedPrice ?? 0),
-        timestamp: l.timestamp ?? l.created_at ?? new Date().toISOString(),
-      })));
+      setLeads((leadsRes.data || [])
+        // Filter out leads the user deleted locally (backend may not persist DELETE)
+        .filter((l: any) => !deletedLeadIds.current.includes(l.id))
+        .map((l: any) => ({
+          ...l,
+          quoteData: (() => {
+            try {
+              return typeof l.quote_data === 'string'
+                ? JSON.parse(l.quote_data)
+                : (l.quote_data ?? l.quoteData ?? {});
+            } catch { return l.quoteData ?? {}; }
+          })(),
+          estimatedPrice: Number(l.estimated_price ?? l.estimatedPrice ?? 0),
+          timestamp: l.timestamp ?? l.created_at ?? new Date().toISOString(),
+          // Apply local status override
+          status: leadStatusOverrides.current[l.id] || l.status || 'Nuevo Plan',
+        })));
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch data';
@@ -532,13 +552,15 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateAppointmentStatus = async (id: string, status: AppointmentItem['status']) => {
-    // Optimistic update — apply locally first so UI responds immediately
+    // Optimistic update + persist override so the 10s poll doesn't revert it
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+    aptStatusOverrides.current[id] = status;
+    persistOverride('colmedikal_apt_overrides', aptStatusOverrides.current);
     if (!token) return;
     try {
       await apiCall(`/api/admin/appointments/${id}`, 'PUT', { status }, token);
     } catch {
-      // API may not support this endpoint yet — local update persists until refresh
+      // API may not support this endpoint yet — override layer keeps the change
     }
   };
 
@@ -660,13 +682,15 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
       return;
     }
-    // Optimistic update
+    // Optimistic update + persist override so the 10s poll doesn't revert it
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+    leadStatusOverrides.current[id] = status;
+    persistOverride('colmedikal_lead_overrides', leadStatusOverrides.current);
     if (!token) return;
     try {
       await apiCall(`/api/admin/leads/${id}`, 'PUT', { status }, token);
     } catch {
-      // API may fail — local update persists until next data refresh
+      // API may fail — override layer keeps the change
     }
   };
 
@@ -681,11 +705,16 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return;
     }
     setLeads(prev => prev.filter(l => l.id !== id));
+    // Persist deletion so the 10s poll doesn't bring it back
+    if (!deletedLeadIds.current.includes(id)) {
+      deletedLeadIds.current.push(id);
+      persistOverride('colmedikal_deleted_leads', deletedLeadIds.current);
+    }
     if (!token) return;
     try {
       await apiCall(`/api/admin/leads/${id}`, 'DELETE', undefined, token);
     } catch {
-      // API may fail — local removal persists until next data refresh
+      // API may fail — override layer keeps it deleted
     }
   };
 
