@@ -196,6 +196,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   };
 
   const canDeleteLeads = currentUserRole === 'Super Admin' || currentUserRole === 'Mid Admin';
+  const canManageAdmins = currentUserRole === 'Super Admin';
 
   // Doctors form state
   const [newDoc, setNewDoc] = useState({
@@ -1810,7 +1811,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Form to add administrative user */}
+        {/* Form to add administrative user — Super Admin only */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 h-fit text-slate-850">
           <div className="space-y-1">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
@@ -1822,7 +1823,12 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
             </p>
           </div>
 
-          <form onSubmit={handleRegisterAdmin} className="space-y-4">
+          {!canManageAdmins && (
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-xl">
+              Solo el Super Admin puede registrar o modificar accesos.
+            </div>
+          )}
+          <form onSubmit={handleRegisterAdmin} className="space-y-4" style={canManageAdmins ? undefined : { pointerEvents: 'none', opacity: 0.45 }}>
             {adminSuccessMsg && (
               <div className="p-3 bg-emerald-50 border border-emerald-250 text-emerald-800 text-xs font-semibold rounded-xl leading-normal">
                 {adminSuccessMsg}
@@ -1908,7 +1914,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-600 text-[10px] space-y-1 font-sans">
             <span className="font-bold uppercase tracking-wider block text-slate-700">🔒 Niveles de Acceso</span>
             <p className="leading-relaxed">
-              Super Admin y Mid Admin tienen acceso completo a todos los módulos (Mid Admin sin SEO). Equipo Comercial solo ve cotizaciones y autorizaciones, sin opción de eliminar. Auditor solo accede a reembolsos.
+              Solo el Super Admin puede registrar, modificar roles, suspender o revocar accesos. Mid Admin puede visualizar este panel pero sin permisos de edición. Equipo Comercial solo ve cotizaciones y autorizaciones. Auditor solo accede a reembolsos.
             </p>
           </div>
         </div>
@@ -1937,7 +1943,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                     <th className="pb-3">Detalle Administrador</th>
                     <th className="pb-3">Rol Corporativo</th>
                     <th className="pb-3 text-center">Estado</th>
-                    <th className="pb-3 text-center">Acciones</th>
+                    {canManageAdmins && <th className="pb-3 text-center">Acciones</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1951,13 +1957,30 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                         </div>
                       </td>
                       <td className="py-3.5">
-                        <select
-                          value={adm.role}
-                          onChange={async (e) => {
-                            const newRole = e.target.value as typeof adm.role;
-                            try { await updateAdminRole(adm.email, newRole); } catch { /* ignore */ }
-                          }}
-                          className={`px-2 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider font-sans cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-400 ${
+                        {canManageAdmins ? (
+                          <select
+                            value={adm.role}
+                            onChange={async (e) => {
+                              const newRole = e.target.value as typeof adm.role;
+                              try { await updateAdminRole(adm.email, newRole); } catch { /* ignore */ }
+                            }}
+                            className={`px-2 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider font-sans cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-400 ${
+                              adm.role === 'Super Admin'
+                                ? 'bg-violet-50 border-violet-200 text-violet-700'
+                                : adm.role === 'Mid Admin'
+                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                                : adm.role === 'Equipo Comercial'
+                                ? 'bg-teal-50 border-teal-200 text-teal-700'
+                                : 'bg-amber-50 border-amber-200 text-amber-700'
+                            }`}
+                          >
+                            <option value="Super Admin">Super Admin</option>
+                            <option value="Mid Admin">Mid Admin</option>
+                            <option value="Equipo Comercial">Equipo Comercial</option>
+                            <option value="Auditor">Auditor</option>
+                          </select>
+                        ) : (
+                          <span className={`px-2 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider font-sans inline-block ${
                             adm.role === 'Super Admin'
                               ? 'bg-violet-50 border-violet-200 text-violet-700'
                               : adm.role === 'Mid Admin'
@@ -1965,40 +1988,47 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                               : adm.role === 'Equipo Comercial'
                               ? 'bg-teal-50 border-teal-200 text-teal-700'
                               : 'bg-amber-50 border-amber-200 text-amber-700'
-                          }`}
-                        >
-                          <option value="Super Admin">Super Admin</option>
-                          <option value="Mid Admin">Mid Admin</option>
-                          <option value="Equipo Comercial">Equipo Comercial</option>
-                          <option value="Auditor">Auditor</option>
-                        </select>
+                          }`}>{adm.role}</span>
+                        )}
                       </td>
                       <td className="py-3.5 text-center">
-                        <button
-                          onClick={() => toggleAdminActiveStatus(adm.email)}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer uppercase tracking-wider font-sans ${
+                        {canManageAdmins ? (
+                          <button
+                            onClick={() => toggleAdminActiveStatus(adm.email)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer uppercase tracking-wider font-sans ${
+                              adm.active
+                                ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-250'
+                                : 'bg-stone-100 hover:bg-stone-200 text-stone-605 border-stone-300'
+                            }`}
+                            title={adm.active ? 'Haga clic para suspender' : 'Haga clic para habilitar'}
+                          >
+                            {adm.active ? 'Activo' : 'Suspendido'}
+                          </button>
+                        ) : (
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase tracking-wider font-sans inline-block ${
                             adm.active
-                              ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-250'
-                              : 'bg-stone-100 hover:bg-stone-200 text-stone-605 border-stone-300'
-                          }`}
-                          title={adm.active ? 'Haga clic para suspender' : 'Haga clic para habilitar'}
-                        >
-                          {adm.active ? 'Activo' : 'Suspendido'}
-                        </button>
+                              ? 'bg-emerald-50 border-emerald-250 text-emerald-700'
+                              : 'bg-stone-100 border-stone-300 text-stone-605'
+                          }`}>
+                            {adm.active ? 'Activo' : 'Suspendido'}
+                          </span>
+                        )}
                       </td>
-                      <td className="py-3.5 text-center">
-                        <button
-                          onClick={() => {
-                            if (confirm(`¿Está seguro de revocar permanentemente los privilegios de administración para ${adm.name}?`)) {
-                              deleteAdmin(adm.email);
-                            }
-                          }}
-                          className="p-2 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer"
-                          title="Revocar acceso"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
+                      {canManageAdmins && (
+                        <td className="py-3.5 text-center">
+                          <button
+                            onClick={() => {
+                              if (confirm(`¿Está seguro de revocar permanentemente los privilegios de administración para ${adm.name}?`)) {
+                                deleteAdmin(adm.email);
+                              }
+                            }}
+                            className="p-2 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer"
+                            title="Revocar acceso"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
