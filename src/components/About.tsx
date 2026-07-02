@@ -39,25 +39,25 @@ export default function About({ setCurrentPage }: AboutProps) {
   const values = [
     {
       title: 'Honestidad',
-      description: 'Actuamos siempre de forma responsable, con rectitud, honradez y veracidad en todos y cada uno de los actos, impidiendo toda forma de corrupción.',
+      description: 'Actuamos con rectitud y transparencia en cada decisión. Tu confianza es nuestro activo más valioso.',
       icon: ShieldCheck,
       color: 'bg-emerald-50 text-emerald-600 border-emerald-100',
     },
     {
       title: 'Transparencia',
-      description: 'En Colmedikal cumplimos nuestro trabajo con proactividad y cuidado, de acuerdo con los procesos establecidos para beneficiar a nuestros usuarios',
+      description: 'Claridad que genera confianza, trabajamos con proactividad y procesos diseñados para asegurar tu máximo beneficio.',
       icon: Eye,
       color: 'bg-sky-50 text-sky-600 border-sky-100',
     },
     {
       title: 'Compromiso',
-      description: 'En Colmedikal cumplimos con lo que prometido a nuestros usuarios porque trabajamos de manera responsable, entregando lo mejor de nosotros.',
+      description: 'Trabajamos de manera responsable porque mereces recibir el mejor servicio.',
       icon: Heart,
       color: 'bg-rose-50 text-rose-600 border-rose-100',
     },
     {
       title: 'Respeto',
-      description: 'El marco de referencia legal vigente es una herramienta para hacer cumplir los derechos propios y los derechos de nuestros usuarios, evitando acciones que entorpezcan, alteren cumplimiento de la normativa actual.',
+      description: 'Nos respaldamos en el marco legal vigente como herramienta clave para proteger y hacer valer los derechos de nuestros afiliados.',
       icon: Scale,
       color: 'bg-indigo-50 text-indigo-600 border-indigo-100',
     },
@@ -75,7 +75,7 @@ export default function About({ setCurrentPage }: AboutProps) {
       location: 'Quito - Ecuador',
     },
     {
-      quote: 'Siempre he tenido miedo de ir al dentista, pero en Colmedikal me hicieron sentir cómoda desde el primer momento. Los odontólogos son amables y explican cada procedimiento con detalle. Ahora tengo una sonrisa saludable y estoy más tranquila con mis visitas regulares',
+      quote: 'Siempre he tenido miedo de ir al dentista, pero en Colmedikal me hicieron sentir cómodo desde el primer momento. Los odontólogos son amables y explican cada procedimiento con detalle. Ahora tengo una sonrisa saludable y estoy más tranquilo con mis visitas regulares',
       name: 'Eduardo Manosalvas',
       location: 'Tumbaco - Ecuador',
     },
@@ -95,14 +95,17 @@ export default function About({ setCurrentPage }: AboutProps) {
           variants={fadeUp}
         >
           <div className="space-y-3">
-            <span className="text-sm font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">¿POR QUÉ ELEGIRNOS?</span>
+            <span className="text-sm font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">POR QUÉ ELEGIRNOS</span>
             <h1 className="text-5xl font-display font-extrabold text-[#0C4169] tracking-tight leading-tight">
               COLMEDIKAL
             </h1>
             <p className="text-xl font-semibold text-teal-700">Medicina Prepagada</p>
           </div>
           <p className="text-base text-slate-600 leading-relaxed">
-            Porque contamos con un equipo técnico y de desarrollo para la administración del programa de microseguros, adicionalmente disponemos de la tecnología más moderna del mercado para brindar un soporte profesional y de calidad a nuestros socios, entregando un servicio preferencial y personalizado, además nos caracterizamos por manejar una gran diversidad y flexibilidad de los planes de salud: Lo que permite llegar a un amplio segmento del mercado.
+            En COLMEDIKAL combinamos tecnología de punta con un equipo técnico especializado para ofrecerte la mejor experiencia en medicina prepagada.
+          </p>
+          <p className="text-base text-slate-600 leading-relaxed">
+            Nos diferenciamos por brindar un servicio preferencial, humano y exclusivo a nuestros afiliados, respaldados por planes flexibles y diversos que se adaptan a cada segmento del mercado.
           </p>
         </motion.div>
 
@@ -142,11 +145,15 @@ export default function About({ setCurrentPage }: AboutProps) {
         variants={fadeUp}
       >
         <div className="max-w-2xl mx-auto text-center space-y-3">
+          <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">PROPÓSITO Y BIENESTAR</span>
           <h2 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight">
-            Nuestros Valores
+            PROTEGEMOS TU SALUD CON LOS VALORES QUE NOS UNEN
           </h2>
           <p className="text-base text-slate-500">
-            Los principios que guían cada decisión y cada servicio que ofrecemos a nuestros usuarios.
+            Actuamos con honestidad y transparencia para darte el respaldo médico que mereces, nuestro compromiso es cuidar de ti y de tu familia con soluciones de salud reales y a tu alcance.
+          </p>
+          <p className="text-base text-slate-500 mt-2">
+            No solo ofrecemos servicios, creamos relaciones de confianza. Estos son los valores que guían nuestro compromiso contigo y tu familia:
           </p>
         </div>
 
@@ -187,10 +194,10 @@ export default function About({ setCurrentPage }: AboutProps) {
         <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full bg-indigo-500/10 blur-3xl animate-pulse"></div>
         <div className="relative z-10 space-y-5 max-w-2xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-display font-extrabold uppercase tracking-wide">
-            NO PIERDAS EL TIEMPO
+            PROTEGE TU SALUD Y PATRIMONIO
           </h2>
           <p className="text-lg text-slate-300 leading-relaxed">
-            Contrata un SEGURO MÉDICO comprobado por su experiencia y excelentes precios
+            Contrata tu plan A TIEMPO y asegura tu bienestar futuro y el de tu familia.
           </p>
           <motion.button
             onClick={() => navigate('/contacto')}
@@ -198,7 +205,7 @@ export default function About({ setCurrentPage }: AboutProps) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
           >
-            <span>Contáctenos Ahora Mismo</span>
+            <span>CONTÁCTANOS HOY</span>
             <ArrowRight className="w-5 h-5" />
           </motion.button>
         </div>
