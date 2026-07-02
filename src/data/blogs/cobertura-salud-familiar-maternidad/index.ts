@@ -1,6 +1,6 @@
 import { BlogPost } from '../../../types';
 import { AUTHORS } from '../../authors';
-import postMaternidad from '../../../assets/images/post_maternidad_1780025067027.png';
+import postMaternidad from '../../../assets/images/post_maternidad_1780025067027.webp';
 
 export const post: BlogPost = {
   id: 'cobertura-salud-familiar-maternidad',

@@ -1,6 +1,6 @@
 import { BlogPost } from '../../../types';
 import { AUTHORS } from '../../authors';
-import postExamenesAnuales from '../../../assets/images/post_examenes_anuales_1780025049525.png';
+import postExamenesAnuales from '../../../assets/images/post_examenes_anuales_1780025049525.webp';
 
 export const post: BlogPost = {
   id: 'examenes-preventivos-anuales',

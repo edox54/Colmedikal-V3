@@ -1,6 +1,6 @@
 import { BlogPost } from '../../../types';
 import { AUTHORS } from '../../authors';
-import postEcuadorPrepagada from '../../../assets/images/post_ecuador_prepagada_1780025031230.png';
+import postEcuadorPrepagada from '../../../assets/images/post_ecuador_prepagada_1780025031230.webp';
 
 export const post: BlogPost = {
   id: 'medicina-prepagada-ecuador',

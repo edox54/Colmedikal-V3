@@ -18,7 +18,7 @@ import {
 import { Plan } from '../types';
 import { MEDICAL_PLANS } from '../data';
 import Logo from './Logo';
-import MapaRedMedica from './MapaRedMedica';
+const MapaRedMedica = React.lazy(() => import('./MapaRedMedica'));
 import { useNavigate } from 'react-router-dom';
 import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.webp';
 import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.webp';
@@ -408,7 +408,9 @@ export default function Home() {
             Explora los especialistas y centros médicos disponibles en cada ciudad del país. Haz clic en cualquier marcador para ver el detalle.
           </p>
         </div>
-        <MapaRedMedica embedded />
+        <React.Suspense fallback={<div className="h-96 rounded-2xl bg-slate-100 animate-pulse" />}>
+          <MapaRedMedica embedded />
+        </React.Suspense>
         <div className="text-center">
           <button
             onClick={() => navigate('/mapa-red-medica')}

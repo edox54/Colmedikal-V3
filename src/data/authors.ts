@@ -1,7 +1,7 @@
 import { Author } from '../types';
-import avatarGomez from '../assets/images/avatar_gomez_1780024902226.png';
-import avatarRestrepo from '../assets/images/avatar_restrepo_1780024921091.png';
-import avatarCaballero from '../assets/images/avatar_caballero_1780024936325.png';
+import avatarGomez from '../assets/images/avatar_gomez_1780024902226.webp';
+import avatarRestrepo from '../assets/images/avatar_restrepo_1780024921091.webp';
+import avatarCaballero from '../assets/images/avatar_caballero_1780024936325.webp';
 
 export const AUTHORS: Record<string, Author> = {
   gomez: {
