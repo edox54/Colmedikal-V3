@@ -20,10 +20,10 @@ import { MEDICAL_PLANS } from '../data';
 import Logo from './Logo';
 import MapaRedMedica from './MapaRedMedica';
 import { useNavigate } from 'react-router-dom';
-import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.png';
-import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.png';
-import avatarValentina from '../assets/images/avatar_valentina_1780025241348.png';
-import avatarCarlosElena from '../assets/images/avatar_carlos_elena_1780025264251.png';
+import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.webp';
+import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.webp';
+import avatarValentina from '../assets/images/avatar_valentina_1780025241348.webp';
+import avatarCarlosElena from '../assets/images/avatar_carlos_elena_1780025264251.webp';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -157,6 +157,8 @@ export default function Home() {
                   src={slide.image}
                   alt={slide.title}
                   referrerPolicy="no-referrer"
+                  fetchPriority={idx === 0 ? 'high' : 'low'}
+                  loading={idx === 0 ? 'eager' : 'lazy'}
                   className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${
                     idx === currentSlide
                       ? 'opacity-100 z-0 scale-100'
@@ -446,11 +448,12 @@ export default function Home() {
                 "Como profesional de la salud corporal, sé lo valioso que es un soporte hospitalario veloz y confiable. Colmedikal siempre me ha dado la mejor red de respuesta y el cotizador me permitió ver exactamente qué pagaría sin tarifas ocultas."
               </p>
               <div className="flex items-center gap-3">
-                <img 
-                  className="w-10 h-10 rounded-full object-cover shrink-0" 
-                  src={avatarValentina} 
+                <img
+                  className="w-10 h-10 rounded-full object-cover shrink-0"
+                  src={avatarValentina}
                   alt="Dra. Valentina"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
                 />
                 <div>
                   <span className="block text-xs font-bold text-slate-900">Dra. Valentina Mendoza</span>
@@ -464,11 +467,12 @@ export default function Home() {
                 "Con tres hijos pequeños, las visitas al pediatra son constantes. Nuestro plan familiar nos ahorra cientos de dólares en copagos y la cobertura hospitalaria nos dio paz total en una hospitalización menor de nuestro hijo mayor."
               </p>
               <div className="flex items-center gap-3">
-                <img 
-                  className="w-10 h-10 rounded-full object-cover shrink-0" 
-                  src={avatarCarlosElena} 
+                <img
+                  className="w-10 h-10 rounded-full object-cover shrink-0"
+                  src={avatarCarlosElena}
                   alt="Carlos y Elena"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
                 />
                 <div>
                   <span className="block text-xs font-bold text-slate-900">Carlos & Elena Ramos</span>

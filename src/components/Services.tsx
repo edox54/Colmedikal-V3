@@ -3,7 +3,7 @@ import {
   SERVICES_LIST,
 } from '../data';
 import { Doctor } from '../types';
-import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.png';
+import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.webp';
 import { 
   Search, 
   Hospital, 
