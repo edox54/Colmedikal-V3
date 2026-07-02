@@ -21,7 +21,6 @@ import Logo from './Logo';
 import MapaRedMedica from './MapaRedMedica';
 import { useNavigate } from 'react-router-dom';
 import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.png';
-import heroBuildingImg from '../assets/images/sede_colmedikal_quito.jpeg';
 import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.png';
 import avatarValentina from '../assets/images/avatar_valentina_1780025241348.png';
 import avatarCarlosElena from '../assets/images/avatar_carlos_elena_1780025264251.png';
@@ -49,7 +48,7 @@ export default function Home() {
       subtitle: 'FILTRA Y UBICA PRESTADORES MÉDICOS INSTANTÁNEAMENTE.',
       extraText: 'Accede a nuestro directorio de clínicas premium y especialistas certificados.',
       buttonText: 'EXPLORAR RED MÉDICA',
-      image: heroBuildingImg,
+      image: null,
       targetPath: '/directorio',
       color: 'bg-[#4597CA] hover:bg-sky-600',
     },
@@ -152,17 +151,31 @@ export default function Home() {
             
             {/* Visual Slide Transitioning images */}
             {slides.map((slide, idx) => (
-              <img
-                key={slide.id}
-                src={slide.image}
-                alt={slide.title}
-                referrerPolicy="no-referrer"
-                className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${
-                  idx === currentSlide 
-                    ? 'opacity-100 z-0 scale-100' 
-                    : 'opacity-0 -z-10 scale-105 pointer-events-none'
-                }`}
-              />
+              slide.image ? (
+                <img
+                  key={slide.id}
+                  src={slide.image}
+                  alt={slide.title}
+                  referrerPolicy="no-referrer"
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${
+                    idx === currentSlide
+                      ? 'opacity-100 z-0 scale-100'
+                      : 'opacity-0 -z-10 scale-105 pointer-events-none'
+                  }`}
+                />
+              ) : (
+                <div
+                  key={slide.id}
+                  className={`absolute inset-0 w-full h-full flex items-center justify-center bg-gradient-to-br from-[#0C4169] to-[#4597CA] transition-all duration-700 ${
+                    idx === currentSlide ? 'opacity-100 z-0' : 'opacity-0 -z-10 pointer-events-none'
+                  }`}
+                >
+                  <svg viewBox="0 0 100 100" fill="none" className="w-40 h-40 opacity-90 drop-shadow-xl">
+                    <path d="M 35 35 L 25 35 A 15 15 0 0 0 25 65 L 35 65 L 35 75 A 15 15 0 0 0 65 75 L 65 65 Z" fill="#4597CA"/>
+                    <path d="M 35 35 L 35 25 A 15 15 0 0 1 65 25 L 65 35 L 75 35 A 15 15 0 0 1 75 65 L 65 65 Z" fill="white"/>
+                  </svg>
+                </div>
+              )
             ))}
           </div>
 

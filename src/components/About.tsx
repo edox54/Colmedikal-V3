@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { Page } from '../types';
 import { useNavigate } from 'react-router-dom';
-import sedePrincipalBuilding from '../assets/images/sede_colmedikal_quito.jpeg';
 
 interface AboutProps {
   setCurrentPage: (page: Page) => void;
@@ -117,12 +116,12 @@ export default function About({ setCurrentPage }: AboutProps) {
         >
           <div className="absolute inset-0 bg-gradient-to-tr from-teal-500 to-indigo-600 rounded-3xl opacity-10 blur-xl"></div>
           <div className="relative bg-white rounded-3xl p-5 border border-slate-150 shadow-xl overflow-hidden">
-            <img
-              src={sedePrincipalBuilding}
-              alt="Sede Colmedikal Ecuador"
-              className="w-full h-80 object-cover rounded-2xl"
-              referrerPolicy="no-referrer"
-            />
+            <div className="w-full h-80 rounded-2xl bg-gradient-to-br from-[#0C4169] to-[#4597CA] flex items-center justify-center">
+              <svg viewBox="0 0 100 100" fill="none" className="w-40 h-40 opacity-90 drop-shadow-xl">
+                <path d="M 35 35 L 25 35 A 15 15 0 0 0 25 65 L 35 65 L 35 75 A 15 15 0 0 0 65 75 L 65 65 Z" fill="#4597CA"/>
+                <path d="M 35 35 L 35 25 A 15 15 0 0 1 65 25 L 65 35 L 75 35 A 15 15 0 0 1 75 65 L 65 65 Z" fill="white"/>
+              </svg>
+            </div>
             <div className="absolute bottom-9 left-9 right-9 bg-white/95 backdrop-blur p-4 rounded-xl shadow-lg border border-slate-100 text-center">
               <h4 className="text-sm font-bold text-slate-900">Sede Principal Colmedikal</h4>
               <p className="text-xs text-slate-500 flex items-center justify-center gap-1 mt-1">

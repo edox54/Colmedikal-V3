@@ -4,7 +4,7 @@ import { Page, BlogPost } from '../types';
 import { SEO_MATRIX, PageSEOMetadata } from './seoMatrix';
 import { BLOG_POSTS } from '../data/blogData';
 import { useColmedikal } from '../context/ColmedikalContext';
-import sedePrincipalBuilding from '../assets/images/sede_colmedikal_quito.jpeg';
+const sedePrincipalBuilding = '/og-image.jpg';
 
 export default function SEOController() {
   const location = useLocation();

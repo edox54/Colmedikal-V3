@@ -3,7 +3,6 @@ import {
   SERVICES_LIST,
 } from '../data';
 import { Doctor } from '../types';
-import heroBuildingImg from '../assets/images/sede_colmedikal_quito.jpeg';
 import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.png';
 import { 
   Search, 
@@ -58,13 +57,11 @@ export default function Services({ setCurrentPage }: ServicesProps) {
 
       {/* 1.5. HOSPITAL VISUAL BANNER */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 -mt-6">
-        <div className="relative rounded-3xl overflow-hidden shadow-lg h-64">
-          <img
-            src={heroBuildingImg}
-            alt="Instalaciones y Sede Hospitalaria Colmedikal"
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
+        <div className="relative rounded-3xl overflow-hidden shadow-lg h-64 bg-gradient-to-br from-[#0C4169] to-[#4597CA] flex items-center justify-center">
+          <svg viewBox="0 0 100 100" fill="none" className="w-32 h-32 opacity-90 drop-shadow-xl">
+            <path d="M 35 35 L 25 35 A 15 15 0 0 0 25 65 L 35 65 L 35 75 A 15 15 0 0 0 65 75 L 65 65 Z" fill="#4597CA"/>
+            <path d="M 35 35 L 35 25 A 15 15 0 0 1 65 25 L 65 35 L 75 35 A 15 15 0 0 1 75 65 L 65 65 Z" fill="white"/>
+          </svg>
           <div className="absolute inset-0 bg-gradient-to-t from-[#0C4169]/70 to-transparent flex items-end p-6">
             <div>
               <span className="text-xs font-bold text-teal-300 uppercase tracking-widest block mb-1">Red Hospitalaria</span>
