@@ -145,7 +145,7 @@ export default function About({ setCurrentPage }: AboutProps) {
         variants={fadeUp}
       >
         <div className="max-w-2xl mx-auto text-center space-y-3">
-          <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">NUESTROS VALORES</span>
+          <h2 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight">Nuestros Valores</h2>
           <p className="text-base text-slate-500">
             No solo ofrecemos servicios, creamos relaciones de confianza. Estos son los valores que guían nuestro compromiso contigo y tu familia:
           </p>
