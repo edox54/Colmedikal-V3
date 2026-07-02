@@ -288,107 +288,93 @@ export default function Home() {
       {/* 4. PLANS HIGHLIGHT SECTION */}
       <section className="bg-slate-50 py-20 border-y border-slate-200/60" id="planes-destacados">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
             <span className="text-xs font-bold text-indigo-600 tracking-wider uppercase bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">Portafolio de Coberturas</span>
             <h2 className="text-3xl sm:text-4xl font-display font-black text-slate-900 tracking-tight">
-              Planes a tu medida inspirados en bienestar real
+              Planes a tu medida, diseñados para cada etapa de tu vida
             </h2>
             <p className="text-slate-600">
-              Analiza las coberturas y tarifas de nuestros tres planes principales diseñados con la flexibilidad e integridad de los esquemas médicos de Humana.
+              Elige el plan que mejor se adapta a ti y cotiza en minutos. Sin trámites, sin letra pequeña.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
             {MEDICAL_PLANS.map((plan) => {
-              const itemColor = plan.color === 'emerald' ? 'emerald' : plan.color === 'teal' ? 'teal' : 'indigo';
               const isRecommended = plan.id === 'esencial';
+              const accent = plan.color === 'emerald'
+                ? { bg: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'text-emerald-500' }
+                : plan.color === 'teal'
+                ? { bg: 'bg-teal-500', light: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', pill: 'bg-teal-50 text-teal-700 border-teal-200', icon: 'text-teal-500' }
+                : { bg: 'bg-indigo-500', light: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', pill: 'bg-indigo-50 text-indigo-700 border-indigo-200', icon: 'text-indigo-500' };
 
               return (
-                <div 
+                <div
                   key={plan.id}
-                  className={`bg-white rounded-3xl p-8 border transition-all relative flex flex-col justify-between ${
-                    isRecommended 
-                      ? 'border-indigo-500 shadow-xl lg:scale-105 z-10' 
-                      : 'border-slate-200 hover:border-teal-400 hover:shadow-md'
+                  className={`bg-white rounded-3xl border transition-all duration-300 relative flex flex-col overflow-hidden ${
+                    isRecommended
+                      ? 'border-[#4597CA] shadow-2xl shadow-[#4597CA]/10 lg:scale-105 z-10'
+                      : 'border-slate-200 hover:border-slate-300 hover:shadow-lg'
                   }`}
                   id={`plan-card-${plan.id}`}
                 >
+                  {/* Color top bar */}
+                  <div className={`h-1.5 w-full ${accent.bg}`} />
+
                   {isRecommended && (
-                    <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
-                      Recomendado por Colmedikal
+                    <span className="absolute top-4 right-4 bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                      Más elegido
                     </span>
                   )}
 
-                  <div className="space-y-6">
-                    {/* Header Plan */}
-                    <div className="space-y-1">
-                      <h3 className={`text-2xl font-bold ${
-                        itemColor === 'emerald' ? 'text-emerald-700' : itemColor === 'teal' ? 'text-teal-700' : 'text-indigo-700'
-                      }`}>
+                  <div className="p-8 flex flex-col flex-grow space-y-6">
+                    {/* Icon + Name */}
+                    <div className="space-y-3">
+                      <div className={`w-12 h-12 rounded-2xl ${accent.light} flex items-center justify-center`}>
+                        {plan.color === 'emerald' && <ShieldCheck className={`w-6 h-6 ${accent.icon}`} />}
+                        {plan.color === 'teal'    && <Heart        className={`w-6 h-6 ${accent.icon}`} />}
+                        {plan.color === 'indigo'  && <Award        className={`w-6 h-6 ${accent.icon}`} />}
+                      </div>
+                      <h3 className={`text-xl font-black tracking-tight ${accent.text}`}>
                         {plan.name}
                       </h3>
-                      <p className="text-xs text-slate-500 italic max-w-sm">
-                        {plan.tagline}
-                      </p>
                     </div>
 
-                    {/* Price and Cover summary */}
-                    <div className="bg-slate-50/80 p-4.5 rounded-2xl border border-slate-100 divide-y divide-slate-200/50 space-y-3">
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs text-slate-500 uppercase font-medium">Tarifa Base</span>
-                        <div className="text-right">
-                          <span className="text-3xl font-mono font-bold text-slate-900">${plan.basePrice.toFixed(2)}</span>
-                          <span className="text-[10px] text-slate-500 block">/ Mes por afiliado</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-between pt-3 text-xs">
-                        <span className="text-slate-500">Cobertura Anual Máxima</span>
-                        <span className="font-semibold text-slate-900 font-mono">${plan.maxCoverage.toLocaleString()} USD</span>
-                      </div>
+                    {/* Description */}
+                    <p className="text-sm text-slate-600 leading-relaxed flex-grow">
+                      {plan.tagline}
+                    </p>
 
-                      <div className="flex justify-between pt-2.5 text-xs">
-                        <span className="text-slate-500">Copago del Afiliado</span>
-                        <span className="font-semibold text-slate-800 font-mono">{plan.copayPercent}%</span>
-                      </div>
-                    </div>
-
-                    {/* Bullet Inclusions */}
-                    <div className="space-y-3 pt-2">
-                      <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">Cobertura Incluida:</span>
-                      <ul className="space-y-2.5">
-                        {plan.features.map((feat, i) => (
-                          <li key={i} className="flex items-start gap-2 text-xs">
-                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${
-                              itemColor === 'emerald' ? 'bg-emerald-500' : itemColor === 'teal' ? 'bg-teal-500' : 'bg-indigo-500'
-                            }`} />
-                            <span className="text-slate-600 leading-tight">{feat}</span>
-                          </li>
+                    {/* Highlight pills */}
+                    {plan.highlights && (
+                      <div className="flex flex-wrap gap-2">
+                        {plan.highlights.map((h) => (
+                          <span key={h} className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${accent.pill}`}>
+                            {h}
+                          </span>
                         ))}
-                      </ul>
-                    </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Pricing CTA */}
-                  <div className="pt-8">
+                  {/* CTA */}
+                  <div className="px-8 pb-8">
                     <button
                       onClick={() => handlePlanSelect(plan.id)}
-                      className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all text-center flex items-center justify-center gap-2 group cursor-pointer ${
+                      className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all text-center flex items-center justify-center gap-2 group cursor-pointer ${
                         isRecommended
-                          ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-lg shadow-[#0C4169]/15 hover:shadow-[#0C4169]/25'
-                          : 'bg-slate-100 hover:bg-[#4597CA]/10 hover:text-[#0C4169] text-slate-700 border border-slate-200'
+                          ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-lg hover:shadow-xl'
+                          : `${accent.light} ${accent.text} hover:${accent.bg} hover:text-white border ${accent.border}`
                       }`}
                       id={`btn-quote-${plan.id}`}
                     >
-                      <span>Simular Cotización</span>
+                      <span>Cotizar este plan</span>
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
                     <span className="block text-[10px] text-center text-slate-400 mt-2">
-                      Sujeto a preexistencias y condiciones generales de salud
+                      Sin compromisos · Cotización en minutos
                     </span>
                   </div>
-
                 </div>
               );
             })}

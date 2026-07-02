@@ -32,6 +32,7 @@ export interface Plan {
   maxCoverage: number;
   copayPercent: number;
   hospitalNetwork: string;
+  highlights?: string[];
   features: string[];
   color: string; // Tailwind color class names
 }

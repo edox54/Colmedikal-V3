@@ -101,6 +101,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
   // 6. Checkout & Hiring Flow states
   const [selectedPlanToBuy, setSelectedPlanToBuy] = useState<any | null>(null);
   const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1);
+  const [modalPlan, setModalPlan] = useState<any | null>(null);
 
   // Billing and debit details
   const [paymentMethod, setPaymentMethod] = useState<'cuenta' | 'tarjeta'>('cuenta');
@@ -128,7 +129,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
   const plansComparativo = [
     {
       id: 'plan1',
-      name: 'Plan 1',
+      name: 'Plan 1 — Básico',
       basePrice: 8,
       cobertura: '$2.000,00 USD Anual',
       dedHosp: '$40,00 USD Anual',
@@ -159,7 +160,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
     },
     {
       id: 'plan2',
-      name: 'Plan 2',
+      name: 'Plan 2 — Esencial',
       basePrice: 12,
       cobertura: '$3.000,00 USD Anual',
       dedHosp: '$40,00 USD Anual',
@@ -191,7 +192,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
     },
     {
       id: 'plan3',
-      name: 'Plan 3 Platinum',
+      name: 'Plan 3 — Premium',
       basePrice: 22,
       cobertura: '$5.000,00 USD Anual',
       dedHosp: '$40,00 USD Anual',
@@ -1292,173 +1293,174 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
 
                   </div>
                 ) : (
-                  /* COMPARATIVE PLANS GRID */
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch font-sans">
-                    {plansComparativo.map((plan) => (
-                      <div 
-                        key={plan.id}
-                        className="bg-white rounded-3xl border border-slate-200 hover:border-[#4597CA] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                  /* COMPARATIVE PLANS GRID — compact cards + modal de detalles */
+                  <>
+                    {/* Modal de detalles del plan */}
+                    {modalPlan && (
+                      <div
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+                        onClick={() => setModalPlan(null)}
                       >
-                        
-                        {/* Header tier info */}
-                        <div className="p-6 sm:p-7 space-y-4 border-b border-slate-100 flex-grow">
-                          <div>
-                            <div className="flex items-center gap-1.5 mb-2.5">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                                plan.id === 'plan1' ? 'bg-sky-50 border-sky-200 text-sky-700' :
-                                plan.id === 'plan2' ? 'bg-teal-50 border-teal-250 text-teal-700' :
-                                'bg-indigo-50 border-indigo-200 text-indigo-700'
-                              }`}>
-                                {plan.name}
-                              </span>
-                              {plan.id === 'plan2' && (
-                                <span className="inline-flex items-center bg-amber-50 border border-amber-200 text-amber-700 font-extrabold text-[8.5px] uppercase tracking-widest px-2.5 py-0.5 rounded-full">
-                                  Recomendado
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-slate-400">Medicina Prepagada Colmedikal</p>
-                          </div>
-
-                          {/* Pricing block */}
-                          <div className="py-2.5 border-t border-b border-slate-50 flex justify-between items-baseline">
+                        <div
+                          className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* Modal header */}
+                          <div className="sticky top-0 bg-[#0C4169] text-white px-6 py-4 rounded-t-3xl flex justify-between items-center">
                             <div>
-                              <span className="text-slate-400 text-[9px] block leading-none font-black tracking-wider uppercase font-mono">VALOR CONTRATACIÓN</span>
-                              <span className="text-3xl font-black font-mono text-[#0C4169] tracking-tight">
-                                ${calculateDynamicPrice(plan.basePrice)}
-                              </span>
-                              <span className="text-slate-500 text-xs font-semibold">/mes</span>
+                              <p className="text-[10px] font-mono tracking-widest text-sky-300 uppercase">Detalle del Plan</p>
+                              <h3 className="text-lg font-black">{modalPlan.name}</h3>
                             </div>
-                            {dependants.length > 0 && (
-                              <div className="text-right">
-                                <span className="text-slate-400 text-[9px] block leading-none font-mono uppercase tracking-wider font-bold">BASE</span>
-                                <span className="text-xs font-bold text-slate-700 font-mono">${plan.basePrice}.00</span>
+                            <button onClick={() => setModalPlan(null)} className="p-2 hover:bg-white/10 rounded-xl transition cursor-pointer">
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+
+                          <div className="p-6 space-y-6">
+                            {/* Coberturas */}
+                            <div className="space-y-2">
+                              <span className="block text-[9.5px] font-black tracking-widest text-[#0C4169] uppercase font-mono">Coberturas</span>
+                              <div className="space-y-1.5 text-[11px] text-slate-700">
+                                {[
+                                  ['Cobertura Anual Máxima', modalPlan.cobertura],
+                                  ['Deducible Hospitalización', modalPlan.dedHosp],
+                                  ['Bono Maternidad', modalPlan.maternidad],
+                                  ['Muerte por Accidente', modalPlan.muerteAccidente],
+                                  ['Sepelio por Accidente', modalPlan.sepelio],
+                                  ['Ambulancias Terrestres', modalPlan.ambulancia],
+                                  ['Lab e Imágenes (ambos)', '$100 USD/Año'],
+                                ].map(([label, val]) => (
+                                  <div key={label} className="flex justify-between border-b border-slate-100 py-1.5">
+                                    <span className="text-slate-500">{label}</span>
+                                    <span className="font-bold text-slate-800">{val}</span>
+                                  </div>
+                                ))}
                               </div>
-                            )}
-                          </div>
+                            </div>
 
-                          {/* Coverages table details */}
-                          <div className="space-y-2 text-[11px] text-slate-700 font-sans border-b border-slate-100 pb-3">
-                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
-                              <span className="text-slate-450 text-[10px]">Cobertura Anual Máxima:</span>
-                              <span className="font-extrabold text-slate-800 text-right">{plan.cobertura}</span>
+                            {/* Especialidades */}
+                            <div className="space-y-2">
+                              <span className="block text-[9.5px] font-black tracking-widest text-[#0C4169] uppercase font-mono">Especialidades Cubiertas</span>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                {Object.entries(modalPlan.especialidades).sort(([, a], [, b]) => Number(b) - Number(a)).map(([spec, inc]) => (
+                                  <div key={spec} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-[10.5px] ${inc ? 'bg-emerald-50/50 border-emerald-100 text-slate-800' : 'bg-slate-50 border-slate-100 text-slate-400 line-through'}`}>
+                                    {inc
+                                      ? <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0"><Check className="w-2.5 h-2.5 stroke-[3.5]" /></span>
+                                      : <span className="w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center shrink-0"><X className="w-2.5 h-2.5 stroke-[3.5]" /></span>
+                                    }
+                                    <span className="font-bold leading-tight">{spec}</span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
-                              <span className="text-slate-450 text-[10px]">Deducible Hospitalización:</span>
-                              <span className="font-semibold text-slate-800 text-right">{plan.dedHosp}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
-                              <span className="text-emerald-700 font-bold text-[10px]">Bono Maternidad:</span>
-                              <span className="font-semibold text-slate-800 text-right">{plan.maternidad}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
-                              <span className="text-slate-450 text-[10px]">Muerte por Accidente:</span>
-                              <span className="font-semibold text-slate-800 text-right">{plan.muerteAccidente}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
-                              <span className="text-slate-450 text-[10px]">Sepelio por Accidente:</span>
-                              <span className="font-semibold text-slate-800 text-right">{plan.sepelio}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1 border-b border-slate-50/50">
-                              <span className="text-slate-450 text-[10px]">Ambulancias Terrestres:</span>
-                              <span className="font-semibold text-slate-800 text-right">{plan.ambulancia}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1 font-sans">
-                              <span className="text-[#4597CA] text-[10px] font-bold">Lab e Imágenes (total ambos):</span>
-                              <span className="font-semibold text-slate-850 text-right">$100 USD/Año</span>
-                            </div>
-                          </div>
 
-                          {/* Specialties Matrix */}
-                          <div className="space-y-2 pt-2">
-                            <span className="block text-[9.5px] font-black tracking-widest text-[#0C4169] uppercase font-mono">
-                              Especialidades Cubiertas:
-                            </span>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10.5px]">
-                              {Object.entries(plan.especialidades).sort(([, a], [, b]) => Number(b) - Number(a)).map(([spec, inc]) => (
-                                <div 
-                                  key={spec} 
-                                  className={`flex items-start gap-1.5 px-2 py-1 rounded-md border transition-all duration-300 ${
-                                    inc 
-                                      ? 'bg-emerald-50/50 border-emerald-100/75 text-slate-800' 
-                                      : 'bg-slate-50/60 border-slate-100 text-slate-400 line-through decoration-slate-200'
-                                  }`}
-                                >
-                                  {inc ? (
-                                    <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 animate-in fade-in zoom-in-50">
-                                      <Check className="w-2.5 h-2.5 stroke-[3.5]" />
-                                    </span>
-                                  ) : (
-                                    <span className="w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center shrink-0 mt-0.5">
-                                      <X className="w-2.5 h-2.5 stroke-[3.5]" />
-                                    </span>
-                                  )}
-                                  <span className={`text-[9.5px] font-bold leading-tight ${inc ? 'text-slate-800' : 'text-slate-400 font-medium'}`}>
-                                    {spec}
-                                  </span>
-                                </div>
-                              ))}
+                            {/* Beneficios destacados */}
+                            <div className="space-y-2">
+                              <span className="block text-[9.5px] font-black tracking-widest text-[#0C4169] uppercase font-mono">Beneficios Destacados</span>
+                              <ul className="space-y-1.5">
+                                {modalPlan.caracteristicas.map((feat: string, idx: number) => (
+                                  <li key={idx} className="flex gap-2 items-start text-[11px] text-slate-600">
+                                    <Check className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
+                                    <span>{feat}</span>
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
-                          </div>
 
-                          {/* Highlights */}
-                          <div className="space-y-2 pt-3 border-t border-slate-100">
-                            <span className="block text-[9px] font-black tracking-widest text-slate-450 uppercase font-mono">Beneficios Destacados:</span>
-                            <ul className="space-y-1 text-[11px] text-slate-600 leading-normal">
-                              {plan.caracteristicas.map((feat, idx) => (
-                                <li key={idx} className="flex gap-1.5 items-start">
-                                  <Check className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
-                                  <span>{feat}</span>
-                                </li>
-                              ))}
-                            </ul>
+                            <button
+                              onClick={() => {
+                                setModalPlan(null);
+                                setSelectedPlanToBuy(modalPlan);
+                                setCheckoutStep(1);
+                                const specificPrice = calculateDynamicPrice(modalPlan.basePrice);
+                                addLead({ fullName: `${firstName} ${lastName}`, email, phone, docType, docNumber, type: dependants.length > 0 ? 'familiar' : 'individual', primaryAge: 35, childrenCount: dependants.length, childrenAges: dependants.map((d: any) => d.ageRange === '0-17' ? 10 : 25), basePlanId: modalPlan.id, leadCode, selectedPlanName: `${modalPlan.name} — $${modalPlan.basePrice}/mes` }, specificPrice);
+                                sendLeadToKommoCRM({ name: `${firstName} ${lastName}`, email, phone, subject: `Contratación: ${modalPlan.name}`, amount: specificPrice, province, details: `PLAN: ${modalPlan.name} | Base: $${modalPlan.basePrice}/mes | Total: $${specificPrice}/mes | Ref: ${leadCode}`, leadCode, planName: modalPlan.name });
+                              }}
+                              className="w-full py-3 rounded-xl bg-[#0C4169] hover:bg-slate-900 text-xs font-black uppercase tracking-wider text-white cursor-pointer transition"
+                            >
+                              Contratar Este Plan
+                            </button>
                           </div>
-
                         </div>
-
-                        {/* Bottom CTA container */}
-                        <div className="p-6 bg-slate-50 border-t border-slate-100 shrink-0 space-y-2 font-sans">
-                          <button
-                            onClick={() => {
-                              setSelectedPlanToBuy(plan);
-                              setCheckoutStep(1);
-                              // Save specific plan lead so admin sees correct plan + price
-                              const specificPrice = calculateDynamicPrice(plan.basePrice);
-                              addLead({
-                                fullName: `${firstName} ${lastName}`,
-                                email: email,
-                                phone: phone,
-                                docType: docType,
-                                docNumber: docNumber,
-                                type: dependants.length > 0 ? 'familiar' : 'individual',
-                                primaryAge: 35,
-                                childrenCount: dependants.length,
-                                childrenAges: dependants.map((d: any) => d.ageRange === '0-17' ? 10 : 25),
-                                basePlanId: plan.id,
-                                leadCode: leadCode,
-                                selectedPlanName: `${plan.name} — $${plan.basePrice}/mes`,
-                              }, specificPrice);
-                              sendLeadToKommoCRM({
-                                name: `${firstName} ${lastName}`,
-                                email: email,
-                                phone: phone,
-                                subject: `Contratación: ${plan.name}`,
-                                amount: specificPrice,
-                                province: province,
-                                details: `PLAN SELECCIONADO: ${plan.name} | Base: $${plan.basePrice}/mes | Total con dependientes: $${specificPrice}/mes | Ref: ${leadCode} | Dependientes: ${dependants.length}`,
-                                leadCode: leadCode,
-                                planName: plan.name
-                              });
-                            }}
-                            className="w-full py-3 rounded-xl bg-[#0C4169] hover:bg-slate-900 text-xs font-black uppercase tracking-wider text-center cursor-pointer shadow hover:shadow-md transition active:scale-97 text-white"
-                          >
-                            Contratar Este Plan
-                          </button>
-                        </div>
-
                       </div>
-                    ))}
-                  </div>
+                    )}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch font-sans">
+                      {plansComparativo.map((plan) => {
+                        const isRec = plan.id === 'plan2';
+                        return (
+                          <div
+                            key={plan.id}
+                            className={`bg-white rounded-3xl border transition-all duration-300 flex flex-col overflow-hidden ${isRec ? 'border-[#4597CA] shadow-xl' : 'border-slate-200 hover:border-slate-300 hover:shadow-lg'}`}
+                          >
+                            {/* Color bar */}
+                            <div className={`h-1.5 w-full ${plan.id === 'plan1' ? 'bg-sky-500' : plan.id === 'plan2' ? 'bg-teal-500' : 'bg-indigo-500'}`} />
+
+                            <div className="p-6 space-y-4 flex-grow">
+                              {/* Name + badge */}
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${plan.id === 'plan1' ? 'bg-sky-50 border-sky-200 text-sky-700' : plan.id === 'plan2' ? 'bg-teal-50 border-teal-200 text-teal-700' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
+                                    {plan.name}
+                                  </span>
+                                  {isRec && <span className="text-[8.5px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700">Recomendado</span>}
+                                </div>
+                                <p className="text-[10px] text-slate-400">Medicina Prepagada Colmedikal</p>
+                              </div>
+
+                              {/* Price */}
+                              <div className="py-3 border-t border-b border-slate-100 flex justify-between items-baseline">
+                                <div>
+                                  <span className="text-slate-400 text-[9px] block font-black tracking-wider uppercase font-mono">VALOR CONTRATACIÓN</span>
+                                  <span className="text-3xl font-black font-mono text-[#0C4169] tracking-tight">${calculateDynamicPrice(plan.basePrice)}</span>
+                                  <span className="text-slate-500 text-xs font-semibold">/mes</span>
+                                </div>
+                                {dependants.length > 0 && (
+                                  <div className="text-right">
+                                    <span className="text-slate-400 text-[9px] block font-mono uppercase tracking-wider font-bold">BASE</span>
+                                    <span className="text-xs font-bold text-slate-700 font-mono">${plan.basePrice}.00</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Top 2 highlights */}
+                              <ul className="space-y-1.5">
+                                {plan.caracteristicas.slice(0, 2).map((feat: string, idx: number) => (
+                                  <li key={idx} className="flex gap-1.5 items-start text-[11px] text-slate-600">
+                                    <Check className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
+                                    <span>{feat}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            {/* CTAs */}
+                            <div className="p-5 bg-slate-50 border-t border-slate-100 space-y-2">
+                              <button
+                                onClick={() => setModalPlan(plan)}
+                                className="w-full py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 cursor-pointer transition flex items-center justify-center gap-1.5"
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                                Ver detalles del plan
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedPlanToBuy(plan);
+                                  setCheckoutStep(1);
+                                  const specificPrice = calculateDynamicPrice(plan.basePrice);
+                                  addLead({ fullName: `${firstName} ${lastName}`, email, phone, docType, docNumber, type: dependants.length > 0 ? 'familiar' : 'individual', primaryAge: 35, childrenCount: dependants.length, childrenAges: dependants.map((d: any) => d.ageRange === '0-17' ? 10 : 25), basePlanId: plan.id, leadCode, selectedPlanName: `${plan.name} — $${plan.basePrice}/mes` }, specificPrice);
+                                  sendLeadToKommoCRM({ name: `${firstName} ${lastName}`, email, phone, subject: `Contratación: ${plan.name}`, amount: specificPrice, province, details: `PLAN: ${plan.name} | Base: $${plan.basePrice}/mes | Total: $${specificPrice}/mes | Ref: ${leadCode} | Dependientes: ${dependants.length}`, leadCode, planName: plan.name });
+                                }}
+                                className="w-full py-3 rounded-xl bg-[#0C4169] hover:bg-slate-900 text-xs font-black uppercase tracking-wider text-white cursor-pointer shadow hover:shadow-md transition"
+                              >
+                                Contratar Este Plan
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </div>
 

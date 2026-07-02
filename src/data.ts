@@ -5,12 +5,13 @@ import avatarCarlosElena from './assets/images/avatar_carlos_elena_1780025264251
 export const MEDICAL_PLANS: Plan[] = [
   {
     id: 'basico',
-    name: 'Plan Colmedikal Basico',
-    tagline: 'Cobertura médica esencial ambulatoria y hospitalaria.',
+    name: 'Plan 1 — Básico',
+    tagline: 'Acceso a consultas en las especialidades esenciales, telemedicina ilimitada desde el primer día y cobertura hospitalaria para emergencias y cuidados intensivos. Ideal para quienes buscan protección médica real a un costo accesible.',
     basePrice: 8.00,
     maxCoverage: 2000,
     copayPercent: 0,
     hospitalNetwork: 'Red Colmedikal',
+    highlights: ['Telemedicina 24/7', 'Urgencias cubiertas', 'Sin copago'],
     features: [
       'Consultas y Especialidades (Pediatría, Ginecología, Medicina Interna) con 100% de cobertura (Sin copago)',
       'Telemedicina ilimitada sin carencia (sin período de espera)',
@@ -24,12 +25,13 @@ export const MEDICAL_PLANS: Plan[] = [
   },
   {
     id: 'esencial',
-    name: 'Plan Colmedikal Esencial',
-    tagline: 'Protección equilibrada y accesible para mayor tranquilidad.',
+    name: 'Plan 2 — Esencial',
+    tagline: 'Protección integral con especialidades ampliadas, bono de maternidad y mayor cobertura hospitalaria. Diseñado para individuos y familias que buscan equilibrio entre cobertura completa y valor mensual.',
     basePrice: 12.00,
     maxCoverage: 3000,
     copayPercent: 0,
     hospitalNetwork: 'Red Colmedikal',
+    highlights: ['Telemedicina 24/7', 'Bono maternidad', 'Más especialidades'],
     features: [
       'Consultas y Especialidades (Pediatría, Ginecología, Urología, Traumatología) con 100% de cobertura (Sin copago)',
       'Telemedicina ilimitada sin carencia (sin período de espera)',
@@ -43,12 +45,13 @@ export const MEDICAL_PLANS: Plan[] = [
   },
   {
     id: 'premium',
-    name: 'Plan Colmedikal Premium',
-    tagline: 'Máxima cobertura para ti y tu familia en toda la red.',
+    name: 'Plan 3 — Premium',
+    tagline: 'La cobertura más completa de Colmedikal: todas las especialidades disponibles, el mayor límite hospitalario y beneficios premium de maternidad. Para quienes no quieren comprometer ningún aspecto de su salud.',
     basePrice: 22.00,
     maxCoverage: 5000,
     copayPercent: 0,
     hospitalNetwork: 'Red Colmedikal',
+    highlights: ['Telemedicina 24/7', 'Todas las especialidades', 'Cobertura máxima'],
     features: [
       'Consultas y Especialidades (Pediatría, Cardiología, M. Interna, Urología, etc.) con 100% de cobertura (Sin copago)',
       'Telemedicina ilimitada sin carencia (sin período de espera)',
