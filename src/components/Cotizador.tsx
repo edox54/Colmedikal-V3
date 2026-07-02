@@ -154,7 +154,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
       caracteristicas: [
         'Entrega de medicina al 100% (Sin costo ni copago)',
         'Especialidades: Medicina General, Familiar, Ginecología y Odontología',
-        'Telemedicina ilimitada sin carencia (activa desde el primer día)',
+        'Telemedicina sin carencia (activa desde el primer día)',
         'Odontología (Consultas, profilaxis, restauraciones resina)'
       ]
     },

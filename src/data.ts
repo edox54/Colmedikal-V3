@@ -11,10 +11,10 @@ export const MEDICAL_PLANS: Plan[] = [
     maxCoverage: 2000,
     copayPercent: 0,
     hospitalNetwork: 'Red Colmedikal',
-    highlights: ['Telemedicina 24/7', 'Urgencias cubiertas', 'Sin copago'],
+    highlights: ['Telemedicina', 'Urgencias cubiertas', 'Sin copago'],
     features: [
       'Consultas y Especialidades (Pediatría, Ginecología, Medicina Interna) con 100% de cobertura (Sin copago)',
-      'Telemedicina ilimitada sin carencia (sin período de espera)',
+      'Telemedicina sin carencia (sin período de espera)',
       'Cobertura en Cuidados Intensivos hasta $2000',
       'Honorarios médicos cubiertos hasta $2000',
       'Exámenes de laboratorio e imágenes diagnósticas: $100 en total (ambos cubiertos juntos)',
