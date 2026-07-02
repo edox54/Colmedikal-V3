@@ -237,14 +237,14 @@ export default function Home() {
       {/* 3. VALUE PROPOSITION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-          <span className="text-xs font-bold text-brand-light tracking-wider uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-            Nuestra Misión y Valores
+          <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
+            PROPÓSITO Y BIENESTAR
           </span>
           <h2 className="text-3xl sm:text-4xl font-display font-black text-slate-900 tracking-tight">
-            "El mejor servicio en seguros de salud para socios Cooperativistas"
+            PROTEGEMOS TU SALUD CON LOS VALORES QUE NOS UNEN
           </h2>
           <p className="text-slate-600 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
-            Guiados por nuestros pilares fundamentales de <span className="font-semibold text-brand-dark">Honestidad, Transparencia, Compromiso, Respeto</span>, ofrecemos el verdadero resguardo médico que supera las expectativas del sector.
+            Actuamos con honestidad y transparencia para darte el respaldo médico que mereces, nuestro compromiso es cuidar de ti y de tu familia con soluciones de salud reales y a tu alcance.
           </p>
         </div>
 

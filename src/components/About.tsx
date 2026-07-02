@@ -145,14 +145,8 @@ export default function About({ setCurrentPage }: AboutProps) {
         variants={fadeUp}
       >
         <div className="max-w-2xl mx-auto text-center space-y-3">
-          <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">PROPÓSITO Y BIENESTAR</span>
-          <h2 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight">
-            PROTEGEMOS TU SALUD CON LOS VALORES QUE NOS UNEN
-          </h2>
+          <span className="text-xs font-bold text-teal-600 tracking-wider uppercase bg-teal-50 px-3 py-1 rounded-full border border-teal-200">NUESTROS VALORES</span>
           <p className="text-base text-slate-500">
-            Actuamos con honestidad y transparencia para darte el respaldo médico que mereces, nuestro compromiso es cuidar de ti y de tu familia con soluciones de salud reales y a tu alcance.
-          </p>
-          <p className="text-base text-slate-500 mt-2">
             No solo ofrecemos servicios, creamos relaciones de confianza. Estos son los valores que guían nuestro compromiso contigo y tu familia:
           </p>
         </div>
