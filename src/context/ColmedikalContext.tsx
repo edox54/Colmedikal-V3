@@ -696,14 +696,14 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const deleteLead = async (id: string | number) => {
     const strId = String(id);
-    if (strId.startsWith('local-')) {
-      setLocalLeads(prev => {
-        const updated = prev.filter(l => String(l.id) !== strId);
-        try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
-        return updated;
-      });
-      return;
-    }
+    // Always purge from localLeads — a lead submitted publicly gets a backend ID
+    // stored in localLeads, so it must be removed from both stores to stay gone.
+    setLocalLeads(prev => {
+      const updated = prev.filter(l => String(l.id) !== strId);
+      try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    if (strId.startsWith('local-')) return;
     setLeads(prev => prev.filter(l => String(l.id) !== strId));
     if (!deletedLeadIds.current.includes(strId)) {
       deletedLeadIds.current.push(strId);
@@ -713,7 +713,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       await apiCall(`/api/admin/leads/${strId}`, 'DELETE', undefined, token);
     } catch {
-      // API may fail — override layer keeps it deleted locally
+      // API may not support DELETE — override layer keeps it deleted locally
     }
   };
 
