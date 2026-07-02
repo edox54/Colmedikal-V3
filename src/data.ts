@@ -6,7 +6,7 @@ export const MEDICAL_PLANS: Plan[] = [
   {
     id: 'basico',
     name: 'Plan 1 — Básico',
-    tagline: 'Acceso a consultas en las especialidades esenciales, telemedicina ilimitada desde el primer día y cobertura hospitalaria para emergencias y cuidados intensivos. Ideal para quienes buscan protección médica real a un costo accesible.',
+    tagline: 'Acceso a consultas en las especialidades esenciales, telemedicina desde el primer día y cobertura hospitalaria para emergencias y cuidados intensivos. Ideal para quienes buscan protección médica real a un costo accesible.',
     basePrice: 8.00,
     maxCoverage: 2000,
     copayPercent: 0,
