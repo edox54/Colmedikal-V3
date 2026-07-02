@@ -1491,8 +1491,16 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       )}
                       {canDeleteLeads && (
                         <button
-                          onClick={() => { if (confirm(`¿Eliminar la cotización de ${primary.quoteData?.fullName || primary.id}?`)) deleteLead(primary.id); }}
+                          onClick={async () => {
+                            const name = primary.quoteData?.fullName || primary.id;
+                            const msg = cluster.length > 1
+                              ? `¿Eliminar los ${cluster.length} registros de "${name}"?`
+                              : `¿Eliminar la cotización de "${name}"?`;
+                            if (!confirm(msg)) return;
+                            await Promise.all(cluster.map(l => deleteLead(l.id)));
+                          }}
                           className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Eliminar cotización"
                         ><Trash2 className="w-3.5 h-3.5" /></button>
                       )}
                     </div>

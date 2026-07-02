@@ -26,7 +26,7 @@ interface ColmedikalContextType {
   addAppointment: (appointment: Omit<AppointmentItem, 'id'>) => Promise<void>;
   updateAppointmentStatus: (id: string, status: AppointmentItem['status']) => Promise<void>;
   addLead: (quote: QuoteState, estimatedPrice: number) => Promise<any>;
-  deleteLead: (id: string) => Promise<void>;
+  deleteLead: (id: string | number) => Promise<void>;
   updateLeadStatus: (id: string, status: LeadQuote['status']) => Promise<void>;
   refreshData: () => Promise<void>;
   addAdmin: (email: string, name: string, role: AdminUser['role'], password?: string) => Promise<void>;
@@ -306,7 +306,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       setLeads((leadsRes.data || [])
         // Filter out leads the user deleted locally (backend may not persist DELETE)
-        .filter((l: any) => !deletedLeadIds.current.includes(l.id))
+        .filter((l: any) => !deletedLeadIds.current.includes(String(l.id)))
         .map((l: any) => ({
           ...l,
           quoteData: (() => {
@@ -694,27 +694,26 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const deleteLead = async (id: string) => {
-    // Optimistic: remove from local state immediately
-    if (id.startsWith('local-')) {
+  const deleteLead = async (id: string | number) => {
+    const strId = String(id);
+    if (strId.startsWith('local-')) {
       setLocalLeads(prev => {
-        const updated = prev.filter(l => l.id !== id);
+        const updated = prev.filter(l => String(l.id) !== strId);
         try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
         return updated;
       });
       return;
     }
-    setLeads(prev => prev.filter(l => l.id !== id));
-    // Persist deletion so the 10s poll doesn't bring it back
-    if (!deletedLeadIds.current.includes(id)) {
-      deletedLeadIds.current.push(id);
+    setLeads(prev => prev.filter(l => String(l.id) !== strId));
+    if (!deletedLeadIds.current.includes(strId)) {
+      deletedLeadIds.current.push(strId);
       persistOverride('colmedikal_deleted_leads', deletedLeadIds.current);
     }
     if (!token) return;
     try {
-      await apiCall(`/api/admin/leads/${id}`, 'DELETE', undefined, token);
+      await apiCall(`/api/admin/leads/${strId}`, 'DELETE', undefined, token);
     } catch {
-      // API may fail — override layer keeps it deleted
+      // API may fail — override layer keeps it deleted locally
     }
   };
 
