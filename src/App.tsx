@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -27,72 +27,6 @@ import TrackingManager from './components/TrackingManager';
 import SEOPanel from './components/SEOPanel';
 import MapaRedMedica from './components/MapaRedMedica';
 
-// ponytail: flip to false to disable maintenance mode
-const MAINTENANCE_MODE = true;
-
-function MaintenanceGate({ children }: { children: React.ReactNode }) {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem('dev_bypass') === '1');
-  const [user, setUser] = useState('');
-  const [pass, setPass] = useState('');
-  const [error, setError] = useState('');
-
-  if (!MAINTENANCE_MODE || authed) return <>{children}</>;
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (user === 'dev' && pass === 'dev123') {
-      sessionStorage.setItem('dev_bypass', '1');
-      setAuthed(true);
-    } else {
-      setError('Credenciales incorrectas');
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center px-4">
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-teal-500/10 border border-teal-500/30 mb-6">
-          <svg viewBox="0 0 100 100" fill="none" className="w-10 h-10">
-            <path d="M 35 35 L 25 35 A 15 15 0 0 0 25 65 L 35 65 L 35 75 A 15 15 0 0 0 65 75 L 65 65 Z" fill="#4597CA"/>
-            <path d="M 35 35 L 35 25 A 15 15 0 0 1 65 25 L 65 35 L 75 35 A 15 15 0 0 1 75 65 L 65 65 Z" fill="white"/>
-          </svg>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">Sitio en Mantenimiento</h1>
-        <p className="text-slate-400 text-lg max-w-md mx-auto">
-          Estamos realizando mejoras para brindarte una mejor experiencia. Volvemos pronto.
-        </p>
-      </div>
-
-      <details className="w-full max-w-sm">
-        <summary className="text-slate-500 text-sm cursor-pointer hover:text-slate-400 text-center select-none">
-          Ingresar como desarrollador
-        </summary>
-        <form onSubmit={handleLogin} className="mt-4 bg-slate-800/60 border border-slate-700 rounded-xl p-6 space-y-4">
-          <input
-            type="text"
-            placeholder="Usuario"
-            value={user}
-            onChange={e => setUser(e.target.value)}
-            className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
-          />
-          <input
-            type="password"
-            placeholder="Clave"
-            value={pass}
-            onChange={e => setPass(e.target.value)}
-            className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
-          />
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <button type="submit" className="w-full py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors">
-            Acceder
-          </button>
-        </form>
-      </details>
-
-      <p className="text-slate-600 text-xs mt-12">&copy; {new Date().getFullYear()} Colmedikal S.A.</p>
-    </div>
-  );
-}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -117,7 +51,6 @@ function useSetCurrentPageMapper() {
 
 export default function App() {
   return (
-    <MaintenanceGate>
     <ColmedikalProvider>
       <BrowserRouter>
         <ScrollToTop />
@@ -142,7 +75,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </ColmedikalProvider>
-    </MaintenanceGate>
   );
 }
 
