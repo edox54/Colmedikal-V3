@@ -83,7 +83,7 @@ export default function Blog({
       if (planType === 'familiar') {
         setSelectedPlanId('vital'); // Default to robust Vital card for families
       } else {
-        setSelectedPlanId('esencial');
+        setSelectedPlanId('proteccion');
       }
     }
     if (propSetCurrentPage) {

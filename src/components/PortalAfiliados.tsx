@@ -48,7 +48,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   const userProfile = {
     name: 'Ing. Carlos Ramos Valdiviezo',
     cardId: 'EC-445892-01',
-    planName: 'Plan Colmedikal Esencial',
+    planName: 'Plan Protección 3K',
     validUntil: '31/12/2026',
     familyGroup: [
       { name: 'Elena Mendoza de Ramos', relationship: 'Cónyuge', cardId: 'EC-445892-02' },
@@ -498,7 +498,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     <h3 className="text-lg font-bold font-sans tracking-wide leading-tight">{userProfile.name}</h3>
                     <div className="flex justify-between text-[11px] font-mono text-slate-350 bg-white/5 px-3 py-1.5 rounded-lg">
                       <span>Cél: {userProfile.cardId}</span>
-                      <span>Plan: Colmedikal Esencial</span>
+                      <span>Plan: Protección 3K</span>
                     </div>
                   </div>
 

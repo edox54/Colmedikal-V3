@@ -301,7 +301,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
             {MEDICAL_PLANS.map((plan) => {
-              const isRecommended = plan.id === 'esencial';
+              const isRecommended = plan.id === 'proteccion';
               const accent = plan.color === 'emerald'
                 ? { bg: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'text-emerald-500' }
                 : plan.color === 'teal'

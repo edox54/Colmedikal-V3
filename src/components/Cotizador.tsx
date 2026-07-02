@@ -129,7 +129,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
   const plansComparativo = [
     {
       id: 'plan1',
-      name: 'Plan 1 — Básico',
+      name: 'Plan Inicio 2K',
       basePrice: 8,
       cobertura: '$2.000,00 USD Anual',
       dedHosp: '$40,00 USD Anual',
@@ -160,7 +160,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
     },
     {
       id: 'plan2',
-      name: 'Plan 2 — Esencial',
+      name: 'Plan Protección 3K',
       basePrice: 12,
       cobertura: '$3.000,00 USD Anual',
       dedHosp: '$40,00 USD Anual',
@@ -192,7 +192,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
     },
     {
       id: 'plan3',
-      name: 'Plan 3 — Premium',
+      name: 'Plan Plus 5K',
       basePrice: 22,
       cobertura: '$5.000,00 USD Anual',
       dedHosp: '$40,00 USD Anual',
@@ -319,7 +319,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
         primaryAge: 35,
         childrenCount: dependants.length,
         childrenAges: dependants.map(d => d.ageRange === '0-17' ? 10 : 25),
-        basePlanId: 'esencial',
+        basePlanId: 'proteccion',
         leadCode: code,
         selectedPlanName: 'Plan Individual (pendiente de selección)',
       }, estimatedPrice);

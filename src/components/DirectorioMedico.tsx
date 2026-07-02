@@ -349,7 +349,7 @@ export default function DirectorioMedico() {
                     </div>
 
                     <div className="space-y-1.5 text-right flex flex-col items-start sm:items-end justify-center">
-                      <div className="text-[10px] text-slate-400 font-medium font-mono uppercase tracking-wider">Copago Esencial:</div>
+                      <div className="text-[10px] text-slate-400 font-medium font-mono uppercase tracking-wider">Copago Protección 3K:</div>
                       <div className="font-mono font-black text-emerald-600 text-sm">
                         $0.00 
                         <span className="text-[10px] text-slate-450 font-normal ml-1 block sm:inline">(100% Sin Reembolsos)</span>
@@ -542,7 +542,7 @@ export default function DirectorioMedico() {
                     <ShieldCheck className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5 animate-pulse" />
                     <div>
                       <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
-                        Esencial & Premium Plan
+                        Protección 3K & Plus 5K
                       </span>
                       <h4 className="text-xs font-extrabold text-slate-900 mt-1">Copago de $0.00 Garantizado</h4>
                       <p className="text-[10px] text-slate-650 leading-relaxed mt-0.5">

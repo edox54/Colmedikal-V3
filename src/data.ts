@@ -4,9 +4,9 @@ import avatarCarlosElena from './assets/images/avatar_carlos_elena_1780025264251
 
 export const MEDICAL_PLANS: Plan[] = [
   {
-    id: 'basico',
-    name: 'Plan 1 — Básico',
-    tagline: 'Acceso a consultas en las especialidades esenciales, telemedicina desde el primer día y cobertura hospitalaria para emergencias y cuidados intensivos. Ideal para quienes buscan protección médica real a un costo accesible.',
+    id: 'inicio',
+    name: 'Plan Inicio 2K',
+    tagline: 'Disfruta de una cobertura anual de hasta USD 2.000 para atención médica, con acceso a una amplia red de prestadores de salud y servicios de alta calidad. Un plan diseñado para brindarte protección, tranquilidad y el respaldo que tú y tu familia necesitan, siempre al alcance de tus posibilidades.',
     basePrice: 8.00,
     maxCoverage: 2000,
     copayPercent: 0,
@@ -24,9 +24,9 @@ export const MEDICAL_PLANS: Plan[] = [
     color: 'emerald'
   },
   {
-    id: 'esencial',
-    name: 'Plan 2 — Esencial',
-    tagline: 'Protección integral con especialidades ampliadas, bono de maternidad y mayor cobertura hospitalaria. Diseñado para individuos y familias que buscan equilibrio entre cobertura completa y valor mensual.',
+    id: 'proteccion',
+    name: 'Plan Protección 3K',
+    tagline: 'Empieza a cuidar tu salud con un plan diseñado para brindarte respaldo y tranquilidad. Ofrece una cobertura de hasta USD 3.000 por evento, acceso a una red de atención médica de calidad y beneficios pensados para protegerte a ti y a tu familia.',
     basePrice: 12.00,
     maxCoverage: 3000,
     copayPercent: 0,
@@ -44,9 +44,9 @@ export const MEDICAL_PLANS: Plan[] = [
     color: 'teal'
   },
   {
-    id: 'premium',
-    name: 'Plan 3 — Premium',
-    tagline: 'La cobertura más completa de Colmedikal: todas las especialidades disponibles, el mayor límite hospitalario y beneficios premium de maternidad. Para quienes no quieren comprometer ningún aspecto de su salud.',
+    id: 'plus',
+    name: 'Plan Plus 5K',
+    tagline: 'Vive con la tranquilidad de contar con una protección integral. Este plan te ofrece una cobertura anual de hasta USD 5.000, atención médica de calidad y el respaldo de una amplia red de prestadores para cuidar de ti y de quienes más quieres.',
     basePrice: 22.00,
     maxCoverage: 5000,
     copayPercent: 0,
