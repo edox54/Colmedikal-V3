@@ -35,7 +35,7 @@ export default function Footer() {
             >
               <Logo className="w-auto h-10 transition-transform duration-300 group-hover:scale-105 brightness-0 invert opacity-90 group-hover:opacity-100" />
             </Link>
-            <p className="text-sm text-slate-400 leading-relaxed">
+            <p className="text-sm text-white/80 leading-relaxed">
               Cuidamos lo que más importa con la red de atención médica, hospitalización y apoyo preventivo de mayor prestigio en el país. Inspirados en estándares de excelencia.
             </p>
             <div className="flex items-center gap-2 text-xs text-teal-400 font-mono bg-teal-950/40 px-3 py-1.5 rounded-lg border border-teal-800/40 w-fit">
@@ -49,42 +49,42 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Enlaces Corporativos</h3>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link to="/" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-white text-left">
                   Inicio <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
               </li>
               <li>
-                <Link to="/servicios" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/servicios" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-white text-left">
                   Servicios de Salud <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
               </li>
               <li>
-                <Link to="/directorio" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/directorio" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-white text-left">
                   Directorio de Médicos <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
               </li>
               <li>
-                <Link to="/tramites" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/tramites" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-white text-left">
                   Trámites y Reembolsos <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
               </li>
               <li>
-                <Link to="/agendamiento" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/agendamiento" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-white text-left">
                   Agendar Cita Médica <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
               </li>
               <li>
-                <Link to="/faqs" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/faqs" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-white text-left">
                   Preguntas Frecuentes (FAQs) <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
               </li>
               <li>
-                <Link to="/nosotros" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/nosotros" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-white text-left">
                   Sobre Nosotros <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
               </li>
               <li>
-                <Link to="/blog" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-slate-400 text-left">
+                <Link to="/blog" className="hover:text-teal-400 transition-colors flex items-center gap-1 group text-white text-left">
                   Blog de Salud <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Link>
               </li>
@@ -99,7 +99,7 @@ export default function Footer() {
           {/* Services */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Planes Disponibles</h3>
-            <ul className="space-y-2.5 text-sm text-slate-400">
+            <ul className="space-y-2.5 text-sm text-white">
               <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Plan Inicio 2K</Link></li>
               <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Plan Protección 3K</Link></li>
               <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Plan Plus 5K</Link></li>
@@ -110,7 +110,7 @@ export default function Footer() {
           {/* Contact */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Soporte Médico 24/7</h3>
-            <ul className="space-y-3.5 text-sm text-slate-400">
+            <ul className="space-y-3.5 text-sm text-white">
               <li className="flex items-start gap-2.5">
                 <Phone className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
                 <div>
@@ -127,11 +127,11 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
-                <span className="text-xs">Av. República E6-447 Y Eloy Alfaro Ed. Castillo Sánchez, Quito, Ecuador.</span>
+                <span className="text-xs text-white">Av. República E6-447 Y Eloy Alfaro Ed. Castillo Sánchez, Quito, Ecuador.</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <Clock className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
-                <span className="text-xs">Horario de atención: Lun - Vie: 08:30 a 18:30.<br />Emergencias clínicas: Atención continua 24 horas.</span>
+                <span className="text-xs text-white">Horario de atención: Lun - Vie: 08:30 a 18:30.<br />Emergencias clínicas: Atención continua 24 horas.</span>
               </li>
             </ul>
           </div>

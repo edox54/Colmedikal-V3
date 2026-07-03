@@ -201,6 +201,37 @@ export default function About({ setCurrentPage }: AboutProps) {
         </motion.div>
       </section>
 
+      {/* 3.5 FRASE DESTACADA */}
+      <motion.section
+        className="py-10 overflow-hidden"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-60px' }}
+        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } } }}
+      >
+        <div className="relative bg-gradient-to-br from-[#0C4169] to-[#1a5f96] rounded-3xl px-8 sm:px-16 py-12 text-center overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-1/4 w-64 h-64 rounded-full bg-teal-400/10 blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 w-56 h-56 rounded-full bg-white/5 blur-2xl" />
+          </div>
+          <div className="relative z-10 flex flex-wrap justify-center gap-x-3 gap-y-1">
+            {['Confianza,', 'compromiso', 'y', 'calidez', 'humana', 'en', 'cada', 'atención,', 'porque', 'cuidar', 'de', 'tu', 'salud', 'es', 'nuestra', 'mayor', 'responsabilidad.'].map((word, i) => (
+              <motion.span
+                key={i}
+                className="text-2xl sm:text-3xl lg:text-4xl font-display font-extrabold text-white leading-tight tracking-tight"
+                variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } } }}
+              >
+                {word}
+              </motion.span>
+            ))}
+          </div>
+          <motion.div
+            className="mt-6 w-16 h-1 bg-teal-400 rounded-full mx-auto"
+            variants={{ hidden: { scaleX: 0, opacity: 0 }, visible: { scaleX: 1, opacity: 1, transition: { duration: 0.6, delay: 0.8 } } }}
+          />
+        </div>
+      </motion.section>
+
       {/* 4. VALORES */}
       <motion.section
         className="space-y-10 bg-white p-8 sm:p-12 rounded-3xl border border-slate-200 shadow-sm"
@@ -253,7 +284,7 @@ export default function About({ setCurrentPage }: AboutProps) {
           </div>
           <h3 className="text-xs font-bold text-teal-600 uppercase tracking-widest mb-3">Misión</h3>
           <p className="text-base text-slate-700 leading-relaxed">
-            Proporcionar a nuestros usuarios acceso oportuno y eficiente en servicios médicos integrales, a través de una red de prestadores médicos de primer nivel.
+            Ser el aliado estratégico en el cuidado de la salud de nuestros afiliados, proporcionando soluciones de medicina prepagada accesibles, innovadoras y sostenibles. En Colmedikal S.A. impulsamos una cultura centrada en las personas, donde la excelencia médica, la calidez humana, la innovación tecnológica y el compromiso social se unen para garantizar una atención oportuna, confiable y de calidad, contribuyendo al bienestar y desarrollo de la sociedad.
           </p>
         </motion.div>
 
@@ -269,7 +300,7 @@ export default function About({ setCurrentPage }: AboutProps) {
           </div>
           <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-3">Visión</h3>
           <p className="text-base text-slate-700 leading-relaxed">
-            Otorgar acceso a soluciones de salud integral, basados en principios de calidad y oportunidad, aportando de esta manera al bienestar social de nuestros usuarios.
+            Para el año 2035, ser una de las empresas líderes en medicina prepagada del Ecuador, destacándonos por nuestra capacidad de innovar, ampliar el acceso a servicios de salud de calidad y generar un impacto positivo en la vida de nuestros afiliados. Buscamos fortalecer una red nacional de atención, desarrollar soluciones accesibles y consolidar una organización reconocida por su excelencia, ética, responsabilidad social y permanente orientación al cliente.
           </p>
         </motion.div>
       </section>
