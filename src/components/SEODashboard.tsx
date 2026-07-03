@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Save, Copy, CheckCircle, Globe, Code, Map, Bot, Upload, ArrowRightLeft, Plus, Trash2, Pencil, ToggleLeft, ToggleRight, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, Copy, CheckCircle, Globe, Code, Map, Bot, Upload, ArrowRightLeft, Plus, Trash2, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useColmedikal } from '../context/ColmedikalContext';
 import { BLOG_POSTS } from '../data/blogData';
 import { SEO_MATRIX } from '../seo/seoMatrix';
-import { generateSerpPreview } from '@power-seo/preview';
-import SEOAuditPanel from './SEOAuditPanel';
 
 const ROUTES = [
   { path: '/', label: 'Inicio' },
@@ -19,7 +17,7 @@ const ROUTES = [
   { path: '/blog', label: 'Blog' },
 ];
 
-type SeoTab = 'tracking' | 'meta' | 'sitemap' | 'robots' | 'redirects' | 'audit';
+type SeoTab = 'tracking' | 'meta' | 'sitemap' | 'robots' | 'redirects';
 
 interface RedirectRule {
   id: string;
@@ -64,18 +62,6 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
   const [publishingRobots, setPublishingRobots] = useState(false);
   const [publishedRobots, setPublishedRobots] = useState(false);
   const [metaSource, setMetaSource] = useState<'matrix' | 'override'>('matrix');
-
-  // SERP live preview computed from the meta form
-  const serpPreview = useMemo(() => {
-    if (!metaForm.title && !metaForm.description) return null;
-    try {
-      return generateSerpPreview({
-        title: metaForm.title,
-        url: 'https://colmedikal.com' + (selectedRoute === '/' ? '' : selectedRoute),
-        description: metaForm.description,
-      });
-    } catch { return null; }
-  }, [metaForm.title, metaForm.description, selectedRoute]);
 
   // Redirects state
   const [redirects, setRedirects] = useState<RedirectRule[]>([]);
@@ -238,7 +224,6 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
     { id: 'sitemap',  label: 'Sitemap',             icon: <Map className="w-3.5 h-3.5" /> },
     { id: 'robots',   label: 'Robots.txt',          icon: <Bot className="w-3.5 h-3.5" /> },
     { id: 'redirects', label: 'Redirecciones',      icon: <ArrowRightLeft className="w-3.5 h-3.5" /> },
-    { id: 'audit',     label: 'Auditoría SEO',      icon: <TrendingUp className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -378,30 +363,6 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
               <li className="text-emerald-600">✓ Open Graph: og:title, og:description, og:url, og:image</li>
             </ul>
           </div>
-
-          {/* Live SERP preview */}
-          {serpPreview && (
-            <div className="border border-slate-200 rounded-xl p-4 space-y-1.5 bg-white">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vista previa en Google</p>
-              <p className={`text-sm font-medium leading-snug ${serpPreview.titleTruncated ? 'text-rose-600' : 'text-blue-700'}`}>
-                {serpPreview.title}
-              </p>
-              <p className="text-[11px] text-emerald-700 font-mono">{serpPreview.displayUrl}</p>
-              <p className={`text-xs leading-relaxed ${serpPreview.descriptionTruncated ? 'text-amber-700' : 'text-slate-600'}`}>
-                {serpPreview.description}
-              </p>
-              <div className="flex gap-4 pt-1 text-[10px] border-t border-slate-100">
-                <span className={serpPreview.titleValidation.valid ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
-                  {serpPreview.titleValidation.valid ? '✓' : '!'} Título {serpPreview.titleValidation.charCount} ch — {serpPreview.titleValidation.message}
-                </span>
-              </div>
-              <div className="text-[10px]">
-                <span className={serpPreview.descriptionValidation.valid ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
-                  {serpPreview.descriptionValidation.valid ? '✓' : '!'} Desc {serpPreview.descriptionValidation.charCount} ch — {serpPreview.descriptionValidation.message}
-                </span>
-              </div>
-            </div>
-          )}
 
           <button
             onClick={handleSaveMeta}
@@ -650,12 +611,6 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
           </div>
         </div>
       )}
-
-      {/* AUDITORÍA SEO */}
-      {activeTab === 'audit' && (
-        <SEOAuditPanel seoMetaOverrides={seoMetaOverrides} />
-      )}
-
     </div>
   );
 }
