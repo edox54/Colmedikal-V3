@@ -205,6 +205,14 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   const canDeleteLeads = currentUserRole === 'Super Admin' || currentUserRole === 'Mid Admin';
   const canManageAdmins = currentUserRole === 'Super Admin';
 
+  const normalizePlanName = (name?: string) => {
+    if (!name) return name;
+    return name
+      .replace(/Plan\s+(?:Colmedikal\s+)?Básico|Plan\s+1\s*[—\-]\s*Básico/gi, 'Plan Inicio 2K')
+      .replace(/Plan\s+(?:Colmedikal\s+)?Esencial|Plan\s+2\s*[—\-]\s*Esencial/gi, 'Plan Protección 3K')
+      .replace(/Plan\s+(?:Colmedikal\s+)?Premium|Plan\s+3\s*[—\-]\s*Premium/gi, 'Plan Plus 5K');
+  };
+
   const exportLeadsCSV = (clusters: [string, typeof leads][]) => {
     const headers = ['Código','Nombre','Email','Teléfono','Cédula','Plan','Precio/mes','Estado','Asignado a','Fecha'];
     const rows = clusters.map(([, cluster]) => {
@@ -215,7 +223,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         l.quoteData?.email || '',
         l.quoteData?.phone || '',
         l.quoteData?.docNumber || '',
-        l.quoteData?.selectedPlanName || l.quoteData?.basePlanId || '',
+        normalizePlanName(l.quoteData?.selectedPlanName) || l.quoteData?.basePlanId || '',
         Number(l.estimatedPrice || 0).toFixed(2),
         l.status,
         l.assignedTo || '',
@@ -1460,7 +1468,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                         <h4 className="text-sm font-black text-slate-900">{primary.quoteData?.fullName || '—'}</h4>
                         {primary.quoteData?.selectedPlanName && (
                           <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase">
-                            {primary.quoteData.selectedPlanName}
+                            {normalizePlanName(primary.quoteData.selectedPlanName)}
                           </span>
                         )}
                       </div>
@@ -1533,7 +1541,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       {/* WhatsApp quick contact */}
                       {primary.quoteData?.phone && (
                         <a
-                          href={`https://wa.me/${primary.quoteData.phone.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${primary.quoteData?.fullName?.split(' ')[0] || ''}, te contactamos de Colmedikal. Vimos tu cotización del ${primary.quoteData?.selectedPlanName || 'plan médico'} por $${Number(primary.estimatedPrice||0).toFixed(2)}/mes. ¿Tienes un momento para conversar sobre tu cobertura?`)}`}
+                          href={`https://wa.me/${primary.quoteData.phone.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${primary.quoteData?.fullName?.split(' ')[0] || ''}, te contactamos de Colmedikal. Vimos tu cotización del ${normalizePlanName(primary.quoteData?.selectedPlanName) || 'plan médico'} por $${Number(primary.estimatedPrice||0).toFixed(2)}/mes. ¿Tienes un momento para conversar sobre tu cobertura?`)}`}
                           target="_blank" rel="noopener noreferrer"
                           className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition cursor-pointer"
                           title="Contactar por WhatsApp"

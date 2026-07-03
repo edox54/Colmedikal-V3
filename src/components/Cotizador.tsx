@@ -128,7 +128,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
   // Static Plan Comparativos - exact match with provided specifications
   const plansComparativo = [
     {
-      id: 'plan1',
+      id: 'inicio',
       name: 'Plan Inicio 2K',
       basePrice: 8,
       cobertura: '$2.000,00 USD Anual',
@@ -159,7 +159,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
       ]
     },
     {
-      id: 'plan2',
+      id: 'proteccion',
       name: 'Plan Protección 3K',
       basePrice: 12,
       cobertura: '$3.000,00 USD Anual',
@@ -191,7 +191,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
       ]
     },
     {
-      id: 'plan3',
+      id: 'plus',
       name: 'Plan Plus 5K',
       basePrice: 22,
       cobertura: '$5.000,00 USD Anual',
