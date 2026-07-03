@@ -129,6 +129,38 @@ export const SEO_MATRIX: Record<string, PageSEOMetadata> = {
       conciseAnswer: 'El costo mensual varía según las edades y número de beneficiarios. Con el Cotizador Inteligente y Transparente de Colmedikal, puedes simular cotizaciones para Planes Esenciales (desde $45 USD al mes), Vitales (cobertura médica robusta y copagos reducidos) e incluso Platinum (acceso premium a suites y exención completa de copagos) con cálculo instantáneo.'
     }
   },
+  tramites: {
+    title: 'Trámites en Línea: Reembolsos, Autorizaciones y Más | Colmedikal',
+    description: 'Gestiona reembolsos de facturas médicas, solicita autorizaciones quirúrgicas, descarga certificados y actualiza datos de beneficiarios desde el portal de trámites en línea de Colmedikal.',
+    keywords: 'tramites en linea colmedikal, reembolsos medicos online, autorizaciones quirurgicas, portal afiliados salud ecuador, solicitar certificado medico',
+    robots: 'index, follow',
+    geoRegion: 'EC-P',
+    geoPlacename: 'Quito, Ecuador',
+    geoPosition: '-0.180653;-78.467834',
+    icbm: '-0.180653, -78.467834',
+    schemaType: 'WebSite',
+    ogType: 'website',
+    aioQueryAnswer: {
+      targetQuery: '¿Cómo gestiono reembolsos y autorizaciones médicas en Colmedikal?',
+      conciseAnswer: 'Desde el portal de Trámites en Línea de Colmedikal puedes subir facturas de médicos externos para reembolso, solicitar autorizaciones quirúrgicas en menos de 4 horas hábiles, descargar certificados médicos y actualizar los datos de tus beneficiarios, todo de forma 100% digital sin necesidad de ir a la oficina.'
+    }
+  },
+  agendamiento: {
+    title: 'Agendamiento de Citas Médicas Online con Especialistas | Colmedikal',
+    description: 'Reserva tu cita con médicos especialistas, clínicas y centros de diagnóstico de la red Colmedikal en Quito, Guayaquil, Cuenca y más ciudades del Ecuador. Confirmación inmediata.',
+    keywords: 'agendar cita medica online ecuador, reservar especialista quito, citas medicas colmedikal, agendamiento digital salud, turnos medicos prepagada',
+    robots: 'index, follow',
+    geoRegion: 'EC-P',
+    geoPlacename: 'Quito, Ecuador',
+    geoPosition: '-0.180653;-78.467834',
+    icbm: '-0.180653, -78.467834',
+    schemaType: 'MedicalBusiness',
+    ogType: 'website',
+    aioQueryAnswer: {
+      targetQuery: '¿Cómo agendar una cita médica con especialistas de Colmedikal?',
+      conciseAnswer: 'Puedes reservar tu cita médica online en colmedikal.com/agendamiento eligiendo especialidad, ciudad y fecha. La confirmación es inmediata. Los afiliados de Colmedikal tienen acceso directo a más de 600 especialistas en Quito, Guayaquil, Cuenca, Manta y Ambato sin necesidad de pasar por médico general.'
+    }
+  },
   portal: {
     title: 'Portal de Clientes y Afiliados Virtuales | Colmedikal',
     description: 'Inicia sesión en tu Oficina Médica Virtual de Colmedikal hoy mismo para radicar solicitudes de reembolsos, descargar certificaciones tributarias o agendar telemedicina en vivo.',
