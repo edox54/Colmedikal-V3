@@ -134,6 +134,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const leadAssignOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_assign', {}));
   const leadFollowUpOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_followup', {}));
   const leadLostReasonOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_lost', {}));
+  const leadPlanOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_plan', {}));
   const deletedLeadIds = useRef<string[]>(loadOverride('colmedikal_deleted_leads', []));
   const persistOverride = (key: string, value: any) => {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
@@ -319,14 +320,15 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           ...l,
           quoteData: (() => {
             try {
-              return typeof l.quote_data === 'string'
+              const qd = typeof l.quote_data === 'string'
                 ? JSON.parse(l.quote_data)
                 : (l.quote_data ?? l.quoteData ?? {});
+              if (leadPlanOverrides.current[l.id]) qd.selectedPlanName = leadPlanOverrides.current[l.id];
+              return qd;
             } catch { return l.quoteData ?? {}; }
           })(),
           estimatedPrice: Number(l.estimated_price ?? l.estimatedPrice ?? 0),
           timestamp: l.timestamp ?? l.created_at ?? new Date().toISOString(),
-          // Apply local status override
           status: (leadStatusOverrides.current[l.id] || l.status || 'Nuevo Plan') as LeadQuote['status'],
           notes: leadNotesOverrides.current[l.id] ?? l.notes ?? [],
           assignedTo: leadAssignOverrides.current[l.id] ?? l.assignedTo ?? '',
@@ -600,18 +602,20 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       };
 
       if (!token) {
-        // Update in localStorage
+        // Persist the selected plan name so the 10s poll doesn't overwrite it
+        if (quote.selectedPlanName) {
+          leadPlanOverrides.current[String(existing.id)] = quote.selectedPlanName;
+          persistOverride('colmedikal_lead_plan', leadPlanOverrides.current);
+        }
+        // Update both leads (API state) and localLeads so mergedLeads reflects the change immediately
+        setLeads(prev => prev.map(l => String(l.id) === String(existing.id) ? { ...l, quoteData: quote, estimatedPrice } : l));
         setLocalLeads(prev => {
           const newLeads = prev.map(l => l.id === existing.id ? updated : l);
           try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(newLeads)); } catch {}
           return newLeads;
         });
-        // Also try API update (silent fail if PUT endpoint doesn't exist)
         try {
-          await apiCall(`/api/leads/${existing.id}`, 'PUT', {
-            quote_data: quote,
-            estimated_price: estimatedPrice,
-          });
+          await apiCall(`/api/leads/${existing.id}`, 'PUT', { quote_data: quote, estimated_price: estimatedPrice });
         } catch { /* silent */ }
         return updated;
       }

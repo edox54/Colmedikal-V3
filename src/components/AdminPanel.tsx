@@ -205,8 +205,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   const canDeleteLeads = currentUserRole === 'Super Admin' || currentUserRole === 'Mid Admin';
   const canManageAdmins = currentUserRole === 'Super Admin';
 
-  const normalizePlanName = (name?: string) => {
-    if (!name) return name;
+  const normalizePlanName = (name?: string): string => {
+    if (!name || /pendiente|individual/i.test(name)) return '';
     return name
       .replace(/Plan\s+(?:Colmedikal\s+)?Básico|Plan\s+1\s*[—\-]\s*Básico/gi, 'Plan Inicio 2K')
       .replace(/Plan\s+(?:Colmedikal\s+)?Esencial|Plan\s+2\s*[—\-]\s*Esencial/gi, 'Plan Protección 3K')
@@ -1466,11 +1466,12 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                           )}
                         </div>
                         <h4 className="text-sm font-black text-slate-900">{primary.quoteData?.fullName || '—'}</h4>
-                        {primary.quoteData?.selectedPlanName && (
-                          <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase">
-                            {normalizePlanName(primary.quoteData.selectedPlanName)}
-                          </span>
-                        )}
+                        {(() => {
+                          const planName = normalizePlanName(primary.quoteData?.selectedPlanName);
+                          return planName
+                            ? <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase">{planName}</span>
+                            : <span className="text-[9px] bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded font-medium italic">Sin plan seleccionado</span>;
+                        })()}
                       </div>
                       <div className="text-right">
                         <span className="text-[9px] text-slate-400 font-mono block">Est.:</span>

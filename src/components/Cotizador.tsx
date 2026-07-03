@@ -321,7 +321,7 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
         childrenAges: dependants.map(d => d.ageRange === '0-17' ? 10 : 25),
         basePlanId: 'proteccion',
         leadCode: code,
-        selectedPlanName: 'Plan Individual (pendiente de selección)',
+        selectedPlanName: '',
       }, estimatedPrice);
 
       sendLeadToKommoCRM({
