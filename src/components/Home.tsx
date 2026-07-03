@@ -46,7 +46,7 @@ export default function Home() {
       badge: 'RED MÉDICA NACIONAL',
       title: 'AMPLIA RED DE PRESTADORES MÉDICOS A TU ALCANCE',
       subtitle: 'CONOCE NUESTRO DIRECTORIO DE CLÍNICAS, HOSPITALES Y ESPECIALISTAS CERTIFICADOS.',
-      extraText: 'Conoce nuestro directorio de clínicas, hospitales y especialistas certificados.',
+      extraText: 'Encuentra el médico o especialista más cercano a ti y agenda tu atención con rapidez.',
       buttonText: 'ACCEDE A NUESTRA RED',
       image: null,
       targetPath: '/directorio',
