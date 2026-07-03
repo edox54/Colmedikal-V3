@@ -47,25 +47,56 @@ const renderAnswer = (answer: string) => (
 
 export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuentesProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string>('carencias');
+  const [activeCategory, setActiveCategory] = useState<string>('general');
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
 
   const categories: FAQCategory[] = [
+    {
+      id: 'general',
+      name: 'Información General',
+      icon: Sparkles,
+      items: [
+        {
+          question: '¿Quiénes somos y qué ofrecemos para ti y tu familia?',
+          answer: 'Colmedikal S.A. es una empresa ecuatoriana de medicina prepagada que brinda soluciones integrales de salud. Nuestros planes ofrecen acceso a una amplia red de médicos, especialistas, clínicas y hospitales, con el respaldo de una atención oportuna, cercana y de calidad, orientada a proteger el bienestar y la tranquilidad de nuestros afiliados. Más de 15 años nos respaldan.'
+        },
+        {
+          question: '¿Cómo puedo contratar un plan de medicina prepagada con Colmedikal?',
+          answer: 'Da el primer paso para cuidar tu salud y la de tu familia siguiendo estos sencillos pasos:\n• Ingresa al cotizador en nuestra página web y completa tus datos personales (nombre, correo y teléfono).\n• Selecciona el tipo de plan: individual, pareja o familiar, e indica las edades de los beneficiarios.\n• Revisa tu cotización personalizada y elige el plan que mejor se adapte a tus necesidades: Plan Inicio 2K, Plan Protección 3K o Plan Plus 5K.\n• Contáctanos a través de nuestro equipo de asesores o completa el formulario disponible en nuestra página web. Estaremos encantados de ayudarte a elegir el plan ideal para ti.'
+        },
+        {
+          question: '¿Es posible incluir a mi familia en un solo plan de medicina prepagada?',
+          answer: 'Sí. En Colmedikal S.A. creemos que la tranquilidad se vive en familia. Por eso ofrecemos planes familiares que permiten proteger a tus seres queridos con una sola afiliación, brindándoles acceso a atención médica de calidad, beneficios integrales y el respaldo de una amplia red de prestadores de salud.'
+        },
+        {
+          question: '¿Qué debo hacer para reservar una cita médica?',
+          answer: 'Puedes agendar tu cita médica comunicándote con nuestro equipo de Atención al Cliente o, si lo prefieres, ingresando a la sección "Trámites en Línea" de nuestra página web, donde encontrarás la opción "Agendar Cita" para programar tu atención de forma rápida, segura y conveniente.'
+        },
+        {
+          question: '¿En qué clínicas y centros médicos puedo utilizar mi plan?',
+          answer: 'Nuestra red de prestadores está conformada por clínicas, hospitales y centros médicos de reconocida trayectoria. Consulta el listado completo y actualizado en la sección "Red de Prestadores" de nuestra página web.'
+        },
+        {
+          question: '¿Cómo puedo comunicarme con un asesor de Colmedikal?',
+          answer: 'En Colmedikal S.A. queremos que siempre estés acompañado. Si necesitas información, asesoría o soporte, puedes escribirnos mediante el botón de WhatsApp de nuestra página web o comunicarte con nuestras líneas de atención. Nuestro equipo estará encantado de atenderte.'
+        }
+      ]
+    },
     {
       id: 'carencias',
       name: 'Coberturas, Carencias y Emergencias Médicas',
       icon: Clock,
       items: [
         {
-          question: '1. ¿Qué es el período de carencia y a partir de qué momento puedo hacer uso efectivo de mi plan?',
+          question: '¿Qué es el período de carencia y a partir de qué momento puedo hacer uso efectivo de mi plan?',
           answer: 'El período de carencia es el lapso de tiempo obligatorio, continuo e improrrogable que transcurre desde la firma de su contrato o la inclusión del beneficiario, durante el cual no se activan las coberturas programadas. Conforme al Acuerdo Ministerial No. 0068-2017 de la Autoridad Sanitaria Nacional y los reglamentos del plan, los plazos aplicables son:\n• Emergencia Médica y Accidentes: 24 horas\n• Atención Ambulatoria y Dental: 30 días calendario\n• Maternidad (Bono y Embarazo): 60 a 90 días calendario\n• Atención Hospitalaria y Quirúrgica: 90 días calendario\n• Enfermedades Crónicas y Catastróficas: 90 días calendario\n• Enfermedades Preexistentes Declaradas: 730 días (24 meses)'
         },
         {
-          question: '2. ¿Cómo se diferencia operativamente una emergencia de una urgencia médica y cómo debo proceder en cada caso?',
+          question: '¿Cómo se diferencia operativamente una emergencia de una urgencia médica y cómo debo proceder en cada caso?',
           answer: 'La distinción radica en la inminencia del riesgo vital:\n\n• Emergencia Médica: Toda condición repentina, aguda e imprevista con inminente peligro de vida o viabilidad de un órgano. El beneficiario puede acudir directamente a la red sin necesidad de preautorización, y no se pueden exigir pagarés para emergencias justificadas.\n• Urgencia Médica: Situación repentina que requiere asistencia médica, pero sin riesgo de muerte inminente. Es mandatorio comunicarse previamente con el call center para la asignación y preautorización de la consulta externa.'
         },
         {
-          question: '3. ¿Cómo aplica la cobertura de ambulancia terrestre por accidente y qué limitaciones tiene?',
+          question: '¿Cómo aplica la cobertura de ambulancia terrestre por accidente y qué limitaciones tiene?',
           answer: 'El traslado en ambulancia terrestre cuenta con cobertura al 100% (copago del 0%) hasta un monto máximo de USD 200.00 por evento, siempre que se trate de un accidente debidamente comprobado y el beneficiario se encuentre en condición crítica que exija su traslado hacia un hospital de la red. El medio de transporte debe estar debidamente equipado.'
         }
       ]
@@ -76,31 +107,12 @@ export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuen
       icon: ShieldCheck,
       items: [
         {
-          question: '4. ¿Tienen cobertura las enfermedades preexistentes y qué ocurre si omito declarar una patología?',
+          question: '¿Tienen cobertura las enfermedades preexistentes y qué ocurre si omito declarar una patología?',
           answer: '• Preexistencias Declaradas: Cualquier patología detallada de forma exhaustiva tendrá cobertura obligatoria a partir del mes 25 de vigencia consecutiva del plan, hasta el límite anual contratado o 20 salarios básicos, de conformidad con la Ley ecuatoriana vigente.\n• Preexistencias No Declaradas: Cualquier condición omitida o falseada al momento de suscripción se considera no declarada y queda permanentemente excluida de todo financiamiento, reembolso o servicio.'
         },
         {
-          question: '5. ¿Tiene Colmedikal planes para todas las edades?',
+          question: '¿Tiene Colmedikal planes para todas las edades?',
           answer: 'Sí. Colmedikal ofrece cobertura médica sin restricciones de edad. Contamos con planes adaptados a cada etapa de vida, desde niños hasta adultos mayores, garantizando continuidad de cobertura y sin discriminación por edad. Un asesor puede orientarle sobre el plan más conveniente para su perfil.'
-        }
-      ]
-    },
-    {
-      id: 'pagos',
-      name: 'Gestión Comercial, Mora y Siniestralidad Colectiva',
-      icon: DollarSign,
-      items: [
-        {
-          question: '6. ¿Qué ocurre si me atraso en el pago de mi cuota mensual y de cuánto tiempo dispongo antes de perder la cobertura?',
-          answer: '• A los 31 días de mora: Suspensión automática de coberturas programadas. Únicamente se mantiene activa la atención de emergencia obligatoria.\n• A los 91 días de mora consecutiva: Solución del contrato de pleno derecho (cancelado automáticamente) y cobro legal de cuotas impagas.'
-        },
-        {
-          question: '7. ¿Cómo se determinan los ajustes en las cuotas mensuales de mi plan?',
-          answer: 'Colmedikal S.A. tiene prohibido hacer incrementos unilaterales por siniestralidad personal, edad sobrevenida o enfermedades catastróficas. La revisión de precios se realiza anualmente sobre la siniestralidad colectiva acumulada de la cartera del plan, utilizando estudios actuariales aprobados previamente por la SCVS.'
-        },
-        {
-          question: '8. ¿Qué es una "Atención Masiva" y qué implicaciones tiene en mis beneficios especiales?',
-          answer: 'Se considera atención masiva a las prestaciones otorgadas a más del 20% de los afiliados de un contrato masivo, en un período de 15 días consecutivos y por un mismo prestador de la red adscrita. En este caso se excluyen ciertos beneficios (adquisición de zapatos ortopédicos, plantillas) para preservar reservas técnicas de riesgo de la compañía.'
         }
       ]
     }

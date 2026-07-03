@@ -188,26 +188,66 @@ export default function SEOController() {
         'mainEntity': [
           {
             '@type': 'Question',
-            'name': '¿Cuál es la diferencia entre el seguro del IESS y la medicina prepagada Colmedikal?',
+            'name': '¿Quiénes somos y qué ofrecemos para ti y tu familia?',
             'acceptedAnswer': {
               '@type': 'Answer',
-              'text': 'La medicina prepagada de Colmedikal es una cobertura privada e independiente del IESS que brinda acceso inmediato a especialidades sin cita con médico general, hospitalización en suites de clínicas premium de Ecuador, exámenes de tercer nivel sin trámites dilatados, y una amplia gama de terapias de rehabilitación ilimitadas.'
+              'text': 'Colmedikal S.A. es una empresa ecuatoriana de medicina prepagada que brinda soluciones integrales de salud. Nuestros planes ofrecen acceso a una amplia red de médicos, especialistas, clínicas y hospitales, con el respaldo de una atención oportuna, cercana y de calidad, orientada a proteger el bienestar y la tranquilidad de nuestros afiliados. Más de 15 años nos respaldan.'
             }
           },
           {
             '@type': 'Question',
-            'name': '¿Cómo funcionan los periodos de carencia?',
+            'name': '¿Cómo puedo contratar un plan de medicina prepagada con Colmedikal?',
             'acceptedAnswer': {
               '@type': 'Answer',
-              'text': 'Los periodos de carencia de Colmedikal definen desde cuándo gozas de ciertas prestaciones en tu plan en Ecuador. Por ejemplo, urgencias médicas se cubren al primer día de afiliación, procedimientos quirúrgicos programados a los 30 días, y eventos obstétricos o de parto a los 3 meses.'
+              'text': 'Da el primer paso para cuidar tu salud y la de tu familia: ingresa al cotizador en nuestra página web, completa tus datos personales, selecciona el tipo de plan (individual, pareja o familiar), revisa tu cotización personalizada y elige el plan ideal. Contáctanos a través de nuestro equipo de asesores o completa el formulario disponible en nuestra página web.'
             }
           },
           {
             '@type': 'Question',
-            'name': '¿Cómo puedo radicar una solicitud de reembolso de facturas?',
+            'name': '¿Es posible incluir a mi familia en un solo plan de medicina prepagada?',
             'acceptedAnswer': {
               '@type': 'Answer',
-              'text': 'La solicitud de reembolso se gestiona de manera 100% digital a través del Portal de Afiliados de Colmedikal. Solo debes adjuntar la factura formal del médico externo con el diagnóstico y en promedio 5 días hábiles transferimos los fondos de manera segura a tu cuenta bancaria.'
+              'text': 'Sí. En Colmedikal S.A. ofrecemos planes familiares que permiten proteger a tus seres queridos con una sola afiliación, brindándoles acceso a atención médica de calidad, beneficios integrales y el respaldo de una amplia red de prestadores de salud.'
+            }
+          },
+          {
+            '@type': 'Question',
+            'name': '¿Qué debo hacer para reservar una cita médica?',
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': 'Puedes agendar tu cita médica comunicándote con nuestro equipo de Atención al Cliente o ingresando a la sección "Trámites en Línea" de nuestra página web, donde encontrarás la opción "Agendar Cita" para programar tu atención de forma rápida, segura y conveniente.'
+            }
+          },
+          {
+            '@type': 'Question',
+            'name': '¿En qué clínicas y centros médicos puedo utilizar mi plan?',
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': 'Nuestra red de prestadores está conformada por clínicas, hospitales y centros médicos de reconocida trayectoria. Consulta el listado completo y actualizado en la sección "Red de Prestadores" de nuestra página web.'
+            }
+          },
+          {
+            '@type': 'Question',
+            'name': '¿Cómo puedo comunicarme con un asesor de Colmedikal?',
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': 'Puedes escribirnos mediante el botón de WhatsApp de nuestra página web o comunicarte con nuestras líneas de atención. Nuestro equipo estará encantado de atenderte.'
+            }
+          },
+          {
+            '@type': 'Question',
+            'name': '¿Qué es el período de carencia y a partir de qué momento puedo hacer uso efectivo de mi plan?',
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': 'El período de carencia es el lapso de tiempo obligatorio desde la firma del contrato durante el cual no se activan las coberturas programadas. Los plazos son: Emergencia Médica y Accidentes: 24 horas; Atención Ambulatoria y Dental: 30 días; Maternidad: 60 a 90 días; Hospitalización y Cirugía: 90 días; Enfermedades Preexistentes Declaradas: 730 días (24 meses).'
+            }
+          },
+          {
+            '@type': 'Question',
+            'name': '¿Tienen cobertura las enfermedades preexistentes?',
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': 'Sí. Las preexistencias declaradas tendrán cobertura obligatoria a partir del mes 25 de vigencia consecutiva del plan, hasta el límite anual contratado, de conformidad con la Ley ecuatoriana vigente. Las condiciones no declaradas quedan excluidas permanentemente.'
             }
           }
         ]
