@@ -53,12 +53,20 @@ export interface QuoteState {
   selectedPlanName?: string;
 }
 
+export interface LeadNote {
+  text: string;
+  author: string;
+  timestamp: string;
+}
+
 export interface LeadQuote {
   id: string;
   timestamp: string;
   quoteData: QuoteState;
   estimatedPrice: number;
   status: 'Nuevo Plan' | 'Contactado' | 'Cierre Efectivo';
+  notes?: LeadNote[];
+  assignedTo?: string;
 }
 
 export interface Testimonial {

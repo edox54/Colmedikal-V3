@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, QuoteState, AdminUser } from '../types';
+import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, LeadNote, QuoteState, AdminUser } from '../types';
 
 interface ColmedikalContextType {
   doctors: Doctor[];
@@ -28,6 +28,8 @@ interface ColmedikalContextType {
   addLead: (quote: QuoteState, estimatedPrice: number) => Promise<any>;
   deleteLead: (id: string | number) => Promise<void>;
   updateLeadStatus: (id: string, status: LeadQuote['status']) => Promise<void>;
+  addLeadNote: (id: string, note: LeadNote) => void;
+  assignLead: (id: string, assignedTo: string) => void;
   refreshData: () => Promise<void>;
   addAdmin: (email: string, name: string, role: AdminUser['role'], password?: string) => Promise<void>;
   deleteAdmin: (email: string) => Promise<void>;
@@ -694,6 +696,28 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  const addLeadNote = (id: string, note: LeadNote) => {
+    const applyNote = (list: LeadQuote[]) =>
+      list.map(l => l.id === id ? { ...l, notes: [...(l.notes || []), note] } : l);
+    setLeads(prev => applyNote(prev));
+    setLocalLeads(prev => {
+      const updated = applyNote(prev);
+      try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const assignLead = (id: string, assignedTo: string) => {
+    const applyAssign = (list: LeadQuote[]) =>
+      list.map(l => l.id === id ? { ...l, assignedTo } : l);
+    setLeads(prev => applyAssign(prev));
+    setLocalLeads(prev => {
+      const updated = applyAssign(prev);
+      try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
   const deleteLead = async (id: string | number) => {
     const strId = String(id);
     // Always purge from localLeads — a lead submitted publicly gets a backend ID
@@ -878,6 +902,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     addLead,
     deleteLead,
     updateLeadStatus,
+    addLeadNote,
+    assignLead,
     refreshData,
     addAdmin,
     deleteAdmin,

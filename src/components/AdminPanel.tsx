@@ -68,6 +68,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     updateAuthorizationStatus,
     updateAppointmentStatus,
     updateLeadStatus,
+    addLeadNote,
+    assignLead,
     deleteLead,
     refreshData,
     addAdmin,
@@ -126,6 +128,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   const [leadDateFilter, setLeadDateFilter] = useState('');
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | 'Nuevo Plan' | 'Contactado' | 'Cierre Efectivo'>('all');
   const [leadSearchFilter, setLeadSearchFilter] = useState('');
+  // Notes UI — tracks which lead card has the note input open
+  const [openNoteLeadId, setOpenNoteLeadId] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState('');
 
   // Administradores form and registration states
   const [newAdmin, setNewAdmin] = useState<{
@@ -197,6 +202,31 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
   const canDeleteLeads = currentUserRole === 'Super Admin' || currentUserRole === 'Mid Admin';
   const canManageAdmins = currentUserRole === 'Super Admin';
+
+  const exportLeadsCSV = (clusters: [string, typeof leads][]) => {
+    const headers = ['Código','Nombre','Email','Teléfono','Cédula','Plan','Precio/mes','Estado','Asignado a','Fecha'];
+    const rows = clusters.map(([, cluster]) => {
+      const l = cluster[0];
+      return [
+        l.quoteData?.leadCode || l.id,
+        l.quoteData?.fullName || '',
+        l.quoteData?.email || '',
+        l.quoteData?.phone || '',
+        l.quoteData?.docNumber || '',
+        l.quoteData?.selectedPlanName || l.quoteData?.basePlanId || '',
+        Number(l.estimatedPrice || 0).toFixed(2),
+        l.status,
+        l.assignedTo || '',
+        new Date(l.timestamp).toLocaleString('es-EC'),
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `leads_colmedikal_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
 
   // Doctors form state
   const [newDoc, setNewDoc] = useState({
@@ -1379,7 +1409,15 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                 Limpiar filtros
               </button>
             )}
-            <span className="text-[10px] text-slate-400 ml-auto">{filteredClusters.length} grupo(s)</span>
+            <span className="text-[10px] text-slate-400">{filteredClusters.length} grupo(s)</span>
+            <button
+              onClick={() => exportLeadsCSV(filteredClusters)}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg cursor-pointer transition"
+              title="Descargar Excel (CSV) con los leads filtrados"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+              Exportar CSV
+            </button>
           </div>
 
           {/* Lead cards — grouped by duplicate cluster */}
@@ -1505,6 +1543,77 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                         ><Trash2 className="w-3.5 h-3.5" /></button>
                       )}
                     </div>
+                  </div>
+
+                  {/* Assignment + Notes */}
+                  <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
+                    {/* Assign to */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Asignado:</span>
+                      <select
+                        value={primary.assignedTo || ''}
+                        onChange={e => assignLead(primary.id, e.target.value)}
+                        className="flex-1 px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:border-teal-400 font-sans"
+                      >
+                        <option value="">— Sin asignar —</option>
+                        {admins.filter(a => a.active).map(a => (
+                          <option key={a.email} value={a.email}>{a.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Notes list */}
+                    {(primary.notes || []).length > 0 && (
+                      <div className="space-y-1.5 max-h-24 overflow-y-auto">
+                        {(primary.notes || []).map((n, i) => (
+                          <div key={i} className="bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 text-[10px]">
+                            <span className="text-amber-800 font-medium leading-snug block">{n.text}</span>
+                            <span className="text-amber-500 font-mono">{n.author} · {new Date(n.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add note */}
+                    {openNoteLeadId === primary.id ? (
+                      <div className="flex gap-1.5">
+                        <input
+                          autoFocus
+                          type="text"
+                          value={noteText}
+                          onChange={e => setNoteText(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && noteText.trim()) {
+                              const stored = sessionStorage.getItem('colmedikal_user');
+                              const author = stored ? JSON.parse(stored)?.name || 'Admin' : 'Admin';
+                              addLeadNote(primary.id, { text: noteText.trim(), author, timestamp: new Date().toISOString() });
+                              setNoteText(''); setOpenNoteLeadId(null);
+                            }
+                            if (e.key === 'Escape') { setNoteText(''); setOpenNoteLeadId(null); }
+                          }}
+                          placeholder="Escribe una nota... (Enter para guardar)"
+                          className="flex-1 px-2.5 py-1.5 text-[10px] border border-teal-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-400 bg-teal-50"
+                        />
+                        <button
+                          onClick={() => {
+                            if (noteText.trim()) {
+                              const stored = sessionStorage.getItem('colmedikal_user');
+                              const author = stored ? JSON.parse(stored)?.name || 'Admin' : 'Admin';
+                              addLeadNote(primary.id, { text: noteText.trim(), author, timestamp: new Date().toISOString() });
+                            }
+                            setNoteText(''); setOpenNoteLeadId(null);
+                          }}
+                          className="px-2 py-1 bg-teal-500 hover:bg-teal-600 text-white text-[10px] font-bold rounded-lg cursor-pointer"
+                        >✓</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setOpenNoteLeadId(primary.id); setNoteText(''); }}
+                        className="text-[10px] text-slate-400 hover:text-teal-600 font-semibold cursor-pointer flex items-center gap-1"
+                      >
+                        <span>+</span> Agregar nota
+                      </button>
+                    )}
                   </div>
                 </div>
                 );
