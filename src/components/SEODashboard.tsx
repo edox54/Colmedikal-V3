@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Save, Copy, CheckCircle, Globe, Code, Map, Bot, Upload, ArrowRightLeft, Plus, Trash2, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Save, Copy, CheckCircle, Globe, Code, Map, Bot, Upload, ArrowRightLeft, Plus, Trash2, Pencil, ToggleLeft, ToggleRight, Search, AlertCircle, Info, TrendingUp } from 'lucide-react';
 import { useColmedikal } from '../context/ColmedikalContext';
 import { BLOG_POSTS } from '../data/blogData';
 import { SEO_MATRIX } from '../seo/seoMatrix';
+import { auditPage } from '@power-seo/audit';
+import type { PageAuditResult } from '@power-seo/audit';
+import { analyzeContent } from '@power-seo/content-analysis';
+import type { ContentAnalysisResult } from '@power-seo/content-analysis';
 
 const ROUTES = [
   { path: '/', label: 'Inicio' },
@@ -17,7 +21,7 @@ const ROUTES = [
   { path: '/blog', label: 'Blog' },
 ];
 
-type SeoTab = 'tracking' | 'meta' | 'sitemap' | 'robots' | 'redirects';
+type SeoTab = 'tracking' | 'meta' | 'sitemap' | 'robots' | 'redirects' | 'audit';
 
 interface RedirectRule {
   id: string;
@@ -62,6 +66,59 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
   const [publishingRobots, setPublishingRobots] = useState(false);
   const [publishedRobots, setPublishedRobots] = useState(false);
   const [metaSource, setMetaSource] = useState<'matrix' | 'override'>('matrix');
+
+  // Audit state
+  const [auditRoute, setAuditRoute] = useState('/');
+  const [auditKeyphrase, setAuditKeyphrase] = useState('');
+  const [auditContent, setAuditContent] = useState('');
+  const [auditResult, setAuditResult] = useState<PageAuditResult | null>(null);
+  const [contentResult, setContentResult] = useState<ContentAnalysisResult | null>(null);
+  const [auditRunning, setAuditRunning] = useState(false);
+
+  const runAudit = useCallback(() => {
+    setAuditRunning(true);
+    const override = seoMetaOverrides?.[auditRoute];
+    const matrixKey = ROUTE_TO_KEY[auditRoute];
+    const matrix = matrixKey ? SEO_MATRIX[matrixKey] : null;
+    const title       = override?.title       || matrix?.title       || '';
+    const description = override?.description || matrix?.description || '';
+    const keywords    = override?.keywords    || matrix?.keywords    || '';
+    const url         = 'https://colmedikal.com' + auditRoute;
+    const contentHtml = auditContent
+      ? `<h1>${title}</h1><p>${auditContent}</p>`
+      : `<h1>${title}</h1><p>${description}</p>`;
+    const wordCount = auditContent
+      ? auditContent.split(/\s+/).filter(Boolean).length
+      : description.split(/\s+/).filter(Boolean).length;
+
+    const pageR = auditPage({
+      url,
+      title,
+      metaDescription: description,
+      canonical: url,
+      robots: matrix?.robots || 'index, follow',
+      openGraph: { title, description, image: 'https://colmedikal.com/og-image.jpg' },
+      content: contentHtml,
+      headings: [`h1:${title}`],
+      images: [],
+      internalLinks: ROUTES.filter(r => r.path !== auditRoute).map(r => r.path),
+      externalLinks: [],
+      focusKeyphrase: auditKeyphrase || keywords.split(',')[0]?.trim() || '',
+      wordCount,
+    });
+    const contentR = analyzeContent({
+      title,
+      metaDescription: description,
+      focusKeyphrase: auditKeyphrase || keywords.split(',')[0]?.trim() || '',
+      content: contentHtml,
+      images: [],
+      internalLinks: ROUTES.filter(r => r.path !== auditRoute).map(r => r.path),
+      externalLinks: [],
+    });
+    setAuditResult(pageR);
+    setContentResult(contentR);
+    setAuditRunning(false);
+  }, [auditRoute, auditKeyphrase, auditContent, seoMetaOverrides]);
 
   // Redirects state
   const [redirects, setRedirects] = useState<RedirectRule[]>([]);
@@ -224,6 +281,7 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
     { id: 'sitemap',  label: 'Sitemap',             icon: <Map className="w-3.5 h-3.5" /> },
     { id: 'robots',   label: 'Robots.txt',          icon: <Bot className="w-3.5 h-3.5" /> },
     { id: 'redirects', label: 'Redirecciones',      icon: <ArrowRightLeft className="w-3.5 h-3.5" /> },
+    { id: 'audit',     label: 'Auditoría SEO',      icon: <TrendingUp className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -611,6 +669,187 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
           </div>
         </div>
       )}
+
+      {/* AUDITORÍA SEO */}
+      {activeTab === 'audit' && (
+        <div className="space-y-6 max-w-3xl">
+
+          {/* Config panel */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">Auditoría SEO por Página</h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">Análisis local con @power-seo/audit — sin llamadas externas. Puntuación 0–100 en 4 categorías.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">Página a auditar</label>
+                <select
+                  value={auditRoute}
+                  onChange={e => { setAuditRoute(e.target.value); setAuditResult(null); setContentResult(null); }}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#4597CA]"
+                >
+                  {ROUTES.map(r => <option key={r.path} value={r.path}>{r.label} ({r.path})</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">Palabra clave foco <span className="font-normal text-slate-400">(opcional)</span></label>
+                <input
+                  type="text"
+                  value={auditKeyphrase}
+                  onChange={e => setAuditKeyphrase(e.target.value)}
+                  placeholder="ej: medicina prepagada ecuador"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#4597CA]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-700">Contenido de la página <span className="font-normal text-slate-400">(pega el texto visible para análisis más preciso)</span></label>
+              <textarea
+                rows={4}
+                value={auditContent}
+                onChange={e => setAuditContent(e.target.value)}
+                placeholder="Pega aquí el texto principal de la página para analizar densidad de keyphrase, conteo de palabras y legibilidad..."
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs resize-none outline-none focus:border-[#4597CA]"
+              />
+              <p className="text-[10px] text-slate-400">Si se deja vacío, se usa la meta description como contenido base.</p>
+            </div>
+
+            <button
+              onClick={runAudit}
+              disabled={auditRunning}
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#0C4169] hover:bg-[#0a3558] disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer transition-all"
+            >
+              <Search className="w-4 h-4" />
+              {auditRunning ? 'Analizando...' : 'Ejecutar Auditoría'}
+            </button>
+          </div>
+
+          {/* Results */}
+          {auditResult && (
+            <>
+              {/* Score header */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+                <div className="flex items-center gap-6 flex-wrap">
+                  {/* Big score */}
+                  <div className={`w-24 h-24 rounded-full flex flex-col items-center justify-center border-4 shrink-0 ${
+                    auditResult.score >= 80 ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                    : auditResult.score >= 50 ? 'border-amber-400 bg-amber-50 text-amber-700'
+                    : 'border-rose-400 bg-rose-50 text-rose-700'
+                  }`}>
+                    <span className="text-3xl font-extrabold leading-none">{auditResult.score}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wide mt-0.5">/ 100</span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-slate-900">
+                      {auditResult.score >= 80 ? 'Excelente — página bien optimizada' : auditResult.score >= 60 ? 'Bueno — hay mejoras por hacer' : auditResult.score >= 40 ? 'Regular — requiere atención' : 'Crítico — optimización urgente'}
+                    </p>
+                    <p className="text-[11px] text-slate-500">Página: <span className="font-mono font-bold">https://colmedikal.com{auditRoute}</span></p>
+                    {auditKeyphrase && <p className="text-[11px] text-slate-500">Keyphrase: <span className="font-bold text-[#0C4169]">{auditKeyphrase}</span></p>}
+                  </div>
+                </div>
+
+                {/* Category scores */}
+                <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {(Object.entries(auditResult.categories) as [string, { score: number; passed: number; warnings: number; errors: number }][]).map(([cat, data]) => {
+                    const labels: Record<string, string> = { meta: 'Meta Tags', content: 'Contenido', structure: 'Estructura', performance: 'Rendimiento' };
+                    const color = data.score >= 80 ? 'bg-emerald-500' : data.score >= 50 ? 'bg-amber-400' : 'bg-rose-500';
+                    return (
+                      <div key={cat} className="bg-slate-50 rounded-2xl p-3 space-y-2 border border-slate-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{labels[cat] || cat}</span>
+                          <span className="text-sm font-extrabold text-slate-900">{data.score}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-1.5">
+                          <div className={`h-1.5 rounded-full ${color} transition-all`} style={{ width: `${data.score}%` }} />
+                        </div>
+                        <div className="flex gap-2 text-[9px]">
+                          <span className="text-emerald-600 font-bold">{data.passed} ok</span>
+                          {data.warnings > 0 && <span className="text-amber-600 font-bold">{data.warnings} avisos</span>}
+                          {data.errors > 0 && <span className="text-rose-600 font-bold">{data.errors} errores</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Issues list */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-3">
+                <h5 className="text-sm font-bold text-slate-900">Problemas detectados</h5>
+                <div className="space-y-2">
+                  {auditResult.rules
+                    .filter(r => r.severity !== 'pass')
+                    .sort((a, b) => { const o: Record<string, number> = { error: 0, warning: 1, info: 2 }; return (o[a.severity] ?? 3) - (o[b.severity] ?? 3); })
+                    .map((rule, i) => (
+                      <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border text-xs ${
+                        rule.severity === 'error'   ? 'bg-rose-50 border-rose-100'
+                        : rule.severity === 'warning' ? 'bg-amber-50 border-amber-100'
+                        : 'bg-sky-50 border-sky-100'
+                      }`}>
+                        {rule.severity === 'error'   && <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />}
+                        {rule.severity === 'warning' && <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />}
+                        {rule.severity === 'info'    && <Info className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />}
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-slate-800">{rule.title}</p>
+                          <p className="text-slate-600 leading-relaxed">{rule.description}</p>
+                          <span className={`inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                            rule.severity === 'error'   ? 'bg-rose-100 text-rose-700'
+                            : rule.severity === 'warning' ? 'bg-amber-100 text-amber-700'
+                            : 'bg-sky-100 text-sky-700'
+                          }`}>{rule.severity} · {rule.category}</span>
+                        </div>
+                      </div>
+                    ))}
+                  {auditResult.rules.filter(r => r.severity !== 'pass').length === 0 && (
+                    <div className="text-center py-6 space-y-2">
+                      <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto" />
+                      <p className="text-sm font-bold text-emerald-700">Sin problemas detectados</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Passed rules summary */}
+                <div className="pt-3 border-t border-slate-100">
+                  <p className="text-[11px] text-slate-400">
+                    <span className="text-emerald-600 font-bold">{auditResult.rules.filter(r => r.severity === 'pass').length} reglas aprobadas</span>
+                    {' '}de {auditResult.rules.length} totales
+                  </p>
+                </div>
+              </div>
+
+              {/* Content analysis (Yoast-style) */}
+              {contentResult && (
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h5 className="text-sm font-bold text-slate-900">Análisis de Contenido <span className="font-normal text-slate-400 text-[11px]">— estilo Yoast SEO</span></h5>
+                    <div className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      contentResult.score / contentResult.maxScore >= 0.8 ? 'bg-emerald-100 text-emerald-700'
+                      : contentResult.score / contentResult.maxScore >= 0.5 ? 'bg-amber-100 text-amber-700'
+                      : 'bg-rose-100 text-rose-700'
+                    }`}>
+                      {contentResult.score} / {contentResult.maxScore} pts
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    {contentResult.results.map((r, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs py-1.5 border-b border-slate-50 last:border-0">
+                        <span className={`mt-0.5 shrink-0 w-3 h-3 rounded-full ${
+                          r.status === 'good' ? 'bg-emerald-500' : r.status === 'ok' ? 'bg-amber-400' : 'bg-rose-500'
+                        }`} />
+                        <span className="text-slate-700 leading-relaxed">{r.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+        </div>
+      )}
+
     </div>
   );
 }
