@@ -25,6 +25,7 @@ import AdminPanel from './components/AdminPanel';
 import NotFound from './components/NotFound';
 import TrackingManager from './components/TrackingManager';
 import SEOPanel from './components/SEOPanel';
+import PowerSEOPanel from './components/PowerSEOPanel';
 import MapaRedMedica from './components/MapaRedMedica';
 
 
@@ -71,6 +72,7 @@ export default function App() {
           <Route path="/mapa-red-medica" element={<HomeLayout component={MapaRedMedica} />} />
           <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
           <Route path="/seo-panel" element={<SEOPanelLayout />} />
+          <Route path="/power-seo" element={<PowerSEOLayout />} />
           <Route path="*" element={<HomeLayout component={NotFound} />} />
         </Routes>
       </BrowserRouter>
@@ -115,6 +117,10 @@ function AdminLayout({ component: Component }: { component: React.ElementType })
       </main>
     </div>
   );
+}
+
+function PowerSEOLayout() {
+  return <PowerSEOPanel />;
 }
 
 function SEOPanelLayout() {
