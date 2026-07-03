@@ -19,6 +19,7 @@ import {
   CalendarDays
 } from 'lucide-react';
 import { Page } from '../types';
+import { Link } from 'react-router-dom';
 
 interface ServicesProps {
   setCurrentPage: (page: Page) => void;
@@ -108,6 +109,21 @@ export default function Services({ setCurrentPage }: ServicesProps) {
                 <h3 className="text-xl font-bold text-slate-900 group-hover:text-teal-700 transition-colors">
                   {service.title}
                 </h3>
+                {service.id === 'maternidad' && (
+                  <Link to="/blog/cobertura-salud-familiar-maternidad" className="text-xs text-[#4597CA] font-semibold hover:underline flex items-center gap-1 mt-1">
+                    Leer sobre cobertura maternal <ArrowRight className="w-3 h-3" />
+                  </Link>
+                )}
+                {service.id === 'emergencias-24-7' && (
+                  <Link to="/agendamiento" className="text-xs text-teal-600 font-semibold hover:underline flex items-center gap-1 mt-1">
+                    Agendar atención de emergencia <ArrowRight className="w-3 h-3" />
+                  </Link>
+                )}
+                {service.id === 'consulta-externa' && (
+                  <Link to="/directorio" className="text-xs text-teal-600 font-semibold hover:underline flex items-center gap-1 mt-1">
+                    Ver directorio de especialistas <ArrowRight className="w-3 h-3" />
+                  </Link>
+                )}
               </div>
 
               <div className="pt-6 mt-6 border-t border-slate-100 flex justify-between items-center text-xs">
@@ -150,7 +166,7 @@ export default function Services({ setCurrentPage }: ServicesProps) {
                 <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center text-slate-950 font-bold shrink-0 mt-0.5 text-sm">2</div>
                 <div>
                   <h4 className="text-sm font-bold">Reembolso directo simplificado</h4>
-                  <p className="text-xs text-slate-400">Si te atiendes de forma externa fuera de nuestra red de convenio, sube la factura digitalizada y tu prescripción médica para recibir el dinero de vuelta en 48hs hábiles.</p>
+                  <p className="text-xs text-slate-400">Si te atiendes de forma externa fuera de nuestra red de convenio, sube la factura digitalizada y tu prescripción médica para recibir el dinero de vuelta en 48hs hábiles. <Link to="/tramites" className="text-teal-400 font-semibold hover:underline">Gestionar trámites en línea →</Link></p>
                 </div>
               </div>
             </div>

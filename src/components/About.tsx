@@ -5,7 +5,7 @@ import {
   ArrowRight, Gem, Award, Quote, MapPin,
 } from 'lucide-react';
 import { Page } from '../types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 interface AboutProps { setCurrentPage: (page: Page) => void; }
 
@@ -187,13 +187,13 @@ export default function About({ setCurrentPage }: AboutProps) {
             </p>
           </div>
           <p className="text-base text-slate-600 leading-relaxed">
-            Trabajamos junto a una amplia red de médicos, especialistas, clínicas y hospitales para ofrecerte soluciones oportunas, con procesos ágiles y un servicio cercano que pone a las personas en el centro de cada decisión.
+            Trabajamos junto a una amplia <Link to="/directorio" className="text-teal-600 font-semibold hover:underline">red de médicos, especialistas, clínicas y hospitales</Link> para ofrecerte soluciones oportunas, con procesos ágiles y un servicio cercano que pone a las personas en el centro de cada decisión.
           </p>
           <p className="text-base text-slate-600 leading-relaxed">
             Creemos que cuidar tu salud no debe ser un privilegio, sino un derecho al alcance de todos. Por eso desarrollamos planes con excelente cobertura, atención profesional y beneficios que se adaptan a las necesidades de las personas, las familias y las empresas.
           </p>
           <p className="text-base text-slate-700 font-medium leading-relaxed">
-            Más que una empresa de medicina prepagada, somos un aliado comprometido con tu bienestar, acompañándote en cada etapa de tu vida con responsabilidad, calidez y excelencia.
+            Más que una empresa de medicina prepagada, somos un aliado comprometido con tu bienestar, acompañándote en cada etapa de tu vida con responsabilidad, calidez y excelencia. Conoce todos nuestros <Link to="/servicios" className="text-teal-600 font-semibold hover:underline">servicios de salud</Link> y nuestras últimas publicaciones en el <Link to="/blog" className="text-teal-600 font-semibold hover:underline">blog de bienestar</Link>.
           </p>
           <p className="text-base text-slate-600 leading-relaxed">
             Porque cuando cuentas con el respaldo adecuado, tú y tu familia pueden vivir con mayor tranquilidad, seguridad y confianza.

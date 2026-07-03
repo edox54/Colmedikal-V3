@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { BlogPost, Page } from '../types';
 import { BLOG_POSTS, AUTHORS } from '../data/blogData';
 import { useColmedikal } from '../context/ColmedikalContext';
@@ -102,6 +102,16 @@ export default function Blog({
     return matchesCategory && matchesSearch;
   });
 
+  // Converts [text](url) markdown links to <Link> components
+  const parseInlineLinks = (text: string): React.ReactNode => {
+    const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
+    if (parts.length === 1) return text;
+    return <>{parts.map((part, i) => {
+      const m = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      return m ? <Link key={i} to={m[2]} className="text-[#4597CA] font-semibold hover:underline">{m[1]}</Link> : part;
+    })}</>;
+  };
+
   // Helper to render blog post paragraphs styled beautifully with inline headers
   const renderContentNode = (para: string, index: number) => {
     if (para.startsWith('### ')) {
@@ -119,7 +129,7 @@ export default function Blog({
         <div key={index} className="flex gap-3 my-3">
           <div className="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full bg-[#4597CA]" />
           <p className="text-slate-700 leading-relaxed text-[15px] sm:text-[16px]">
-            <strong className="text-[#143b67] font-semibold">{parts[0]}:</strong> {parts[1] || ''}
+            <strong className="text-[#143b67] font-semibold">{parts[0]}:</strong> {parseInlineLinks(parts[1] || '')}
           </p>
         </div>
       );
@@ -130,7 +140,7 @@ export default function Blog({
         <div key={index} className="flex gap-3 my-2 pl-4">
           <div className="mt-2.5 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-slate-400" />
           <p className="text-slate-600 leading-relaxed text-[14px]">
-            {para.replace('* ', '')}
+            {parseInlineLinks(para.replace('* ', ''))}
           </p>
         </div>
       );
@@ -143,7 +153,7 @@ export default function Blog({
         <div key={index} className="flex gap-3 my-4 bg-[#4597CA]/5 p-4 rounded-xl border-l-4 border-[#4597CA]">
           <span className="text-lg font-bold text-[#4597CA]">{index - 2}.</span>
           <p className="text-slate-700 leading-relaxed text-[15px]">
-            <strong className="text-[#143b67] font-semibold">{parts[0]}:</strong> {parts[1] || ''}
+            <strong className="text-[#143b67] font-semibold">{parts[0]}:</strong> {parseInlineLinks(parts[1] || '')}
           </p>
         </div>
       );
@@ -151,7 +161,7 @@ export default function Blog({
     // Normal paragraphs
     return (
       <p key={index} className="text-slate-600/95 leading-relaxed text-[15px] sm:text-[16px] mb-5 font-sans">
-        {para}
+        {parseInlineLinks(para)}
       </p>
     );
   };
@@ -353,6 +363,27 @@ export default function Blog({
                   ✓ Precios reales • ✓ Sin compromisos comerciales
                 </p>
               </div>
+            </div>
+
+            {/* Quick Internal Navigation */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-150 shadow-xs space-y-3">
+              <h4 className="text-sm font-bold text-slate-900">Explora Colmedikal</h4>
+              <nav className="space-y-0.5">
+                {[
+                  { to: '/directorio',   label: 'Directorio de Médicos'   },
+                  { to: '/agendamiento', label: 'Agendar una Cita Médica' },
+                  { to: '/tramites',     label: 'Trámites y Reembolsos'   },
+                  { to: '/servicios',    label: 'Servicios de Salud'       },
+                  { to: '/faqs',         label: 'Preguntas Frecuentes'    },
+                  { to: '/nosotros',     label: 'Sobre Colmedikal'        },
+                ].map(link => (
+                  <Link key={link.to} to={link.to}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#4597CA]/5 text-xs text-slate-600 hover:text-[#4597CA] font-medium transition-colors group">
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#4597CA] group-hover:translate-x-0.5 transition-transform" />
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
             </div>
 
             {/* Secondary Direct Advisor Assistance */}

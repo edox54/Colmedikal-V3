@@ -13,6 +13,7 @@ import {
   PhoneCall
 } from 'lucide-react';
 import { Page } from '../types';
+import { Link } from 'react-router-dom';
 
 interface PreguntasFrecuentesProps {
   setCurrentPage: (page: Page) => void;
@@ -30,6 +31,15 @@ interface FAQCategory {
   items: FAQItem[];
 }
 
+function parseFaqLinks(text: string): React.ReactNode {
+  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
+  if (parts.length === 1) return text;
+  return <>{parts.map((part, i) => {
+    const m = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    return m ? <Link key={i} to={m[2]} className="text-teal-600 font-semibold hover:underline">{m[1]}</Link> : part;
+  })}</>;
+}
+
 const renderAnswer = (answer: string) => (
   <div className="space-y-1.5">
     {answer.split('\n').map((line, i) => (
@@ -37,9 +47,9 @@ const renderAnswer = (answer: string) => (
         {line.startsWith('•') ? (
           <>
             <span className="text-teal-500 shrink-0 mt-0.5">•</span>
-            <span>{line.slice(1).trim()}</span>
+            <span>{parseFaqLinks(line.slice(1).trim())}</span>
           </>
-        ) : line}
+        ) : parseFaqLinks(line)}
       </p>
     ))}
   </div>
@@ -62,7 +72,7 @@ export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuen
         },
         {
           question: '¿Cómo puedo contratar un plan de medicina prepagada con Colmedikal?',
-          answer: 'Da el primer paso para cuidar tu salud y la de tu familia siguiendo estos sencillos pasos:\n• Ingresa al cotizador en nuestra página web y completa tus datos personales (nombre, correo y teléfono).\n• Selecciona el tipo de plan: individual, pareja o familiar, e indica las edades de los beneficiarios.\n• Revisa tu cotización personalizada y elige el plan que mejor se adapte a tus necesidades: Plan Inicio 2K, Plan Protección 3K o Plan Plus 5K.\n• Contáctanos a través de nuestro equipo de asesores o completa el formulario disponible en nuestra página web. Estaremos encantados de ayudarte a elegir el plan ideal para ti.'
+          answer: 'Da el primer paso para cuidar tu salud y la de tu familia siguiendo estos sencillos pasos:\n• Ingresa al [cotizador en nuestra página web](/cotizador) y completa tus datos personales (nombre, correo y teléfono).\n• Selecciona el tipo de plan: individual, pareja o familiar, e indica las edades de los beneficiarios.\n• Revisa tu cotización personalizada y elige el plan que mejor se adapte a tus necesidades: Plan Inicio 2K, Plan Protección 3K o Plan Plus 5K.\n• Contáctanos a través de nuestro equipo de asesores o completa el [formulario de contacto](/contacto). Estaremos encantados de ayudarte a elegir el plan ideal para ti.'
         },
         {
           question: '¿Es posible incluir a mi familia en un solo plan de medicina prepagada?',
@@ -70,15 +80,15 @@ export default function PreguntasFrecuentes({ setCurrentPage }: PreguntasFrecuen
         },
         {
           question: '¿Qué debo hacer para reservar una cita médica?',
-          answer: 'Puedes agendar tu cita médica comunicándote con nuestro equipo de Atención al Cliente o, si lo prefieres, ingresando a la sección "Trámites en Línea" de nuestra página web, donde encontrarás la opción "Agendar Cita" para programar tu atención de forma rápida, segura y conveniente.'
+          answer: 'Puedes [agendar tu cita médica](/agendamiento) comunicándote con nuestro equipo de Atención al Cliente o, si lo prefieres, ingresando a la sección [Trámites en Línea](/tramites) de nuestra página web, donde encontrarás la opción "Agendar Cita" para programar tu atención de forma rápida, segura y conveniente.'
         },
         {
           question: '¿En qué clínicas y centros médicos puedo utilizar mi plan?',
-          answer: 'Nuestra red de prestadores está conformada por clínicas, hospitales y centros médicos de reconocida trayectoria. Consulta el listado completo y actualizado en la sección "Red de Prestadores" de nuestra página web.'
+          answer: 'Nuestra red de prestadores está conformada por clínicas, hospitales y centros médicos de reconocida trayectoria. Consulta el listado completo y actualizado en nuestro [directorio médico en línea](/directorio).'
         },
         {
           question: '¿Cómo puedo comunicarme con un asesor de Colmedikal?',
-          answer: 'En Colmedikal S.A. queremos que siempre estés acompañado. Si necesitas información, asesoría o soporte, puedes escribirnos mediante el botón de WhatsApp de nuestra página web o comunicarte con nuestras líneas de atención. Nuestro equipo estará encantado de atenderte.'
+          answer: 'En Colmedikal S.A. queremos que siempre estés acompañado. Si necesitas información, asesoría o soporte, puedes [enviarnos un mensaje de contacto](/contacto), escribirnos por WhatsApp o [agendar una consulta](/agendamiento). Nuestro equipo estará encantado de atenderte.'
         }
       ]
     },

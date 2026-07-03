@@ -19,7 +19,7 @@ import { Plan } from '../types';
 import { MEDICAL_PLANS } from '../data';
 import Logo from './Logo';
 const MapaRedMedica = React.lazy(() => import('./MapaRedMedica'));
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.webp';
 import heroAppointmentImg from '../assets/images/colmedikal_appointment_doctor_1780587953695.webp';
 import avatarValentina from '../assets/images/avatar_valentina_1780025241348.webp';
@@ -260,6 +260,9 @@ export default function Home() {
             <p className="text-sm text-slate-600 leading-relaxed">
               Atención garantizada en los mejores centros y complejos hospitalarios del país. Tú decides el especialista que prefieres a través de nuestra red abierta de salud.
             </p>
+            <Link to="/directorio" className="text-teal-600 text-xs font-semibold hover:underline flex items-center gap-1">
+              Ver directorio de médicos <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
 
           <div className="bg-white p-8 rounded-2xl border border-slate-150 shadow-sm hover:shadow-md transition-all space-y-4 group">
@@ -270,6 +273,9 @@ export default function Home() {
             <p className="text-sm text-slate-600 leading-relaxed">
               Consultas ilimitadas online de atención primaria en medicina general, nutrición y psicología, directo desde cualquier dispositivo y sin necesidad de copagos. <span className="font-semibold text-teal-700">Sin período de carencia</span> — activa desde el primer día.
             </p>
+            <Link to="/servicios" className="text-indigo-600 text-xs font-semibold hover:underline flex items-center gap-1">
+              Ver todos los servicios <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
 
           <div className="bg-white p-8 rounded-2xl border border-slate-150 shadow-sm hover:shadow-md transition-all space-y-4 group">
@@ -280,6 +286,9 @@ export default function Home() {
             <p className="text-sm text-slate-600 leading-relaxed">
               Descarga recetas, tramita autorizaciones, consulta reembolsos y actualiza tus beneficiarios directo desde nuestra app web. El control en la palma de tu mano.
             </p>
+            <Link to="/tramites" className="text-emerald-600 text-xs font-semibold hover:underline flex items-center gap-1">
+              Acceder a trámites en línea <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
 
         </div>
@@ -420,6 +429,12 @@ export default function Home() {
             <p className="text-slate-600 text-sm leading-relaxed">
               La cercanía y calidez de un plan prepagado se mide en momentos difíciles. Estuvimos ahí para nuestros clientes cuando más lo necesitaron. Conoce sus historias de tranquilidad con el respaldo médico de Colmedikal.
             </p>
+            <Link to="/nosotros" className="text-teal-600 text-xs font-semibold hover:underline flex items-center gap-1">
+              Conoce más sobre Colmedikal <ArrowRight className="w-3 h-3" />
+            </Link>
+            <Link to="/blog" className="text-slate-500 text-xs font-semibold hover:underline flex items-center gap-1">
+              Leer nuestro blog de salud <ArrowRight className="w-3 h-3" />
+            </Link>
             
             <div className="flex gap-4 items-center pt-2">
               <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-xl flex items-center gap-2">
