@@ -30,6 +30,8 @@ interface ColmedikalContextType {
   updateLeadStatus: (id: string, status: LeadQuote['status']) => Promise<void>;
   addLeadNote: (id: string, note: LeadNote) => void;
   assignLead: (id: string, assignedTo: string) => void;
+  setLeadFollowUp: (id: string, followUpDate: string) => void;
+  setLeadLostReason: (id: string, lostReason: string) => void;
   refreshData: () => Promise<void>;
   addAdmin: (email: string, name: string, role: AdminUser['role'], password?: string) => Promise<void>;
   deleteAdmin: (email: string) => Promise<void>;
@@ -128,6 +130,10 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
   const aptStatusOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_apt_overrides', {}));
   const leadStatusOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_overrides', {}));
+  const leadNotesOverrides = useRef<Record<string, LeadNote[]>>(loadOverride('colmedikal_lead_notes', {}));
+  const leadAssignOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_assign', {}));
+  const leadFollowUpOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_followup', {}));
+  const leadLostReasonOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_lost', {}));
   const deletedLeadIds = useRef<string[]>(loadOverride('colmedikal_deleted_leads', []));
   const persistOverride = (key: string, value: any) => {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
@@ -321,7 +327,11 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           estimatedPrice: Number(l.estimated_price ?? l.estimatedPrice ?? 0),
           timestamp: l.timestamp ?? l.created_at ?? new Date().toISOString(),
           // Apply local status override
-          status: leadStatusOverrides.current[l.id] || l.status || 'Nuevo Plan',
+          status: (leadStatusOverrides.current[l.id] || l.status || 'Nuevo Plan') as LeadQuote['status'],
+          notes: leadNotesOverrides.current[l.id] ?? l.notes ?? [],
+          assignedTo: leadAssignOverrides.current[l.id] ?? l.assignedTo ?? '',
+          followUpDate: leadFollowUpOverrides.current[l.id] ?? l.followUpDate ?? '',
+          lostReason: leadLostReasonOverrides.current[l.id] ?? l.lostReason ?? '',
         })));
       setError(null);
     } catch (err) {
@@ -697,22 +707,47 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const addLeadNote = (id: string, note: LeadNote) => {
-    const applyNote = (list: LeadQuote[]) =>
-      list.map(l => l.id === id ? { ...l, notes: [...(l.notes || []), note] } : l);
-    setLeads(prev => applyNote(prev));
+    const existing = leadNotesOverrides.current[id] || [];
+    leadNotesOverrides.current[id] = [...existing, note];
+    persistOverride('colmedikal_lead_notes', leadNotesOverrides.current);
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, notes: leadNotesOverrides.current[id] } : l));
     setLocalLeads(prev => {
-      const updated = applyNote(prev);
+      const updated = prev.map(l => l.id === id ? { ...l, notes: leadNotesOverrides.current[id] } : l);
       try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
       return updated;
     });
   };
 
   const assignLead = (id: string, assignedTo: string) => {
-    const applyAssign = (list: LeadQuote[]) =>
-      list.map(l => l.id === id ? { ...l, assignedTo } : l);
-    setLeads(prev => applyAssign(prev));
+    leadAssignOverrides.current[id] = assignedTo;
+    persistOverride('colmedikal_lead_assign', leadAssignOverrides.current);
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, assignedTo } : l));
     setLocalLeads(prev => {
-      const updated = applyAssign(prev);
+      const updated = prev.map(l => l.id === id ? { ...l, assignedTo } : l);
+      try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const setLeadFollowUp = (id: string, followUpDate: string) => {
+    leadFollowUpOverrides.current[id] = followUpDate;
+    persistOverride('colmedikal_lead_followup', leadFollowUpOverrides.current);
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, followUpDate } : l));
+    setLocalLeads(prev => {
+      const updated = prev.map(l => l.id === id ? { ...l, followUpDate } : l);
+      try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const setLeadLostReason = (id: string, lostReason: string) => {
+    leadLostReasonOverrides.current[id] = lostReason;
+    persistOverride('colmedikal_lead_lost', leadLostReasonOverrides.current);
+    leadStatusOverrides.current[id] = 'Perdido';
+    persistOverride('colmedikal_lead_overrides', leadStatusOverrides.current);
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, status: 'Perdido', lostReason } : l));
+    setLocalLeads(prev => {
+      const updated = prev.map(l => l.id === id ? { ...l, status: 'Perdido' as const, lostReason } : l);
       try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
       return updated;
     });
@@ -904,6 +939,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     updateLeadStatus,
     addLeadNote,
     assignLead,
+    setLeadFollowUp,
+    setLeadLostReason,
     refreshData,
     addAdmin,
     deleteAdmin,

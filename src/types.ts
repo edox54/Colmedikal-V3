@@ -64,9 +64,11 @@ export interface LeadQuote {
   timestamp: string;
   quoteData: QuoteState;
   estimatedPrice: number;
-  status: 'Nuevo Plan' | 'Contactado' | 'Cierre Efectivo';
+  status: 'Nuevo Plan' | 'Contactado' | 'Cierre Efectivo' | 'Perdido';
   notes?: LeadNote[];
   assignedTo?: string;
+  followUpDate?: string;
+  lostReason?: string;
 }
 
 export interface Testimonial {
