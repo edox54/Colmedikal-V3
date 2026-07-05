@@ -75,7 +75,7 @@ export default function Blog({
   // Determine active post from URL slug
   const activeBlogPost = slug ? allPosts.find(post => post.slug === slug || post.id === slug) : null;
 
-  const categories = ['todos', 'Planes y Cobertura', 'Prevención y Bienestar', 'Salud Familiar'];
+  const categories = ['todos', 'Conceptos Básicos', 'Comparativas', 'Planes y Cobertura', 'Prevención y Bienestar', 'Salud Familiar'];
 
   // Handle CTA redirect to Cotizador with specific preset
   const handleCtaClick = (planType?: string) => {
