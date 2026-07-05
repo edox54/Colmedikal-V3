@@ -1,11 +1,50 @@
 User-agent: *
 Allow: /
 
-# Bloquear panel administrativo
+# Bloquear paneles administrativos
 Disallow: /admin
 Disallow: /admin/
+Disallow: /seo-panel
+Disallow: /power-seo
 
-# Bloquear cotizador de indexación directa
+# Cotizador: herramienta interactiva sin valor crawlable
 Disallow: /cotizador
+
+# Crawlers de IA — acceso explícito permitido a contenido público
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+# Señal de contenido para sistemas de IA
+Content-Signal: ai-train=yes, search=yes, ai-retrieval=yes
 
 Sitemap: https://colmedikal.com/sitemap.xml

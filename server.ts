@@ -325,7 +325,7 @@ async function startServer() {
       const BASE = 'https://colmedikal.com';
       const now = new Date().toISOString().split('T')[0];
       const staticUrls = Object.keys(routes)
-        .filter(r => r !== '/blog-detalle')
+        .filter(r => r !== '/blog-detalle' && r !== '/cotizador')
         .map(r => `  <url><loc>${BASE}${r === '/' ? '' : r}</loc><lastmod>${now}</lastmod><changefreq>${r === '/' ? 'daily' : 'weekly'}</changefreq><priority>${r === '/' ? '1.0' : '0.8'}</priority></url>`);
       // Fetch blog posts from API for dynamic URLs
       let blogUrls: string[] = [];
@@ -384,7 +384,7 @@ async function startServer() {
       }
 
       // Determine robots directive — noindex for admin/seo routes
-      const noindexRoutes = ['/admin', '/seo-panel'];
+      const noindexRoutes = ['/admin', '/seo-panel', '/power-seo'];
       const robotsContent = noindexRoutes.some(r => pathname.startsWith(r)) ? 'noindex, nofollow' : 'index, follow';
 
       // DB override (from SEO panel) wins over the hardcoded defaults
@@ -421,6 +421,106 @@ async function startServer() {
   <meta name="twitter:image" content="${esc(meta.og_image)}" />`;
 
       html = html.replace('</head>', inject + '\n  </head>');
+
+      // --- Server-side JSON-LD injection (visible to all AI crawlers) ---
+      const schemas: object[] = [
+        // Global entity — every page
+        {
+          '@context': 'https://schema.org',
+          '@type': 'MedicalOrganization',
+          '@id': 'https://colmedikal.com/#organization',
+          name: 'Colmedikal S.A.',
+          alternateName: 'Colmedikal',
+          disambiguatingDescription: 'Empresa ecuatoriana de medicina prepagada, distinta de Colmédica Colombia',
+          url: 'https://colmedikal.com',
+          logo: { '@type': 'ImageObject', url: 'https://colmedikal.com/og-image.jpg' },
+          description: 'Empresa ecuatoriana de medicina prepagada con planes de salud individual, familiar y corporativo. Acceso inmediato a más de 25 especialidades médicas en clínicas de alta complejidad en Ecuador.',
+          foundingDate: '2011-10-05',
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: 'Av. República E6-447 y Eloy Alfaro, Ed. Castillo Sánchez',
+            addressLocality: 'Quito',
+            addressRegion: 'Pichincha',
+            postalCode: '170150',
+            addressCountry: 'EC',
+          },
+          contactPoint: [
+            { '@type': 'ContactPoint', telephone: '+593-2-2567191', contactType: 'customer service', areaServed: 'EC', availableLanguage: 'Spanish' },
+            { '@type': 'ContactPoint', telephone: '+593-98-7028756', contactType: 'customer service', contactOption: 'TollFree', areaServed: 'EC', availableLanguage: 'Spanish' },
+          ],
+          areaServed: [
+            { '@type': 'City', name: 'Quito' }, { '@type': 'City', name: 'Guayaquil' },
+            { '@type': 'City', name: 'Cuenca' }, { '@type': 'City', name: 'Manta' },
+            { '@type': 'City', name: 'Ambato' },
+          ],
+          medicalSpecialty: ['Emergency', 'Geriatric', 'Pediatric', 'Obstetrics'],
+          sameAs: [
+            'https://www.facebook.com/colmedikal',
+            'https://www.instagram.com/colmedikal',
+            'https://www.linkedin.com/company/colmedikal',
+          ],
+        },
+        // WebSite — sitelinks search box signal
+        {
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          '@id': 'https://colmedikal.com/#website',
+          url: 'https://colmedikal.com',
+          name: 'Colmedikal',
+          inLanguage: 'es-EC',
+          publisher: { '@id': 'https://colmedikal.com/#organization' },
+        },
+      ];
+
+      // Page-specific schemas
+      if (pathname === '/faqs') {
+        schemas.push({
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          '@id': 'https://colmedikal.com/faqs',
+          url: 'https://colmedikal.com/faqs',
+          inLanguage: 'es-EC',
+          mainEntity: [
+            { '@type': 'Question', name: '¿Qué es la medicina prepagada en Ecuador?', acceptedAnswer: { '@type': 'Answer', text: 'La medicina prepagada es un sistema de salud privado en el que el afiliado paga una cuota mensual a cambio de cobertura médica inmediata: consultas con especialistas sin referencia, hospitalización en clínicas privadas, cirugías, maternidad y emergencias 24/7, todo sin depender del IESS.' } },
+            { '@type': 'Question', name: '¿Cuánto cuesta la medicina prepagada Colmedikal?', acceptedAnswer: { '@type': 'Answer', text: 'Colmedikal ofrece tres planes: Esencial desde $8 USD/mes por persona (cobertura $2,000/año), Recomendado desde $12 USD/mes ($3,000/año) y Platinum desde $22 USD/mes ($5,000/año). Los precios varían según edad y número de beneficiarios.' } },
+            { '@type': 'Question', name: '¿Qué son los períodos de carencia?', acceptedAnswer: { '@type': 'Answer', text: 'El período de carencia es el tiempo de espera desde la afiliación antes de que se active cada cobertura. En Colmedikal: emergencias 24 horas, consultas ambulatorias 30 días, maternidad 60-90 días, hospitalización y cirugías 90 días, y preexistencias declaradas 730 días (24 meses).' } },
+            { '@type': 'Question', name: '¿Cómo funcionan las preexistencias en Colmedikal?', acceptedAnswer: { '@type': 'Answer', text: 'Las enfermedades preexistentes declaradas al momento de la afiliación quedan cubiertas a partir del mes 25 de vigencia, hasta el límite anual contratado o 20 salarios básicos, conforme a la legislación ecuatoriana. Las preexistencias no declaradas quedan excluidas permanentemente.' } },
+            { '@type': 'Question', name: '¿Cómo solicitar un reembolso médico en Colmedikal?', acceptedAnswer: { '@type': 'Answer', text: 'Ingresa a la sección de Trámites en Línea en colmedikal.com/tramites, sube la factura del médico particular, la historia clínica y la receta. El reembolso se procesa en un promedio de 5 días hábiles si la atención está dentro de las coberturas del plan.' } },
+            { '@type': 'Question', name: '¿En qué ciudades de Ecuador opera Colmedikal?', acceptedAnswer: { '@type': 'Answer', text: 'Colmedikal opera en Quito (sede principal), Guayaquil, Cuenca, Ambato, Manta, Riobamba, Loja, Ibarra, Santo Domingo, Portoviejo, Machala y Esmeraldas, con una red de especialistas y clínicas afiliadas en cada ciudad.' } },
+            { '@type': 'Question', name: '¿Puedo agendar citas directamente con especialistas?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Una de las principales ventajas de Colmedikal es el acceso directo a más de 25 especialidades médicas sin necesidad de pasar primero por un médico general. Puedes agendar tu cita en colmedikal.com/agendamiento o llamando al 02-2567191.' } },
+            { '@type': 'Question', name: '¿Qué diferencia hay entre Colmedikal y el IESS?', acceptedAnswer: { '@type': 'Answer', text: 'El IESS es el seguro social obligatorio del Estado ecuatoriano con tiempos de espera para especialistas. Colmedikal es un sistema privado de medicina prepagada que garantiza atención inmediata, acceso directo a especialistas, hospitalización en clínicas privadas de alta complejidad y cobertura de maternidad desde el primer mes según el plan.' } },
+          ],
+        });
+      }
+
+      if (pathname === '/' || pathname === '') {
+        schemas.push({
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          '@id': 'https://colmedikal.com/',
+          url: 'https://colmedikal.com/',
+          inLanguage: 'es-EC',
+          name: 'Colmedikal | La Mejor Medicina Prepagada de Ecuador',
+          about: { '@id': 'https://colmedikal.com/#organization' },
+          speakable: { '@type': 'SpeakableSpecification', cssSelector: ['[data-speakable]', '.hero-headline', '.hero-description'] },
+        });
+      }
+
+      if (pathname.startsWith('/blog/') && pathname !== '/blog') {
+        schemas.push({
+          '@context': 'https://schema.org',
+          '@type': 'BlogPosting',
+          '@id': `https://colmedikal.com${pathname}`,
+          inLanguage: 'es-EC',
+          publisher: { '@id': 'https://colmedikal.com/#organization' },
+          isPartOf: { '@type': 'Blog', '@id': 'https://colmedikal.com/blog' },
+          audience: { '@type': 'MedicalAudience', audienceType: 'Patient', geographicArea: { '@type': 'Country', name: 'Ecuador' } },
+          speakable: { '@type': 'SpeakableSpecification', cssSelector: ['[data-speakable]', '.article-intro'] },
+        });
+      }
+
+      const ldBlocks = schemas.map(s => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n  ');
+      html = html.replace('</head>', `  ${ldBlocks}\n  </head>`);
 
       res.set('Content-Type', 'text/html; charset=UTF-8');
       res.send(html);

@@ -1,100 +1,100 @@
 # Colmedikal - Medicina Prepagada en Ecuador
 
-> Colmedikal es una empresa de medicina prepagada en Ecuador que ofrece planes de salud individual y familiar con acceso directo a especialistas, clinicas privadas y hospitales en todo el pais. Opera desde Quito con cobertura nacional en Guayaquil, Cuenca, Ambato, Manta y mas de 15 ciudades.
+> Colmedikal es una empresa de medicina prepagada en Ecuador que ofrece planes de salud individual y familiar con acceso directo a especialistas, clínicas privadas y hospitales en todo el país. Opera desde Quito con cobertura nacional en Guayaquil, Cuenca, Ambato, Manta y más de 15 ciudades.
 
-## Que es Colmedikal
+## Qué es Colmedikal
 
-Colmedikal es un sistema de medicina prepagada privado que funciona de forma independiente al IESS (Instituto Ecuatoriano de Seguridad Social). Los afiliados acceden a consultas con especialistas sin necesidad de referencia de un medico general, hospitalizacion en clinicas privadas de primer nivel, cirugia programada, maternidad, odontologia, farmacia y emergencias 24/7.
+Colmedikal es un sistema de medicina prepagada privado que funciona de forma independiente al IESS (Instituto Ecuatoriano de Seguridad Social). Los afiliados acceden a consultas con especialistas sin necesidad de referencia de un médico general, hospitalización en clínicas privadas de primer nivel, cirugía programada, maternidad, odontología, farmacia y emergencias 24/7.
 
-A diferencia del seguro social obligatorio, Colmedikal ofrece atencion inmediata, sin listas de espera, en una red de hospitales y clinicas privadas en Ecuador.
+A diferencia del seguro social obligatorio, Colmedikal ofrece atención inmediata, sin listas de espera, en una red de hospitales y clínicas privadas en Ecuador.
 
-## Paginas principales
+## Páginas principales
 
 - [Inicio - Portal principal de Colmedikal](https://colmedikal.com/)
-- [Servicios medicos - Detalle de coberturas disponibles](https://colmedikal.com/servicios)
-- [Directorio de medicos - Busqueda de especialistas por ciudad y especialidad](https://colmedikal.com/directorio)
-- [Cotizador de planes - Simulador de precios personalizado por edad y grupo familiar](https://colmedikal.com/cotizador)
-- [Agendamiento de citas - Solicitud de cita medica tentativa](https://colmedikal.com/agendamiento)
+- [Servicios médicos - Detalle de coberturas disponibles](https://colmedikal.com/servicios)
+- [Directorio de médicos - Búsqueda de especialistas por ciudad y especialidad](https://colmedikal.com/directorio)
+- [Agendamiento de citas - Solicitud de cita médica](https://colmedikal.com/agendamiento)
 - [Preguntas frecuentes - Carencias, preexistencias, copagos y reembolsos](https://colmedikal.com/faqs)
-- [Sobre nosotros - Mision, vision y equipo de Colmedikal](https://colmedikal.com/nosotros)
-- [Blog de salud - Articulos escritos por especialistas sobre bienestar y prevencion](https://colmedikal.com/blog)
-- [Contacto - Telefonos, WhatsApp, correo y formulario de contacto](https://colmedikal.com/contacto)
-- [Mapa de red medica - Mapa interactivo de Ecuador con medicos y clinicas](https://colmedikal.com/mapa-red-medica)
-- [Tramites en linea - Reembolsos, autorizaciones y gestion de afiliados](https://colmedikal.com/tramites)
+- [Sobre nosotros - Misión, visión y equipo de Colmedikal](https://colmedikal.com/nosotros)
+- [Blog de salud - Artículos escritos por especialistas sobre bienestar y prevención](https://colmedikal.com/blog)
+- [Contacto - Teléfonos, WhatsApp, correo y formulario de contacto](https://colmedikal.com/contacto)
+- [Mapa de red médica - Mapa interactivo de Ecuador con médicos y clínicas](https://colmedikal.com/mapa-red-medica)
+- [Trámites en línea - Reembolsos, autorizaciones y gestión de afiliados](https://colmedikal.com/tramites)
 
 ## Planes de salud disponibles
 
 ### Plan 1 - Esencial
 - Precio base: $8 USD/mes por persona
-- Limite anual de cobertura: $2.000 USD
-- Deducible de hospitalizacion: $40 USD/anual
+- Límite anual de cobertura: $2.000 USD
+- Deducible de hospitalización: $40 USD/anual
 - Bono de maternidad: $250 USD
 - Muerte por accidente: $1.500 USD
 - Sepelio por accidente: $500 USD
 - Ambulancia terrestre: $200 USD
-- Laboratorio e imagenes: $100 USD/anio
+- Laboratorio e imágenes: $100 USD/año
 
 ### Plan 2 - Recomendado
 - Precio base: $12 USD/mes por persona
-- Limite anual de cobertura: $3.000 USD
-- Deducible de hospitalizacion: $40 USD/anual
+- Límite anual de cobertura: $3.000 USD
+- Deducible de hospitalización: $40 USD/anual
 - Bono de maternidad: $500 USD
 - Muerte por accidente: $2.500 USD
 - Sepelio por accidente: $500 USD
 - Ambulancia terrestre: $200 USD
-- Laboratorio e imagenes: $100 USD/anio
+- Laboratorio e imágenes: $100 USD/año
 
 ### Plan 3 Platinum
 - Precio base: $22 USD/mes por persona
-- Limite anual de cobertura: $5.000 USD
-- Deducible de hospitalizacion: $40 USD/anual
+- Límite anual de cobertura: $5.000 USD
+- Deducible de hospitalización: $40 USD/anual
 - Bono de maternidad: $700 USD
 - Muerte por accidente: $3.500 USD
 - Sepelio por accidente: $800 USD
 - Ambulancia terrestre: $200 USD
-- Laboratorio e imagenes: $100 USD/anio
+- Laboratorio e imágenes: $100 USD/año
 
-## Especialidades medicas cubiertas
+## Especialidades médicas cubiertas
 
-Las siguientes especialidades estan incluidas en los planes (la cobertura varia segun el plan):
+Las siguientes especialidades están incluidas en los planes (la cobertura varía según el plan):
 
-Medicina Interna, Pediatria, Cardiologia, Ginecologia y Obstetricia, Traumatologia, Dermatologia, Oftalmologia, Otorrinolaringologia, Urologia, Gastroenterologia, Neumologia, Neurologia, Endocrinologia, Reumatologia, Cirugia General, Cirugia Plastica, Oncologia, Nefrologia, Hematologia, Psiquiatria, Nutricion, Fisioterapia, Odontologia, Laboratorio Clinico, Imagenologia.
+Medicina Interna, Pediatría, Cardiología, Ginecología y Obstetricia, Traumatología, Dermatología, Oftalmología, Otorrinolaringología, Urología, Gastroenterología, Neumología, Neurología, Endocrinología, Reumatología, Cirugía General, Cirugía Plástica, Oncología, Nefrología, Hematología, Psiquiatría, Nutrición, Fisioterapia, Odontología, Laboratorio Clínico, Imagenología.
 
-## Cobertura geografica
+## Cobertura geográfica
 
 Colmedikal opera en las siguientes ciudades de Ecuador:
 
-- **Quito** - Sede principal, mayor concentracion de especialistas
-- **Guayaquil** - Segunda sede, red completa de clinicas
+- **Quito** - Sede principal, mayor concentración de especialistas
+- **Guayaquil** - Segunda sede, red completa de clínicas
 - **Cuenca** - Sede Austro, cobertura de la sierra sur
 - **Ambato** - Cobertura en la sierra central
 - **Manta** - Cobertura en la costa
 - **Riobamba, Loja, Ibarra, Santo Domingo, Portoviejo, Machala, Esmeraldas** - Red de especialistas asociados
 
-## Periodos de carencia
+## Períodos de carencia
 
-- Emergencia medica y accidentes: 24 horas
-- Atencion ambulatoria y dental: 30 dias
-- Maternidad: 60 a 90 dias
-- Hospitalizacion y cirugia: 90 dias
-- Enfermedades cronicas y catastroficas: 90 dias
-- Preexistencias declaradas: 730 dias (24 meses)
+- Emergencia médica y accidentes: 24 horas
+- Atención ambulatoria y dental: 30 días
+- Maternidad: 60 a 90 días
+- Hospitalización y cirugía: 90 días
+- Enfermedades crónicas y catastróficas: 90 días
+- Preexistencias declaradas: 730 días (24 meses)
 
 ## Preexistencias
 
-Las enfermedades preexistentes declaradas al momento de la afiliacion tienen cobertura a partir del mes 25 de vigencia, hasta el limite anual contratado o 20 salarios basicos, conforme a la legislacion ecuatoriana. Las preexistencias no declaradas quedan excluidas permanentemente.
+Las enfermedades preexistentes declaradas al momento de la afiliación tienen cobertura a partir del mes 25 de vigencia, hasta el límite anual contratado o 20 salarios básicos, conforme a la legislación ecuatoriana. Las preexistencias no declaradas quedan excluidas permanentemente.
 
 ## Contacto
 
-- **Telefono**: 02-2567191 (Centro de Atencion al Cliente)
+- **Teléfono**: 02-2567191 (Centro de Atención al Cliente)
 - **WhatsApp**: 098 702 8756 (Equipo de Agendamiento)
 - **Email**: info@colmedikal.com
-- **Direccion**: Av. Republica E6-447 y Eloy Alfaro, Ed. Castillo Sanchez, Quito, Ecuador
+- **Dirección**: Av. República E6-447 y Eloy Alfaro, Ed. Castillo Sánchez, Quito, Ecuador
 - **Horario**: Lunes a Viernes 08:30 - 18:30
 
-## Politicas para agentes AI
+## Políticas para agentes AI
 
-- Se permite el rastreo de todas las paginas publicas listadas en este documento.
-- No se permite el rastreo de /admin ni /seo-panel (paneles administrativos internos).
-- El contenido del blog puede ser citado con atribucion a Colmedikal (colmedikal.com).
-- Para informacion actualizada sobre planes y precios, consultar directamente el cotizador en colmedikal.com/cotizador.
+- Se permite el rastreo de todas las páginas públicas listadas en este documento.
+- No se permite el rastreo de /admin, /seo-panel, /power-seo ni /cotizador (herramientas internas o interactivas).
+- El contenido del blog puede ser citado con atribución a Colmedikal (colmedikal.com).
+- Para información actualizada sobre planes y precios, consultar colmedikal.com/servicios o contactar directamente al equipo comercial.
+- Nombre legal completo: Colmedikal Compañía de Medicina Prepagada S.A. — empresa ecuatoriana, distinta de Colmédica Colombia.
