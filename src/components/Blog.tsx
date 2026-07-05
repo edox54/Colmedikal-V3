@@ -112,6 +112,61 @@ export default function Blog({
     })}</>;
   };
 
+  // Group consecutive table rows into table blocks for proper rendering
+  const groupContent = (content: string[]): Array<{ type: 'table'; rows: string[] } | { type: 'node'; text: string; index: number }> => {
+    const result: Array<{ type: 'table'; rows: string[] } | { type: 'node'; text: string; index: number }> = [];
+    let tableBuffer: string[] = [];
+    content.forEach((line, i) => {
+      if (line.startsWith('|')) {
+        tableBuffer.push(line);
+      } else {
+        if (tableBuffer.length) {
+          result.push({ type: 'table', rows: tableBuffer });
+          tableBuffer = [];
+        }
+        result.push({ type: 'node', text: line, index: i });
+      }
+    });
+    if (tableBuffer.length) result.push({ type: 'table', rows: tableBuffer });
+    return result;
+  };
+
+  const renderTable = (rows: string[], key: number) => {
+    const parseRow = (row: string) => row.split('|').map(c => c.trim()).filter(Boolean);
+    const dataRows = rows.filter(r => !r.match(/^\|[-| :]+\|$/));
+    const [header, ...body] = dataRows;
+    const headers = parseRow(header);
+    return (
+      <div key={key} className="my-6 overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr className="bg-[#0C4169] text-white">
+              {headers.map((h, i) => (
+                <th key={i} className="px-4 py-3 font-bold text-xs uppercase tracking-wider whitespace-nowrap first:rounded-tl-xl last:rounded-tr-xl">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {body.map((row, ri) => {
+              const cells = parseRow(row);
+              return (
+                <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  {cells.map((cell, ci) => (
+                    <td key={ci} className={`px-4 py-3 text-slate-700 border-t border-slate-100 text-[13px] leading-snug ${ci === 0 ? 'font-semibold text-[#143b67]' : ''}`}>
+                      {parseInlineLinks(cell)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   // Helper to render blog post paragraphs styled beautifully with inline headers
   const renderContentNode = (para: string, index: number) => {
     if (para.startsWith('### ')) {
@@ -260,7 +315,11 @@ export default function Blog({
 
             {/* Paragraph Contents */}
             <div className="prose prose-slate max-w-none mb-12">
-              {activeBlogPost.content.map((para, index) => renderContentNode(para, index))}
+              {groupContent(activeBlogPost.content).map((block, i) =>
+                block.type === 'table'
+                  ? renderTable(block.rows, i)
+                  : renderContentNode(block.text, block.index)
+              )}
             </div>
 
             {/* Dynamic Interactive Tag Cloud */}
