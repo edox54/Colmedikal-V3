@@ -156,6 +156,11 @@ export default function Footer() {
             <Link to="/privacy" className="hover:text-slate-400">
               Políticas de Privacidad
             </Link>
+            <button
+              onClick={() => window.dispatchEvent(new Event('colmedikal:open-cookies'))}
+              className="hover:text-slate-400 cursor-pointer transition-colors">
+              Preferencias de cookies
+            </button>
           </div>
         </div>
 

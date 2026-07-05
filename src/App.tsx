@@ -24,6 +24,7 @@ import { ColmedikalProvider } from './context/ColmedikalContext';
 import AdminPanel from './components/AdminPanel';
 import NotFound from './components/NotFound';
 import TrackingManager from './components/TrackingManager';
+import CookieConsent from './components/CookieConsent';
 import SEOPanel from './components/SEOPanel';
 import PowerSEOPanel from './components/PowerSEOPanel';
 import MapaRedMedica from './components/MapaRedMedica';
@@ -57,6 +58,7 @@ export default function App() {
         <ScrollToTop />
         <SEOController />
         <TrackingManager />
+        <CookieConsent />
         <Routes>
           <Route path="/" element={<HomeLayout component={Home} />} />
           <Route path="/servicios" element={<HomeLayout component={Services} />} />
