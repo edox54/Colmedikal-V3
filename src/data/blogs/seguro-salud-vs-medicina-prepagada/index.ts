@@ -1,6 +1,6 @@
 import { BlogPost } from '../../../types';
 import { AUTHORS } from '../../authors';
-import postImage from '../../../assets/images/post_maternidad_1780025067027.webp';
+import postImage from '../../../assets/images/post_seguro_vs_prepagada.webp';
 
 export const post: BlogPost = {
   id: 'seguro-salud-vs-medicina-prepagada',

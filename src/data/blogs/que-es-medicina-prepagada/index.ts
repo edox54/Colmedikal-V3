@@ -1,6 +1,6 @@
 import { BlogPost } from '../../../types';
 import { AUTHORS } from '../../authors';
-import postImage from '../../../assets/images/post_ecuador_prepagada_1780025031230.webp';
+import postImage from '../../../assets/images/post_que_es_medicina_prepagada.webp';
 
 export const post: BlogPost = {
   id: 'que-es-medicina-prepagada',

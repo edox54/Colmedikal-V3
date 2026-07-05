@@ -1,6 +1,6 @@
 import { BlogPost } from '../../../types';
 import { AUTHORS } from '../../authors';
-import postImage from '../../../assets/images/post_examenes_anuales_1780025049525.webp';
+import postImage from '../../../assets/images/post_salud_publica_vs_prepagada.webp';
 
 export const post: BlogPost = {
   id: 'salud-publica-vs-medicina-prepagada',
