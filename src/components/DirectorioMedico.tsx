@@ -199,7 +199,8 @@ export default function DirectorioMedico() {
     }
 
     // Nivel filter
-    const matchesNivel = selectedNivel === null || (doc as any).nivel === selectedNivel;
+    const docNivel = (doc as any).nivel != null ? Number((doc as any).nivel) : 1;
+    const matchesNivel = selectedNivel === null || docNivel === selectedNivel;
 
     return matchesSearch && matchesSpecialty && matchesCity && matchesDoctorSpecialty && matchesNivel;
   });
