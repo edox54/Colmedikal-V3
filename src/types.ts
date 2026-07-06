@@ -102,6 +102,7 @@ export interface Doctor {
   image: string;
   cost: number;
   active?: boolean;
+  nivel?: number;
 }
 
 export interface RefundItem {

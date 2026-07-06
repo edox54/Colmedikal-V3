@@ -35,6 +35,7 @@ export default function DirectorioMedico() {
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all');
   const [doctorSpecialty, setDoctorSpecialty] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('all');
+  const [selectedNivel, setSelectedNivel] = useState<number | null>(null);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
 
@@ -83,12 +84,18 @@ export default function DirectorioMedico() {
   const cities = [
     { id: 'all', name: 'Todas las Ubicaciones' },
     { id: 'quito', name: 'Quito y Valles (Pichincha)' },
-    { id: 'guayaquil', name: 'Guayaquil y Vías (Guayas / Samborondón)' },
-    { id: 'santodomingo', name: 'Santo Domingo (La Concordia)' },
+    { id: 'guayaquil', name: 'Guayaquil y Vías (Guayas)' },
+    { id: 'santodomingo', name: 'Santo Domingo de los Tsáchilas' },
     { id: 'manabi', name: 'Manabí (Manta / Portoviejo / El Carmen)' },
-    { id: 'esmeraldas', name: 'Esmeraldas' },
+    { id: 'esmeraldas', name: 'Esmeraldas / Atacames' },
     { id: 'imbabura', name: 'Imbabura (Ibarra / Otavalo / Atuntaqui)' },
-    { id: 'losrios', name: 'Los Ríos (Quevedo)' }
+    { id: 'losrios', name: 'Los Ríos (Babahoyo / Quevedo)' },
+    { id: 'eloro', name: 'El Oro (Machala / Santa Rosa / Arenillas)' },
+    { id: 'azuay', name: 'Azuay (Cuenca)' },
+    { id: 'santaelena', name: 'Santa Elena (Libertad / Salinas)' },
+    { id: 'sierracentro', name: 'Sierra Centro (Ambato / Riobamba / Latacunga / Tulcán)' },
+    { id: 'loja', name: 'Loja' },
+    { id: 'amazonia', name: 'Amazonía (Tena / Puyo / Macas)' },
   ];
 
   // Filters logic
@@ -162,13 +169,39 @@ export default function DirectorioMedico() {
                       cityLower.includes('atuntaqui') ||
                       cityLower.includes('imbabura');
       } else if (selectedCity === 'losrios') {
-        matchesCity = cityLower.includes('quevedo') || 
+        matchesCity = cityLower.includes('quevedo') ||
+                      cityLower.includes('babahoyo') ||
                       cityLower.includes('rios') ||
                       cityLower.includes('ríos');
+      } else if (selectedCity === 'eloro') {
+        matchesCity = cityLower.includes('machala') || cityLower.includes('el oro') ||
+                      cityLower.includes('pasaje') || cityLower.includes('santa rosa') ||
+                      cityLower.includes('arenillas') || cityLower.includes('triunfo');
+      } else if (selectedCity === 'azuay') {
+        matchesCity = cityLower.includes('cuenca') || cityLower.includes('azuay');
+      } else if (selectedCity === 'santaelena') {
+        matchesCity = cityLower.includes('santa elena') || cityLower.includes('libertad') ||
+                      cityLower.includes('salinas') || cityLower.includes('san pablo');
+      } else if (selectedCity === 'sierracentro') {
+        matchesCity = cityLower.includes('ambato') || cityLower.includes('tungurahua') ||
+                      cityLower.includes('riobamba') || cityLower.includes('chimborazo') ||
+                      cityLower.includes('latacunga') || cityLower.includes('cotopaxi') ||
+                      cityLower.includes('tulcan') || cityLower.includes('tulcán') ||
+                      cityLower.includes('carchi') || cityLower.includes('troncal') ||
+                      cityLower.includes('cañar') || cityLower.includes('machachi');
+      } else if (selectedCity === 'loja') {
+        matchesCity = cityLower.includes('loja');
+      } else if (selectedCity === 'amazonia') {
+        matchesCity = cityLower.includes('tena') || cityLower.includes('napo') ||
+                      cityLower.includes('puyo') || cityLower.includes('pastaza') ||
+                      cityLower.includes('macas') || cityLower.includes('morona');
       }
     }
 
-    return matchesSearch && matchesSpecialty && matchesCity && matchesDoctorSpecialty;
+    // Nivel filter
+    const matchesNivel = selectedNivel === null || (doc as any).nivel === selectedNivel;
+
+    return matchesSearch && matchesSpecialty && matchesCity && matchesDoctorSpecialty && matchesNivel;
   });
 
   return (
@@ -193,7 +226,30 @@ export default function DirectorioMedico() {
       {/* 2. ADVANCED FILTER BOARD */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 max-w-5xl mx-auto">
         <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-normal">Filtros de búsqueda de establecimientos</span>
-        
+
+        {/* Nivel filter */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Nivel:</span>
+          {[
+            { value: null, label: 'Todos los Niveles' },
+            { value: 1, label: 'Nivel 1 — Plan 2K, 3K y 5K' },
+            { value: 2, label: 'Nivel 2' },
+            { value: 3, label: 'Nivel 3' },
+          ].map(opt => (
+            <button
+              key={String(opt.value)}
+              onClick={() => setSelectedNivel(opt.value)}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                selectedNivel === opt.value
+                  ? 'bg-[#0C4169] text-white border-[#0C4169]'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-[#4597CA] hover:text-[#0C4169]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           {/* Key Term search */}
           <div className="md:col-span-5 relative">
@@ -249,7 +305,8 @@ export default function DirectorioMedico() {
               setSearchTerm('');
               setSelectedSpecialty('all');
               setSelectedCity('all');
-            }} 
+              setSelectedNivel(null);
+            }}
             className="text-[11px] font-mono font-bold text-teal-650 hover:underline cursor-pointer"
           >
             Limpiar filtros

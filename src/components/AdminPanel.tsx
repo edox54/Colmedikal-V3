@@ -249,7 +249,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     availability: 'Disponible Lunes a Viernes',
     education: '',
     cost: 40,
-    image: 'doctor_m'
+    image: 'doctor_m',
+    nivel: 1,
   });
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [docSuccessMsg, setDocSuccessMsg] = useState('');
@@ -358,7 +359,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         education: newDoc.education,
         image: imageUrl,
         cost: Number(newDoc.cost),
-        active: existingDoctorObj?.active ?? true
+        active: existingDoctorObj?.active ?? true,
+        nivel: newDoc.nivel,
       };
       updateDoctor(updatedDoctorObj);
       setEditingDocId(null);
@@ -376,7 +378,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         availability: newDoc.availability,
         education: newDoc.education,
         image: imageUrl,
-        cost: Number(newDoc.cost)
+        cost: Number(newDoc.cost),
+        nivel: newDoc.nivel,
       };
       addDoctor(newDoctorObj);
       setDocSuccessMsg('¡Especialista registrado con éxito en el Directorio Médico!');
@@ -392,18 +395,20 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       availability: 'Disponible Lunes a Viernes',
       education: '',
       cost: 40,
-      image: 'doctor_m'
+      image: 'doctor_m',
+      nivel: 1,
     });
     setTimeout(() => setDocSuccessMsg(''), 4000);
   };
 
   const handleEditInitiate = (doc: Doctor) => {
     const matchAvatarId = (imgUrl: string) => {
-      if (imgUrl.includes('gomez') || imgUrl.includes('doctor_m')) return 'doctor_m';
-      if (imgUrl.includes('restrepo') || imgUrl.includes('doctor_f')) return 'doctor_f';
+      if (imgUrl === 'icon_hospital' || imgUrl === 'icon_lab' || imgUrl === 'icon_dental' || imgUrl === 'icon_building') return imgUrl;
+      if (imgUrl.includes('gomez') || (imgUrl.includes('doctor_m') && !imgUrl.includes('doctor_m2'))) return 'doctor_m';
+      if (imgUrl.includes('restrepo') || (imgUrl.includes('doctor_f') && !imgUrl.includes('doctor_f2'))) return 'doctor_f';
       if (imgUrl.includes('doctor_m2')) return 'doctor_m2';
       if (imgUrl.includes('doctor_f2')) return 'doctor_f2';
-      return 'doctor_m';
+      return 'icon_building';
     };
 
     setEditingDocId(doc.id);
@@ -417,7 +422,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       availability: doc.availability || 'Disponible Lunes a Viernes',
       education: doc.education || '',
       cost: doc.cost,
-      image: matchAvatarId(doc.image)
+      image: matchAvatarId(doc.image),
+      nivel: doc.nivel ?? 1,
     });
   };
 
@@ -433,7 +439,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       availability: 'Disponible Lunes a Viernes',
       education: '',
       cost: 40,
-      image: 'doctor_m'
+      image: 'doctor_m',
+      nivel: 1,
     });
   };
 
@@ -1787,6 +1794,20 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                   </div>
                 </div>
 
+                {/* Nivel */}
+                <div className="space-y-0.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Nivel de Red:</label>
+                  <select
+                    value={newDoc.nivel}
+                    onChange={(e) => setNewDoc({...newDoc, nivel: Number(e.target.value)})}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
+                  >
+                    <option value={1}>Nivel 1 — Plan 2K, 3K y 5K</option>
+                    <option value={2}>Nivel 2</option>
+                    <option value={3}>Nivel 3</option>
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   {/* Phone */}
                   <div className="space-y-0.5">
@@ -1928,8 +1949,10 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       />
                       <div>
                         <h4 className="font-bold text-slate-900">{doc.name}</h4>
-                        <p className="text-[10px] text-slate-500">
-                          {doc.specialty} • <strong>{doc.clinic} ({doc.city})</strong>
+                        <p className="text-[10px] text-slate-500 flex items-center gap-1.5 flex-wrap">
+                          <span>{doc.specialty}</span>
+                          {doc.nivel && <span className="bg-[#0C4169]/10 text-[#0C4169] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">N{doc.nivel}</span>}
+                          <strong>{doc.clinic} ({doc.city})</strong>
                         </p>
                         <p className="text-[9px] text-indigo-600 font-mono italic max-w-[320px] truncate" title={doc.education}>{doc.education}</p>
                       </div>
