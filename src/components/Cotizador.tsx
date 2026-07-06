@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Calculator,
   User,
@@ -69,9 +69,14 @@ const PROVINCES = [
   'Zamora Chinchipe'
 ];
 
-export default function Cotizador({ selectedPlanId }: CotizadorProps) {
+export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { addLead } = useColmedikal();
+
+  // Plan pre-seleccionado desde homepage (via navigate state) o prop
+  const preselectedPlanId: string | undefined = (location.state as any)?.planId ?? propPlanId;
+
   // Solo plan individual
   const planType = 'individual';
   const [quoteStep, setQuoteStep] = useState(1); // Steps count varies depending on flow
@@ -575,6 +580,28 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
             <div className="md:col-span-8 p-6 sm:p-10 flex flex-col justify-between">
               <div>
                 
+                {/* Plan pre-seleccionado desde homepage */}
+                {quoteStep === 1 && preselectedPlanId && (() => {
+                  const preplan = plansComparativo.find(p => p.id === preselectedPlanId);
+                  if (!preplan) return null;
+                  const isGold = preselectedPlanId === 'plus';
+                  return (
+                    <div className={`mb-5 flex items-center gap-3 px-4 py-3 rounded-xl border ${isGold ? 'bg-amber-50 border-amber-200' : 'bg-[#EBF5FD] border-[#4597CA]/40'}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isGold ? 'bg-amber-500' : 'bg-[#0C4169]'}`}>
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className={`text-xs font-black uppercase tracking-wider ${isGold ? 'text-amber-800' : 'text-[#0C4169]'}`}>
+                          Plan seleccionado
+                        </p>
+                        <p className={`text-sm font-bold ${isGold ? 'text-amber-700' : 'text-[#1a5f9a]'}`}>
+                          {preplan.name} — desde ${preplan.basePrice}/mes
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Plan type indicator */}
                 {quoteStep === 1 && (
                   <div className="mb-6">
@@ -1387,23 +1414,39 @@ export default function Cotizador({ selectedPlanId }: CotizadorProps) {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch font-sans">
                       {plansComparativo.map((plan) => {
-                        const isRec = plan.id === 'plan2';
+                        const isPreselected = plan.id === preselectedPlanId;
+                        const isRec = plan.id === 'proteccion';
+                        const isHighlighted = isPreselected || isRec;
+                        const barColor = plan.id === 'inicio' ? 'bg-[#4597CA]' : plan.id === 'proteccion' ? 'bg-[#0C4169]' : 'bg-amber-500';
                         return (
                           <div
                             key={plan.id}
-                            className={`bg-white rounded-3xl border transition-all duration-300 flex flex-col overflow-hidden ${isRec ? 'border-[#4597CA] shadow-xl' : 'border-slate-200 hover:border-slate-300 hover:shadow-lg'}`}
+                            className={`bg-white rounded-3xl border transition-all duration-300 flex flex-col overflow-hidden ${
+                              isPreselected
+                                ? plan.id === 'plus'
+                                  ? 'border-amber-400 shadow-xl shadow-amber-100 ring-2 ring-amber-300'
+                                  : 'border-[#0C4169] shadow-xl shadow-[#0C4169]/10 ring-2 ring-[#4597CA]/40'
+                                : isHighlighted
+                                ? 'border-[#4597CA] shadow-xl'
+                                : 'border-slate-200 hover:border-slate-300 hover:shadow-lg'
+                            }`}
                           >
+                            {isPreselected && (
+                              <div className={`text-center text-[9px] font-black uppercase tracking-widest py-1.5 ${plan.id === 'plus' ? 'bg-amber-500 text-white' : 'bg-[#0C4169] text-white'}`}>
+                                Tu plan seleccionado
+                              </div>
+                            )}
                             {/* Color bar */}
-                            <div className={`h-1.5 w-full ${plan.id === 'plan1' ? 'bg-sky-500' : plan.id === 'plan2' ? 'bg-teal-500' : 'bg-indigo-500'}`} />
+                            <div className={`h-1.5 w-full ${barColor}`} />
 
                             <div className="p-6 space-y-4 flex-grow">
                               {/* Name + badge */}
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${plan.id === 'plan1' ? 'bg-sky-50 border-sky-200 text-sky-700' : plan.id === 'plan2' ? 'bg-teal-50 border-teal-200 text-teal-700' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
+                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${plan.id === 'inicio' ? 'bg-[#EBF5FD] border-[#4597CA]/40 text-[#1a5f9a]' : plan.id === 'proteccion' ? 'bg-[#0C4169]/10 border-[#0C4169]/30 text-[#0C4169]' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
                                     {plan.name}
                                   </span>
-                                  {isRec && <span className="text-[8.5px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700">Recomendado</span>}
+                                  {isRec && !isPreselected && <span className="text-[8.5px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700">Recomendado</span>}
                                 </div>
                                 <p className="text-[10px] text-slate-400">Medicina Prepagada Colmedikal</p>
                               </div>

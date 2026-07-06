@@ -73,9 +73,7 @@ export default function Home() {
   }, []);
 
   const handlePlanSelect = (planId: string) => {
-    // Note: I'll need to pass the planId to cotizador if I want to "select" it there. 
-    // For now, I'll just navigate.
-    navigate('/cotizador');
+    navigate('/cotizador', { state: { planId } });
   };
 
   const stats = [
@@ -311,40 +309,71 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
             {MEDICAL_PLANS.map((plan) => {
               const isRecommended = plan.id === 'proteccion';
-              const accent = plan.color === 'emerald'
-                ? { bg: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'text-emerald-500' }
-                : plan.color === 'teal'
-                ? { bg: 'bg-teal-500', light: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', pill: 'bg-teal-50 text-teal-700 border-teal-200', icon: 'text-teal-500' }
-                : { bg: 'bg-indigo-500', light: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', pill: 'bg-indigo-50 text-indigo-700 border-indigo-200', icon: 'text-indigo-500' };
+
+              // Brand palette per plan
+              const styles: Record<string, { bar: string; iconBg: string; iconColor: string; titleColor: string; pill: string; btnDefault: string }> = {
+                inicio: {
+                  bar: 'bg-[#4597CA]',
+                  iconBg: 'bg-[#EBF5FD]',
+                  iconColor: 'text-[#4597CA]',
+                  titleColor: 'text-[#1a5f9a]',
+                  pill: 'bg-[#EBF5FD] text-[#1a5f9a] border-[#4597CA]/40',
+                  btnDefault: 'bg-[#EBF5FD] text-[#1a5f9a] border border-[#4597CA]/40 hover:bg-[#4597CA] hover:text-white',
+                },
+                proteccion: {
+                  bar: 'bg-[#0C4169]',
+                  iconBg: 'bg-[#0C4169]/10',
+                  iconColor: 'text-[#0C4169]',
+                  titleColor: 'text-[#0C4169]',
+                  pill: 'bg-[#0C4169]/10 text-[#0C4169] border-[#0C4169]/30',
+                  btnDefault: 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-lg hover:shadow-xl',
+                },
+                plus: {
+                  bar: 'bg-amber-500',
+                  iconBg: 'bg-amber-50',
+                  iconColor: 'text-amber-600',
+                  titleColor: 'text-amber-800',
+                  pill: 'bg-amber-50 text-amber-700 border-amber-200',
+                  btnDefault: 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-500 hover:text-white',
+                },
+              };
+              const s = styles[plan.id] ?? styles.inicio;
 
               return (
                 <div
                   key={plan.id}
                   className={`bg-white rounded-3xl border transition-all duration-300 relative flex flex-col overflow-hidden ${
                     isRecommended
-                      ? 'border-[#4597CA] shadow-2xl shadow-[#4597CA]/10 lg:scale-105 z-10'
-                      : 'border-slate-200 hover:border-slate-300 hover:shadow-lg'
+                      ? 'border-[#0C4169] shadow-2xl shadow-[#0C4169]/15 lg:scale-105 z-10'
+                      : plan.id === 'plus'
+                      ? 'border-amber-200 hover:border-amber-300 hover:shadow-lg'
+                      : 'border-slate-200 hover:border-[#4597CA]/40 hover:shadow-lg'
                   }`}
                   id={`plan-card-${plan.id}`}
                 >
                   {/* Color top bar */}
-                  <div className={`h-1.5 w-full ${accent.bg}`} />
+                  <div className={`h-2 w-full ${s.bar}`} />
 
                   {isRecommended && (
                     <span className="absolute top-4 right-4 bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
                       Más elegido
                     </span>
                   )}
+                  {plan.id === 'plus' && (
+                    <span className="absolute top-4 right-4 bg-gradient-to-r from-amber-500 to-amber-700 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                      Premium
+                    </span>
+                  )}
 
                   <div className="p-8 flex flex-col flex-grow space-y-6">
                     {/* Icon + Name */}
                     <div className="space-y-3">
-                      <div className={`w-12 h-12 rounded-2xl ${accent.light} flex items-center justify-center`}>
-                        {plan.color === 'emerald' && <ShieldCheck className={`w-6 h-6 ${accent.icon}`} />}
-                        {plan.color === 'teal'    && <Heart        className={`w-6 h-6 ${accent.icon}`} />}
-                        {plan.color === 'indigo'  && <Award        className={`w-6 h-6 ${accent.icon}`} />}
+                      <div className={`w-12 h-12 rounded-2xl ${s.iconBg} flex items-center justify-center`}>
+                        {plan.id === 'inicio'     && <ShieldCheck className={`w-6 h-6 ${s.iconColor}`} />}
+                        {plan.id === 'proteccion' && <Heart        className={`w-6 h-6 ${s.iconColor}`} />}
+                        {plan.id === 'plus'       && <Award        className={`w-6 h-6 ${s.iconColor}`} />}
                       </div>
-                      <h3 className={`text-xl font-black tracking-tight ${accent.text}`}>
+                      <h3 className={`text-xl font-black tracking-tight ${s.titleColor}`}>
                         {plan.name}
                       </h3>
                     </div>
@@ -358,7 +387,7 @@ export default function Home() {
                     {plan.highlights && (
                       <div className="flex flex-wrap gap-2">
                         {plan.highlights.map((h) => (
-                          <span key={h} className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${accent.pill}`}>
+                          <span key={h} className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${s.pill}`}>
                             {h}
                           </span>
                         ))}
@@ -370,11 +399,7 @@ export default function Home() {
                   <div className="px-8 pb-8">
                     <button
                       onClick={() => handlePlanSelect(plan.id)}
-                      className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all text-center flex items-center justify-center gap-2 group cursor-pointer ${
-                        isRecommended
-                          ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-lg hover:shadow-xl'
-                          : `${accent.light} ${accent.text} hover:${accent.bg} hover:text-white border ${accent.border}`
-                      }`}
+                      className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all text-center flex items-center justify-center gap-2 group cursor-pointer ${s.btnDefault}`}
                       id={`btn-quote-${plan.id}`}
                     >
                       <span>Cotizar este plan</span>
