@@ -542,12 +542,12 @@ export default function Header() {
                       {[
                         'Cardiología',
                         'Pediatría',
-                        'Ginecobstetricia',
-                        'Medicina Interna',
+                        'Ginecología',
+                        'Medicina General',
                         'Traumatología',
-                        'Dermatología',
-                        'Oftalmología',
-                        'Nutriología'
+                        'Gastroenterología',
+                        'Urología',
+                        'Nutrición'
                       ].map((specialty) => (
                         <Link
                           key={specialty}
@@ -565,30 +565,30 @@ export default function Header() {
                   {/* Category 2: Prestadores Destacados */}
                   <div className="col-span-12 md:col-span-4 space-y-5">
                     <h3 className="text-xs font-bold text-[#4597CA] tracking-wider uppercase border-b border-slate-100 pb-2">
-                      🏥 Centros Médicos y Clínicas
+                      🏥 Centros Médicos en Red
                     </h3>
                     <div className="space-y-3.5">
                       <div className="flex items-start gap-2.5">
                         <span className="text-[10px] uppercase font-bold text-teal-650 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-150 mt-0.5 shrink-0">UIO</span>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-800">Hospital Vozandes & Northospital</h4>
-                          <p className="text-[11px] text-slate-500">Clínicas con máxima infraestructura en Quito.</p>
+                          <h4 className="text-xs font-bold text-slate-800">Vitalclinic, Cruz Roja & Centros Médico Vida</h4>
+                          <p className="text-[11px] text-slate-500">Múltiples centros en Quito, Carapungo, El Batán, Valle de los Chillos y Tumbaco.</p>
                         </div>
                       </div>
 
                       <div className="flex items-start gap-2.5">
                         <span className="text-[10px] uppercase font-bold text-sky-650 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-150 mt-0.5 shrink-0">GYE</span>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-800">Clínica Panamericana & Kennedy</h4>
-                          <p className="text-[11px] text-slate-500">Prestigio de atención quirúrgica en Guayaquil.</p>
+                          <h4 className="text-xs font-bold text-slate-800">Mediglobal, Sumedico & Prosalud</h4>
+                          <p className="text-[11px] text-slate-500">Más de 20 centros en Guayaquil, Daule, Durán y Samborondón.</p>
                         </div>
                       </div>
 
                       <div className="flex items-start gap-2.5">
-                        <span className="text-[10px] uppercase font-bold text-indigo-650 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-150 mt-0.5 shrink-0">CUE</span>
+                        <span className="text-[10px] uppercase font-bold text-indigo-650 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-150 mt-0.5 shrink-0">NAC</span>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-800">Hospital Santa Inés Cuenca</h4>
-                          <p className="text-[11px] text-slate-500">Excelente red acreditada en el Austro ecuatoriano.</p>
+                          <h4 className="text-xs font-bold text-slate-800">Cemoplaf, Medicenter & Cruz Roja</h4>
+                          <p className="text-[11px] text-slate-500">Cobertura nacional: Cuenca, Ibarra, Ambato, Riobamba, Loja y más.</p>
                         </div>
                       </div>
                     </div>
