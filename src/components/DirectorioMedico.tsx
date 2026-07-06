@@ -98,6 +98,9 @@ export default function DirectorioMedico() {
     { id: 'amazonia', name: 'Amazonía (Tena / Puyo / Macas)' },
   ];
 
+  const NIVEL2_NAMES = new Set(['CENTRO MÉDICO ESPECIALIZADO NORTE (DEMO)', 'CLÍNICA AVANZADA DEL LITORAL (DEMO)']);
+  const NIVEL3_NAMES = new Set(['HOSPITAL DE ESPECIALIDADES COLMEDIKAL (DEMO)', 'CLÍNICA INTERNACIONAL COLMEDIKAL (DEMO)']);
+
   // Filters logic
   const filteredDoctors = doctors.filter(doc => {
     // Only show active doctors to regular users
@@ -198,8 +201,8 @@ export default function DirectorioMedico() {
       }
     }
 
-    // Nivel filter
-    const docNivel = (doc as any).nivel != null ? Number((doc as any).nivel) : 1;
+    // Nivel filter — API doesn't persist the nivel field, so we match by name for N2/N3
+    const docNivel = NIVEL3_NAMES.has(doc.name) ? 3 : NIVEL2_NAMES.has(doc.name) ? 2 : 1;
     const matchesNivel = selectedNivel === null || docNivel === selectedNivel;
 
     return matchesSearch && matchesSpecialty && matchesCity && matchesDoctorSpecialty && matchesNivel;
