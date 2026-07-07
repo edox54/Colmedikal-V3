@@ -204,64 +204,101 @@ async function startServer() {
     }
   });
 
-  // ==================== CROSS-DEVICE LEAD DEDUP INDEX ====================
-  // The public API has no lead-read endpoint, so anonymous duplicate detection
-  // is handled here: every created lead records SHA-256 hashes of its contact
-  // identifiers (email / phone / cédula) -> quote code. New submissions look up
-  // those hashes to find prior requests from ANY device. We store only hashes,
-  // never raw PII. Fail-open on any error so a lookup glitch never blocks a lead.
-  // ponytail: append-only JSONL scanned per lookup — O(n); fine for lead volumes,
-  //           swap for SQLite if the file ever grows past tens of thousands.
-  const DATA_DIR = path.join(process.cwd(), 'data');
-  const LEAD_INDEX = path.join(DATA_DIR, 'lead-index.jsonl');
+  // ==================== CROSS-DEVICE LEAD DEDUP (reads the real DB) ====================
+  // Anonymous duplicate detection must consult the real leads database. The public
+  // API exposes no lead-read endpoint, so this server authenticates to the admin API
+  // with credentials from env (API_ADMIN_EMAIL / API_ADMIN_PASSWORD), fetches leads,
+  // and matches by email / phone / cédula — returning the quote code STORED IN THE DB
+  // (single source of truth, so the code shown always matches what the admin sees).
+  // Token and lead list are cached to avoid hammering the API. Fails open so a lookup
+  // glitch never blocks a legitimate lead.
+  // SECURITY: these env creds grant full admin API access from the web server. Prefer a
+  // dedicated limited/read-only admin user, or a purpose-built dedup endpoint on the API.
+  const API_ADMIN_EMAIL = process.env.API_ADMIN_EMAIL;
+  const API_ADMIN_PASSWORD = process.env.API_ADMIN_PASSWORD;
   const normId = (s: unknown) =>
     typeof s === 'string' ? s.toLowerCase().replace(/\s/g, '').trim() : '';
-  const hashId = (s: string) => crypto.createHash('sha256').update(s).digest('hex');
-  // Hashes for the present, normalized identifiers of a submission
-  const idHashes = (b: any): string[] => {
-    const out: string[] = [];
-    for (const raw of [b?.email, b?.phone, b?.docNumber]) {
-      const n = normId(raw);
-      if (n && n.length <= 200) out.push(hashId(n));
-    }
-    return out;
+
+  // Minimal native-https JSON request (project avoids fetch under CloudLinux LVE).
+  const httpsJson = (url: string, opts: { method?: string; headers?: Record<string, string>; body?: string; timeoutMs?: number } = {}): Promise<any> =>
+    new Promise((resolve, reject) => {
+      const u = new URL(url);
+      const req = https.request(u, { method: opts.method || 'GET', headers: opts.headers }, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => {
+          const status = res.statusCode || 0;
+          let json: any = null;
+          try { json = data ? JSON.parse(data) : null; } catch { /* non-JSON */ }
+          if (status >= 200 && status < 300) resolve(json);
+          else reject(Object.assign(new Error(`HTTP ${status}`), { status, json }));
+        });
+      });
+      req.on('error', reject);
+      req.setTimeout(opts.timeoutMs || 5000, () => req.destroy(new Error('timeout')));
+      if (opts.body) req.write(opts.body);
+      req.end();
+    });
+
+  let apiToken = '';
+  let apiTokenAt = 0;
+  const getApiToken = async (force = false): Promise<string> => {
+    if (!force && apiToken && Date.now() - apiTokenAt < 50 * 60_000) return apiToken;
+    const r = await httpsJson('https://api.colmedikal.com/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: API_ADMIN_EMAIL, password: API_ADMIN_PASSWORD }),
+    });
+    if (!r?.token) throw new Error('API admin login returned no token');
+    apiToken = r.token; apiTokenAt = Date.now();
+    return apiToken;
   };
 
-  app.post('/api/leads/lookup', express.json(), (req, res) => {
+  let leadsCache: any[] = [];
+  let leadsCacheAt = 0;
+  // ponytail: 20s cache + linear scan; fine for lead volumes. A resubmit within
+  //           20s is still caught same-browser client-side. Tighten if needed.
+  const getLeads = async (): Promise<any[]> => {
+    if (Date.now() - leadsCacheAt < 20_000) return leadsCache;
+    const fetchWith = async (tok: string) =>
+      httpsJson('https://api.colmedikal.com/api/admin/leads?limit=2000', { headers: { Authorization: `Bearer ${tok}` } });
+    let r: any;
     try {
-      const wanted = new Set(idHashes(req.body));
-      if (wanted.size === 0 || !fs.existsSync(LEAD_INDEX)) {
-        return res.json({ isDuplicate: false, codes: [] });
+      r = await fetchWith(await getApiToken());
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 403) r = await fetchWith(await getApiToken(true)); // token expired → refresh once
+      else throw e;
+    }
+    leadsCache = Array.isArray(r?.data) ? r.data : [];
+    leadsCacheAt = Date.now();
+    return leadsCache;
+  };
+
+  app.post('/api/leads/lookup', express.json(), async (req, res) => {
+    try {
+      if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
+        return res.json({ isDuplicate: false, codes: [], configured: false });
       }
+      const nEmail = normId(req.body?.email), nPhone = normId(req.body?.phone), nDoc = normId(req.body?.docNumber);
+      if (!nEmail && !nPhone && !nDoc) return res.json({ isDuplicate: false, codes: [] });
+
+      const leads = await getLeads();
       const codes = new Set<string>();
-      for (const line of fs.readFileSync(LEAD_INDEX, 'utf8').split('\n')) {
-        if (!line) continue;
-        let rec: any;
-        try { rec = JSON.parse(line); } catch { continue; }
-        if (Array.isArray(rec.h) && rec.code && rec.h.some((h: string) => wanted.has(h))) {
-          codes.add(rec.code);
+      let matched = false;
+      for (const l of leads) {
+        let qd: any = l.quote_data ?? l.quoteData;
+        if (typeof qd === 'string') { try { qd = JSON.parse(qd); } catch { qd = {}; } }
+        qd = qd || {};
+        const e = normId(qd.email), p = normId(qd.phone), d = normId(qd.docNumber);
+        if ((nEmail && e && e === nEmail) || (nPhone && p && p === nPhone) || (nDoc && d && d === nDoc)) {
+          matched = true;
+          if (qd.leadCode) codes.add(qd.leadCode);
         }
       }
-      res.json({ isDuplicate: codes.size > 0, codes: Array.from(codes) });
+      res.json({ isDuplicate: matched, codes: Array.from(codes) });
     } catch (e) {
       console.error('[lead-lookup]', e);
       res.json({ isDuplicate: false, codes: [] }); // fail-open
-    }
-  });
-
-  app.post('/api/leads/index', express.json(), (req, res) => {
-    try {
-      const code = typeof req.body?.leadCode === 'string' ? req.body.leadCode.trim() : '';
-      const h = idHashes(req.body);
-      if (!code || !/^[A-Za-z0-9_-]{1,40}$/.test(code) || h.length === 0) {
-        return res.status(400).json({ success: false });
-      }
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-      fs.appendFileSync(LEAD_INDEX, JSON.stringify({ h, code, t: Date.now() }) + '\n');
-      res.json({ success: true });
-    } catch (e) {
-      console.error('[lead-index]', e);
-      res.status(500).json({ success: false });
     }
   });
 

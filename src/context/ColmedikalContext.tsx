@@ -604,6 +604,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // Cross-device pass: ask the same-origin server dedup index (server.ts) for
     // prior requests with these identifiers from ANY device/browser. Fail-open.
     let serverCodes: string[] = [];
+    let serverDuplicate = false;
     if (!token) {
       try {
         const r = await fetch('/api/leads/lookup', {
@@ -613,6 +614,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         });
         if (r.ok) {
           const j = await r.json();
+          serverDuplicate = !!j.isDuplicate;
           if (Array.isArray(j.codes)) serverCodes = j.codes.filter((c: unknown): c is string => typeof c === 'string');
         }
       } catch { /* fail-open: never block a legitimate lead on a lookup glitch */ }
@@ -629,8 +631,10 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         estimatedPrice,
         // Keep existing status — don't reset to 'Nuevo Plan' if already progressed
       };
+      // DB codes (serverCodes) first — they're the source of truth, so the code
+      // shown matches what the admin sees; local codes only as fallback.
       const dupCodes = Array.from(new Set(
-        [preservedCode, ...previousCodes, ...serverCodes].filter((c): c is string => !!c)
+        [...serverCodes, preservedCode, ...previousCodes].filter((c): c is string => !!c)
       ));
 
       if (!token) {
@@ -668,14 +672,14 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
     }
 
-    // Cross-device duplicate: the server index knows this person from another
-    // device, but we have no local lead to upsert. Don't create a new one —
-    // surface the prior code(s) and stop.
-    if (!token && serverCodes.length > 0) {
+    // Cross-device duplicate: the real DB already has this person (from another
+    // device), but we have no local lead to upsert. Don't create a new one —
+    // surface the prior code(s) from the DB and stop.
+    if (!token && (serverDuplicate || serverCodes.length > 0)) {
       const stub: LeadQuote = {
         id: 'remote-dup',
         timestamp: new Date().toISOString(),
-        quoteData: { ...quote, leadCode: serverCodes[0] },
+        quoteData: { ...quote, leadCode: serverCodes[0] || quote.leadCode },
         estimatedPrice,
         status: 'Nuevo Plan',
       };
@@ -713,14 +717,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           });
         }
       } catch { /* silent fail — localStorage already captured it */ }
-      // Record identifiers in the cross-device dedup index (server.ts, same origin)
-      try {
-        await fetch('/api/leads/index', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: quote.email, phone: quote.phone, docNumber: quote.docNumber, leadCode: quote.leadCode }),
-        });
-      } catch { /* fail-open: dedup index is best-effort */ }
+      // No separate index needed: the lead now lives in the real DB, so the next
+      // /api/leads/lookup (which reads that DB) will find it automatically.
       return { ...newLead, isDuplicate: false, previousCodes: [] as string[] };
     }
 
