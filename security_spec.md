@@ -8,7 +8,7 @@ This security specification outlines the data invariants and access controls for
 
 1. **Hierarchy and Isolation**:
    - Access to clinical data (refunds and authorizations) is private. Standard users can create them but can never query the full collection.
-   - Administrative tasks are strictly bounded to authenticated corporate supervisors checkable by verified Google credentials (e.g. `edox54@gmail.com`).
+   - Administrative tasks are strictly bounded to authenticated corporate supervisors checkable by verified Google credentials .
 
 2. **Temporal Integrity**:
    - Every transaction and state transition must preserve strict timeline order (e.g., matching client action timestamps or server event times). 
@@ -130,9 +130,9 @@ A user tries to modify the `requestDate` of an existing authorization back to a 
 ```
 
 ### Scenario 12: Administrative Token Emulation
-An attacker signs in with a spoofed email that resembles administrative staff, e.g., `edox54@gmail.com` but with `email_verified: false` to request administrative views.
+An attacker signs in with a spoofed email that resembles administrative staff, e.g., `xxxxx54@gmail.com` but with `email_verified: false` to request administrative views.
 ```json
-// auth.token = { email: "edox54@gmail.com", email_verified: false } -> EXPECT: PERMISSION_DENIED on write.
+// auth.token = { email: "xxxx54@gmail.com", email_verified: false } -> EXPECT: PERMISSION_DENIED on write.
 ```
 
 ---
