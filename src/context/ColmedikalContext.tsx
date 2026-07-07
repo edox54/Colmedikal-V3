@@ -580,26 +580,42 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ==================== LEADS ====================
   const addLead = async (quote: QuoteState, estimatedPrice: number) => {
-    // --- Duplicate detection: upsert if email or phone already exists ---
+    // --- Duplicate detection: match on cédula, phone OR email ---
+    // Note: anonymous visitors only see leads from this browser (localLeads); the
+    // public API has no lead-read endpoint, so cross-device dedup needs backend work.
     const normalize = (s?: string) => s?.toLowerCase().replace(/\s/g, '').trim() || '';
     const allLeads = [...leads, ...localLeads];
-    const existing = allLeads.find(l => {
+    const nEmail = normalize(quote.email);
+    const nPhone = normalize(quote.phone);
+    const nDoc = normalize(quote.docNumber);
+    const matches = allLeads.filter(l => {
       const eEmail = normalize(l.quoteData?.email);
       const ePhone = normalize(l.quoteData?.phone);
-      const nEmail = normalize(quote.email);
-      const nPhone = normalize(quote.phone);
+      const eDoc = normalize(l.quoteData?.docNumber);
       return (eEmail && nEmail && eEmail === nEmail) ||
-             (ePhone && nPhone && ePhone === nPhone);
+             (ePhone && nPhone && ePhone === nPhone) ||
+             (eDoc && nDoc && eDoc === nDoc);
     });
+    const existing = matches[0];
+    // Codes from every matching prior request (deduped), so the UI can show them
+    const previousCodes = Array.from(new Set(
+      matches.map(m => m.quoteData?.leadCode).filter((c): c is string => !!c)
+    ));
 
     if (existing) {
+      // Preserve the ORIGINAL quote code so the reference stays stable across resubmissions
+      const preservedCode = existing.quoteData?.leadCode || quote.leadCode;
+      const mergedQuote: QuoteState = { ...quote, leadCode: preservedCode };
       const updated: LeadQuote = {
         ...existing,
         timestamp: new Date().toISOString(),
-        quoteData: quote,
+        quoteData: mergedQuote,
         estimatedPrice,
         // Keep existing status — don't reset to 'Nuevo Plan' if already progressed
       };
+      const dupCodes = preservedCode
+        ? Array.from(new Set([preservedCode, ...previousCodes]))
+        : previousCodes;
 
       if (!token) {
         // Persist the selected plan name so the 10s poll doesn't overwrite it
@@ -608,26 +624,26 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           persistOverride('colmedikal_lead_plan', leadPlanOverrides.current);
         }
         // Update both leads (API state) and localLeads so mergedLeads reflects the change immediately
-        setLeads(prev => prev.map(l => String(l.id) === String(existing.id) ? { ...l, quoteData: quote, estimatedPrice } : l));
+        setLeads(prev => prev.map(l => String(l.id) === String(existing.id) ? { ...l, quoteData: mergedQuote, estimatedPrice } : l));
         setLocalLeads(prev => {
           const newLeads = prev.map(l => l.id === existing.id ? updated : l);
           try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(newLeads)); } catch {}
           return newLeads;
         });
         try {
-          await apiCall(`/api/leads/${existing.id}`, 'PUT', { quote_data: quote, estimated_price: estimatedPrice });
+          await apiCall(`/api/leads/${existing.id}`, 'PUT', { quote_data: mergedQuote, estimated_price: estimatedPrice });
         } catch { /* silent */ }
-        return updated;
+        return { ...updated, isDuplicate: true, previousCodes: dupCodes };
       }
 
       setIsLoading(true);
       try {
         await apiCall(`/api/admin/leads/${existing.id}`, 'PUT', {
-          quote_data: quote,
+          quote_data: mergedQuote,
           estimated_price: estimatedPrice,
         }, token);
         await fetchAllData(token);
-        return updated;
+        return { ...updated, isDuplicate: true, previousCodes: dupCodes };
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error updating lead');
         throw err;
@@ -667,7 +683,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           });
         }
       } catch { /* silent fail — localStorage already captured it */ }
-      return newLead;
+      return { ...newLead, isDuplicate: false, previousCodes: [] as string[] };
     }
 
     setIsLoading(true);
@@ -679,7 +695,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }, token);
       await fetchAllData(token);
       setError(null);
-      return result;
+      return { ...result, isDuplicate: false, previousCodes: [] as string[] };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to add lead';
       setError(message);

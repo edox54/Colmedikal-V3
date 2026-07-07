@@ -22,7 +22,8 @@ import {
   Lock,
   X,
   FileCheck,
-  Download
+  Download,
+  AlertCircle
 } from 'lucide-react';
 import { Page } from '../types';
 import Logo from './Logo';
@@ -100,6 +101,7 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResultScreen, setShowResultScreen] = useState(false);
   const [leadCode, setLeadCode] = useState('');
+  const [duplicateCodes, setDuplicateCodes] = useState<string[]>([]);
   const [assignedRep, setAssignedRep] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
@@ -304,17 +306,16 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
       });
     }, 1100);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       clearInterval(intervalId);
       // Assign executive based on plan type and region
       const repName = 'Dra. Patricia Franco (Asesora de Afiliación)';
 
       const code = 'COT-' + Math.floor(Math.random() * 900000 + 100000);
-      setLeadCode(code);
       setAssignedRep(repName);
 
       const estimatedPrice = calculateDynamicPrice(12);
-      addLead({
+      const result = await addLead({
         fullName: `${firstName} ${lastName}`,
         email: email,
         phone: phone,
@@ -328,6 +329,15 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
         leadCode: code,
         selectedPlanName: '',
       }, estimatedPrice);
+
+      // On a duplicate, keep the ORIGINAL reference code and surface the prior code(s)
+      if (result?.isDuplicate) {
+        setDuplicateCodes(result.previousCodes || []);
+        setLeadCode(result.previousCodes?.[0] || result.quoteData?.leadCode || code);
+      } else {
+        setDuplicateCodes([]);
+        setLeadCode(code);
+      }
 
       sendLeadToKommoCRM({
         name: `${firstName} ${lastName}`,
@@ -904,7 +914,33 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
         ) : (
           /* RESULT DISPLAY SCREEN GRID MODULE WITH DYNAMIC CRM FEEDBACK LOGS */
           <div className="space-y-8 animate-in zoom-in-95 duration-400" id="cotizador-results-module">
-            
+
+            {/* Duplicate-request notice */}
+            {duplicateCodes.length > 0 && (
+              <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5 flex items-start gap-4" id="cotizador-duplicate-notice">
+                <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-amber-900">Ya tienes una solicitud registrada</h3>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    Detectamos que enviaste una cotización anteriormente con estos mismos datos de contacto.
+                    No creamos un registro nuevo para evitar duplicados. Tu {duplicateCodes.length > 1 ? 'códigos de cotización son' : 'código de cotización es'}:
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {duplicateCodes.map(c => (
+                      <span key={c} className="bg-white px-3 py-1 rounded-lg text-xs font-mono font-bold text-amber-900 border border-amber-200">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-amber-700 pt-1">
+                    Un asesor dará seguimiento a tu solicitud existente. Si necesitas ayuda inmediata, escríbenos por WhatsApp al 098 702 8756.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Header top banner */}
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-205 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div className="space-y-1 font-sans">

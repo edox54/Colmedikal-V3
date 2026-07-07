@@ -12,7 +12,19 @@ export default function TrackingManager() {
     if (!consent) return; // Waiting for user decision
 
     const { statistics, marketing } = consent;
-    const { ga4_id, gtm_id, gsc_verification, fb_pixel_id, google_ads_id } = seoSettings;
+
+    // These IDs get interpolated into inline <script> bodies, so validate their
+    // format strictly — reject anything with quotes/parens/semicolons/spaces to
+    // prevent script injection if the settings source is ever tampered with.
+    const validId = (v?: string) =>
+      (typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v)) ? v : '';
+    const ga4_id = validId(seoSettings.ga4_id);
+    const gtm_id = validId(seoSettings.gtm_id);
+    const fb_pixel_id = validId(seoSettings.fb_pixel_id);
+    const google_ads_id = validId(seoSettings.google_ads_id);
+    const gsc_verification =
+      (typeof seoSettings.gsc_verification === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(seoSettings.gsc_verification))
+        ? seoSettings.gsc_verification : '';
 
     // GSC verification meta tag — functional, no consent needed
     if (gsc_verification) {

@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Send, 
-  MessageSquare, 
-  CheckCircle, 
-  AlertCircle, 
-  Clock, 
-  Calendar,
-  Share2
+import { useNavigate } from 'react-router-dom';
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Send,
+  MessageSquare,
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { Page } from '../types';
 
@@ -18,6 +16,7 @@ interface ContactProps {
 }
 
 export default function Contact({ setCurrentPage }: ContactProps) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -28,8 +27,6 @@ export default function Contact({ setCurrentPage }: ContactProps) {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [ticketId, setTicketId] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const officeLocations = [
@@ -64,25 +61,16 @@ export default function Contact({ setCurrentPage }: ContactProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      // Simulate ticket generation with random index
       const randomTickets = Math.floor(100000 + Math.random() * 900000);
-      setTicketId(`CLM-${randomTickets}`);
-      setIsSubmitted(true);
+      // Redirect the lead to the dedicated thank-you page with their reference code
+      navigate('/gracias', {
+        state: {
+          ticketId: `CLM-${randomTickets}`,
+          name: formData.fullName,
+          subject: formData.topic,
+        },
+      });
     }
-  };
-
-  const handleReset = () => {
-    setFormData({
-      fullName: '',
-      email: '',
-      phone: '',
-      city: 'Quito',
-      topic: 'Información de Planes',
-      message: ''
-    });
-    setErrors({});
-    setIsSubmitted(false);
-    setTicketId('');
   };
 
   return (
@@ -182,40 +170,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
         {/* 3. CONTACT FORM ENGINE (7 cols) */}
         <div className="lg:col-span-7 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center">
           
-          {isSubmitted ? (
-            <div className="text-center py-12 space-y-6 max-w-md mx-auto" id="contact-success-card">
-              <div className="w-16 h-16 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mx-auto">
-                <CheckCircle className="w-10 h-10" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-slate-950">¡Mensaje Enviado con Éxito!</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Gracias por comunicarte con Colmedikal. Hemos registrado tu solicitud bajo el código de atención:
-                </p>
-                <div className="bg-slate-100 px-4 py-2 rounded-xl text-sm font-mono font-bold text-slate-800 tracking-wide border border-slate-200 w-fit mx-auto">
-                  {ticketId}
-                </div>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                Un asesor especialista de servicio al cliente se comunicará contigo vía llamada telefónica o correo electrónico en las próximas 2 horas hábiles.
-              </p>
-              <div className="pt-4 flex gap-3 justify-center">
-                <button
-                  onClick={handleReset}
-                  className="px-6 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold rounded-lg transition-colors cursor-pointer"
-                >
-                  Nuevo mensaje
-                </button>
-                <button
-                  onClick={() => setCurrentPage('home')}
-                  className="px-6 py-2.5 bg-teal-500 text-white hover:bg-teal-600 text-xs font-bold rounded-lg transition-all shadow-md cursor-pointer"
-                >
-                  Volver al Inicio
-                </button>
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-6" id="contact-form-submit">
+          <form onSubmit={handleSubmit} className="space-y-6" id="contact-form-submit">
               <div>
                 <h3 className="text-xl font-bold text-slate-950 mb-1">Indícame tu información de contacto</h3>
                 <p className="text-xs text-slate-400">Me encargaré de diseñar la mejor opción para ti y tu familia.</p>
@@ -338,8 +293,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
               <span className="block text-[10px] text-center text-slate-400">
                 Al enviar autorizas el uso de tus datos exclusivamente para responder y brindarte asesoramiento médico por Colmedikal S.A.
               </span>
-            </form>
-          )}
+          </form>
 
         </div>
 

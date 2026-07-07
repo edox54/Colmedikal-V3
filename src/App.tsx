@@ -28,6 +28,7 @@ import CookieConsent from './components/CookieConsent';
 import SEOPanel from './components/SEOPanel';
 import PowerSEOPanel from './components/PowerSEOPanel';
 import MapaRedMedica from './components/MapaRedMedica';
+import Gracias from './components/Gracias';
 
 
 function ScrollToTop() {
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="/blog/*" element={<HomeLayout component={Blog} />} />
           <Route path="/cotizador" element={<AdminLayout component={Cotizador} />} />
           <Route path="/mapa-red-medica" element={<HomeLayout component={MapaRedMedica} />} />
+          <Route path="/gracias" element={<HomeLayout component={Gracias} />} />
           <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
           <Route path="/seo-panel" element={<SEOPanelLayout />} />
           <Route path="/power-seo" element={<PowerSEOLayout />} />

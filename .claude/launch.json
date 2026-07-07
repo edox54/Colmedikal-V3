@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "colmedikal-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js", "preview", "--port", "4173", "--strictPort"],
+      "port": 4173
     }
   ]
 }

@@ -58,7 +58,7 @@ function verifyToken(req: Request, res: Response, next: NextFunction) {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // SEO: www → non-www 301 redirect (canonical domain)
   app.use((req, res, next) => {
