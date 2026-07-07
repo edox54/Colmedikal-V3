@@ -204,6 +204,67 @@ async function startServer() {
     }
   });
 
+  // ==================== CROSS-DEVICE LEAD DEDUP INDEX ====================
+  // The public API has no lead-read endpoint, so anonymous duplicate detection
+  // is handled here: every created lead records SHA-256 hashes of its contact
+  // identifiers (email / phone / cédula) -> quote code. New submissions look up
+  // those hashes to find prior requests from ANY device. We store only hashes,
+  // never raw PII. Fail-open on any error so a lookup glitch never blocks a lead.
+  // ponytail: append-only JSONL scanned per lookup — O(n); fine for lead volumes,
+  //           swap for SQLite if the file ever grows past tens of thousands.
+  const DATA_DIR = path.join(process.cwd(), 'data');
+  const LEAD_INDEX = path.join(DATA_DIR, 'lead-index.jsonl');
+  const normId = (s: unknown) =>
+    typeof s === 'string' ? s.toLowerCase().replace(/\s/g, '').trim() : '';
+  const hashId = (s: string) => crypto.createHash('sha256').update(s).digest('hex');
+  // Hashes for the present, normalized identifiers of a submission
+  const idHashes = (b: any): string[] => {
+    const out: string[] = [];
+    for (const raw of [b?.email, b?.phone, b?.docNumber]) {
+      const n = normId(raw);
+      if (n && n.length <= 200) out.push(hashId(n));
+    }
+    return out;
+  };
+
+  app.post('/api/leads/lookup', express.json(), (req, res) => {
+    try {
+      const wanted = new Set(idHashes(req.body));
+      if (wanted.size === 0 || !fs.existsSync(LEAD_INDEX)) {
+        return res.json({ isDuplicate: false, codes: [] });
+      }
+      const codes = new Set<string>();
+      for (const line of fs.readFileSync(LEAD_INDEX, 'utf8').split('\n')) {
+        if (!line) continue;
+        let rec: any;
+        try { rec = JSON.parse(line); } catch { continue; }
+        if (Array.isArray(rec.h) && rec.code && rec.h.some((h: string) => wanted.has(h))) {
+          codes.add(rec.code);
+        }
+      }
+      res.json({ isDuplicate: codes.size > 0, codes: Array.from(codes) });
+    } catch (e) {
+      console.error('[lead-lookup]', e);
+      res.json({ isDuplicate: false, codes: [] }); // fail-open
+    }
+  });
+
+  app.post('/api/leads/index', express.json(), (req, res) => {
+    try {
+      const code = typeof req.body?.leadCode === 'string' ? req.body.leadCode.trim() : '';
+      const h = idHashes(req.body);
+      if (!code || !/^[A-Za-z0-9_-]{1,40}$/.test(code) || h.length === 0) {
+        return res.status(400).json({ success: false });
+      }
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.appendFileSync(LEAD_INDEX, JSON.stringify({ h, code, t: Date.now() }) + '\n');
+      res.json({ success: true });
+    } catch (e) {
+      console.error('[lead-index]', e);
+      res.status(500).json({ success: false });
+    }
+  });
+
   const distPath = path.join(process.cwd(), 'dist');
   const hasDist = fs.existsSync(path.join(distPath, 'index.html'));
   const isProd = process.env.NODE_ENV === 'production' || hasDist;

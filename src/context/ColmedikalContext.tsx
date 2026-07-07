@@ -581,8 +581,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // ==================== LEADS ====================
   const addLead = async (quote: QuoteState, estimatedPrice: number) => {
     // --- Duplicate detection: match on cédula, phone OR email ---
-    // Note: anonymous visitors only see leads from this browser (localLeads); the
-    // public API has no lead-read endpoint, so cross-device dedup needs backend work.
+    // Local pass covers admin leads + this browser's own submissions.
     const normalize = (s?: string) => s?.toLowerCase().replace(/\s/g, '').trim() || '';
     const allLeads = [...leads, ...localLeads];
     const nEmail = normalize(quote.email);
@@ -602,6 +601,23 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       matches.map(m => m.quoteData?.leadCode).filter((c): c is string => !!c)
     ));
 
+    // Cross-device pass: ask the same-origin server dedup index (server.ts) for
+    // prior requests with these identifiers from ANY device/browser. Fail-open.
+    let serverCodes: string[] = [];
+    if (!token) {
+      try {
+        const r = await fetch('/api/leads/lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: quote.email, phone: quote.phone, docNumber: quote.docNumber }),
+        });
+        if (r.ok) {
+          const j = await r.json();
+          if (Array.isArray(j.codes)) serverCodes = j.codes.filter((c: unknown): c is string => typeof c === 'string');
+        }
+      } catch { /* fail-open: never block a legitimate lead on a lookup glitch */ }
+    }
+
     if (existing) {
       // Preserve the ORIGINAL quote code so the reference stays stable across resubmissions
       const preservedCode = existing.quoteData?.leadCode || quote.leadCode;
@@ -613,9 +629,9 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         estimatedPrice,
         // Keep existing status — don't reset to 'Nuevo Plan' if already progressed
       };
-      const dupCodes = preservedCode
-        ? Array.from(new Set([preservedCode, ...previousCodes]))
-        : previousCodes;
+      const dupCodes = Array.from(new Set(
+        [preservedCode, ...previousCodes, ...serverCodes].filter((c): c is string => !!c)
+      ));
 
       if (!token) {
         // Persist the selected plan name so the 10s poll doesn't overwrite it
@@ -652,6 +668,20 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
     }
 
+    // Cross-device duplicate: the server index knows this person from another
+    // device, but we have no local lead to upsert. Don't create a new one —
+    // surface the prior code(s) and stop.
+    if (!token && serverCodes.length > 0) {
+      const stub: LeadQuote = {
+        id: 'remote-dup',
+        timestamp: new Date().toISOString(),
+        quoteData: { ...quote, leadCode: serverCodes[0] },
+        estimatedPrice,
+        status: 'Nuevo Plan',
+      };
+      return { ...stub, isDuplicate: true, previousCodes: serverCodes };
+    }
+
     // --- No duplicate found: create new lead ---
     // Public submission path — save to API (public endpoint) + localStorage fallback
     if (!token) {
@@ -683,6 +713,14 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           });
         }
       } catch { /* silent fail — localStorage already captured it */ }
+      // Record identifiers in the cross-device dedup index (server.ts, same origin)
+      try {
+        await fetch('/api/leads/index', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: quote.email, phone: quote.phone, docNumber: quote.docNumber, leadCode: quote.leadCode }),
+        });
+      } catch { /* fail-open: dedup index is best-effort */ }
       return { ...newLead, isDuplicate: false, previousCodes: [] as string[] };
     }
 
