@@ -100,9 +100,9 @@ export default function Footer() {
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Planes Disponibles</h3>
             <ul className="space-y-2.5 text-sm text-white">
-              <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Plan Inicio 2K</Link></li>
-              <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Plan Protección 3K</Link></li>
-              <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Plan Plus 5K</Link></li>
+              <li><Link to="/cotizador" state={{ planId: 'inicio' }} className="hover:text-teal-400 transition-colors text-left">Plan Inicio 2K</Link></li>
+              <li><Link to="/cotizador" state={{ planId: 'proteccion' }} className="hover:text-teal-400 transition-colors text-left">Plan Protección 3K</Link></li>
+              <li><Link to="/cotizador" state={{ planId: 'plus' }} className="hover:text-teal-400 transition-colors text-left">Plan Plus 5K</Link></li>
               <li><Link to="/cotizador" className="hover:text-teal-400 transition-colors text-left">Planes Corporativos para Pymes y Grandes Empresas</Link></li>
             </ul>
           </div>

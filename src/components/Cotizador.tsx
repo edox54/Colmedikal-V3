@@ -314,7 +314,12 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
       const code = 'COT-' + Math.floor(Math.random() * 900000 + 100000);
       setAssignedRep(repName);
 
-      const estimatedPrice = calculateDynamicPrice(12);
+      // If the user already chose a specific plan (homepage cards, footer links),
+      // the quote must reflect THAT plan from the very first lead — no more
+      // fabricated 'proteccion' default with a blank name, which is what caused
+      // the backend to show "sin plan seleccionado" for people who did pick one.
+      const preselectedPlan = preselectedPlanId ? plansComparativo.find(p => p.id === preselectedPlanId) : undefined;
+      const estimatedPrice = calculateDynamicPrice(preselectedPlan ? preselectedPlan.basePrice : 12);
       const result = await addLead({
         fullName: `${firstName} ${lastName}`,
         email: email,
@@ -325,9 +330,9 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
         primaryAge: 35,
         childrenCount: dependants.length,
         childrenAges: dependants.map(d => d.ageRange === '0-17' ? 10 : 25),
-        basePlanId: 'proteccion',
+        basePlanId: preselectedPlan?.id || '',
         leadCode: code,
-        selectedPlanName: '',
+        selectedPlanName: preselectedPlan ? `${preselectedPlan.name} — $${preselectedPlan.basePrice}/mes` : '',
       }, estimatedPrice);
 
       // On a duplicate, keep the ORIGINAL reference code and surface the prior code(s)
@@ -339,16 +344,24 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
         setLeadCode(code);
       }
 
+      // A plan chosen before arriving here must lead exclusively to that plan's
+      // checkout — never back into the 3-plan comparison, to avoid confusion
+      // with the other plans' details/pricing.
+      if (preselectedPlan) {
+        setSelectedPlanToBuy(preselectedPlan);
+        setCheckoutStep(1);
+      }
+
       sendLeadToKommoCRM({
         name: `${firstName} ${lastName}`,
         email: email,
         phone: phone,
-        subject: `Cotización Web: Plan Individual`,
+        subject: preselectedPlan ? `Cotización Web: ${preselectedPlan.name}` : `Cotización Web: Plan Individual`,
         amount: estimatedPrice,
         province: province,
-        details: `Propuesta de Plan Individual. Provincia de cobertura: ${province}. Código de Cotización: ${code}. Dependientes: ${dependants.length || 0}.`,
+        details: `Propuesta de ${preselectedPlan ? preselectedPlan.name : 'Plan Individual'}. Provincia de cobertura: ${province}. Código de Cotización: ${code}. Dependientes: ${dependants.length || 0}.`,
         leadCode: code,
-        planName: 'Plan Individual'
+        planName: preselectedPlan ? preselectedPlan.name : 'Plan Individual'
       });
 
       setIsSubmitting(false);
@@ -964,6 +977,9 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
                   onClick={() => {
                     setShowResultScreen(false);
                     setQuoteStep(1);
+                    setSelectedPlanToBuy(null);
+                    setCheckoutStep(1);
+                    setDuplicateCodes([]);
                   }}
                   className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition duration-200 cursor-pointer"
                 >

@@ -213,6 +213,17 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       .replace(/Plan\s+(?:Colmedikal\s+)?Premium|Plan\s+3\s*[—\-]\s*Premium/gi, 'Plan Plus 5K');
   };
 
+  // basePlanId is now only ever set by the Cotizador when a real plan was chosen
+  // (never a fabricated default) — safe to use as a display fallback when
+  // selectedPlanName wasn't formatted for some reason.
+  const PLAN_ID_TO_NAME: Record<string, string> = {
+    inicio: 'Plan Inicio 2K',
+    proteccion: 'Plan Protección 3K',
+    plus: 'Plan Plus 5K',
+  };
+  const resolvePlanName = (l: { quoteData?: { selectedPlanName?: string; basePlanId?: string } }): string =>
+    normalizePlanName(l.quoteData?.selectedPlanName) || PLAN_ID_TO_NAME[l.quoteData?.basePlanId || ''] || '';
+
   const exportLeadsCSV = (clusters: [string, typeof leads][]) => {
     const headers = ['Código','Nombre','Email','Teléfono','Cédula','Plan','Precio/mes','Estado','Asignado a','Fecha'];
     const rows = clusters.map(([, cluster]) => {
@@ -223,7 +234,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         l.quoteData?.email || '',
         l.quoteData?.phone || '',
         l.quoteData?.docNumber || '',
-        normalizePlanName(l.quoteData?.selectedPlanName) || l.quoteData?.basePlanId || '',
+        resolvePlanName(l),
         Number(l.estimatedPrice || 0).toFixed(2),
         l.status,
         l.assignedTo || '',
@@ -1474,7 +1485,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                         </div>
                         <h4 className="text-sm font-black text-slate-900">{primary.quoteData?.fullName || '—'}</h4>
                         {(() => {
-                          const planName = normalizePlanName(primary.quoteData?.selectedPlanName);
+                          const planName = resolvePlanName(primary);
                           return planName
                             ? <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase">{planName}</span>
                             : <span className="text-[9px] bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded font-medium italic">Sin plan seleccionado</span>;
@@ -1549,7 +1560,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       {/* WhatsApp quick contact */}
                       {primary.quoteData?.phone && (
                         <a
-                          href={`https://wa.me/${primary.quoteData.phone.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${primary.quoteData?.fullName?.split(' ')[0] || ''}, te contactamos de Colmedikal. Vimos tu cotización del ${normalizePlanName(primary.quoteData?.selectedPlanName) || 'plan médico'} por $${Number(primary.estimatedPrice||0).toFixed(2)}/mes. ¿Tienes un momento para conversar sobre tu cobertura?`)}`}
+                          href={`https://wa.me/${primary.quoteData.phone.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${primary.quoteData?.fullName?.split(' ')[0] || ''}, te contactamos de Colmedikal. Vimos tu cotización del ${resolvePlanName(primary) || 'plan médico'} por $${Number(primary.estimatedPrice||0).toFixed(2)}/mes. ¿Tienes un momento para conversar sobre tu cobertura?`)}`}
                           target="_blank" rel="noopener noreferrer"
                           className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition cursor-pointer"
                           title="Contactar por WhatsApp"
