@@ -86,17 +86,36 @@ export default function DirectorioMedico() {
   // so the options always match what the directory actually offers.
   const NON_SPECIALTY_TOKENS = new Set(['LABORATORIO', 'RAYOS X', 'TELEMEDICINA']);
   const toTitleCase = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+
+  // Odontología and Laboratorio providers are identified by name/specialty
+  // (like the Categoría filter below), not by the education field — so they
+  // were previously missing from this dropdown entirely. Matched the same way
+  // here so the filter and the option list never disagree.
+  const isDentalProvider = (d: { specialty: string; name: string }) => {
+    const s = d.specialty.toLowerCase();
+    return s.includes('odontología') || s.includes('odontologia') || s.includes('dental') ||
+      d.name.toLowerCase().includes('dent') || d.name.toLowerCase().includes('odont');
+  };
+  const isLabProvider = (d: { specialty: string; name: string }) => {
+    const s = d.specialty.toLowerCase();
+    return s.includes('laboratorio') || s.includes('cruz vital') || d.name.toLowerCase().includes('lab');
+  };
+
   const medicalSpecialties = useMemo(() => {
+    const active = doctors.filter(d => d.active !== false);
     const counts = new Map<string, number>();
-    doctors.filter(d => d.active !== false).forEach(d => {
+    active.forEach(d => {
       (d.education || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean).forEach(tok => {
         if (NON_SPECIALTY_TOKENS.has(tok)) return;
         counts.set(tok, (counts.get(tok) || 0) + 1);
       });
     });
-    return [...counts.entries()]
+    const list = [...counts.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([tok]) => toTitleCase(tok));
+    if (active.some(isDentalProvider)) list.push('Odontología');
+    if (active.some(isLabProvider)) list.push('Laboratorio');
+    return list;
   }, [doctors]);
 
   const cities = [
@@ -132,8 +151,12 @@ export default function DirectorioMedico() {
                           doc.education.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           doc.city.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Doctor Specialty match
-    const matchesDoctorSpecialty = doctorSpecialty === '' || doc.education.toLowerCase().includes(doctorSpecialty.toLowerCase());
+    // Doctor Specialty match — Odontología/Laboratorio are name/specialty-based
+    // (see isDentalProvider/isLabProvider), everything else checks education.
+    const matchesDoctorSpecialty = doctorSpecialty === '' ||
+      (doctorSpecialty === 'Odontología' ? isDentalProvider(doc) :
+       doctorSpecialty === 'Laboratorio' ? isLabProvider(doc) :
+       doc.education.toLowerCase().includes(doctorSpecialty.toLowerCase()));
     
     // Specialty match
     let matchesSpecialty = true;

@@ -693,7 +693,7 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
                       </div>
 
                       <div className="col-span-1 sm:col-span-2 space-y-1">
-                        <label className="block text-xs font-bold text-slate-700">Provincia de Residencia / Proyecto: <span className="text-rose-500">*</span></label>
+                        <label className="block text-xs font-bold text-slate-700">Provincia de Residencia:</label>
                         <select
                           value={province}
                           onChange={(e) => setProvince(e.target.value)}

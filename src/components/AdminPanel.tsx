@@ -2002,7 +2002,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                     </div>
 
                     <p className="text-[10px] text-slate-400 bg-slate-50 border border-slate-100 rounded-lg p-2.5 leading-relaxed">
-                      El cliente ingresará al Portal de Afiliados (<a href="/portal-afiliados" target="_blank" rel="noreferrer" className="text-[#4597CA] underline">colmedikal.com/portal-afiliados</a>) usando su cédula y esta contraseña.
+                      El cliente ingresará a Mi Colmedikal (<a href="/mi-colmedikal" target="_blank" rel="noreferrer" className="text-[#4597CA] underline">colmedikal.com/mi-colmedikal</a>) usando su cédula y esta contraseña.
                     </p>
 
                     <button

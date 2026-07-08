@@ -78,7 +78,6 @@ export default function Header() {
     { label: 'Trámites en línea', id: 'tramites_menu', items: [
         { label: 'Trámites en línea (reembolsos y autorizaciones)', path: '/tramites' },
         { label: 'Agendar Cita', path: '/agendamiento' },
-        { label: 'Portal de Afiliados', path: '/portal-afiliados' },
     ]},
     { label: 'Blog', path: '/blog', id: 'blog' },
     { label: 'Contacto', path: '/contacto', id: 'contacto' },
@@ -258,6 +257,19 @@ export default function Header() {
               )}
 
               <Link
+                to="/mi-colmedikal"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium border transition-all duration-300 ${
+                  location.pathname === '/mi-colmedikal'
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-[#0C4169] border-[#0C4169]/30 hover:border-[#0C4169] hover:bg-slate-50'
+                }`}
+                id="cta-nav-mi-colmedikal"
+              >
+                <User className="w-4 h-4" />
+                <span>Mi Colmedikal</span>
+              </Link>
+
+              <Link
                 to="/cotizador"
                 className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                   location.pathname === '/cotizador'
@@ -377,6 +389,15 @@ export default function Header() {
               )}
 
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
+                <Link
+                  to="/mi-colmedikal"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-center w-full gap-2 px-4 py-3 rounded-xl bg-white border border-[#0C4169]/30 text-[#0C4169] font-bold text-xs active:scale-98 transition-all"
+                  id="mobile-nav-mi-colmedikal"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Mi Colmedikal</span>
+                </Link>
                 <Link
                   to="/cotizador"
                   onClick={() => setIsOpen(false)}

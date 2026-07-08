@@ -75,7 +75,8 @@ export default function App() {
           <Route path="/cotizador" element={<AdminLayout component={Cotizador} />} />
           <Route path="/mapa-red-medica" element={<HomeLayout component={MapaRedMedica} />} />
           <Route path="/gracias" element={<HomeLayout component={Gracias} />} />
-          <Route path="/portal-afiliados" element={<HomeLayout component={PortalAfiliados} />} />
+          <Route path="/mi-colmedikal" element={<HomeLayout component={PortalAfiliados} />} />
+          <Route path="/portal-afiliados" element={<Navigate to="/mi-colmedikal" replace />} />
           <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
           <Route path="/seo-panel" element={<SEOPanelLayout />} />
           <Route path="/power-seo" element={<PowerSEOLayout />} />

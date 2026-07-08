@@ -1,19 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Calendar,
-  MapPin,
   Clock,
   User,
-  Sparkles,
-  CheckCircle,
-  Send,
   ArrowLeft,
-  Mail,
-  ShieldCheck,
-  Activity,
   AlertCircle,
-  HelpCircle,
-  PhoneCall
+  PhoneCall,
+  Lock,
+  LogOut,
+  Video
 } from 'lucide-react';
 import { Page, Doctor } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
@@ -62,22 +57,105 @@ function matchesCityGroup(cityRaw: string, groupId: string): boolean {
 }
 
 // Services listed in a provider's education field that aren't a bookable
-// clinical specialty — excluded from the "Especialidad Requerida" options.
+// clinical specialty — excluded from the token-count derivation below.
 const NON_SPECIALTY_TOKENS = new Set(['LABORATORIO', 'RAYOS X', 'TELEMEDICINA']);
 const toTitleCase = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+
+// Odontología/Laboratorio providers are identified by name/specialty, not the
+// education field — same completion applied to the Directorio filter.
+const isDentalProvider = (d: { specialty: string; name: string }) => {
+  const s = d.specialty.toLowerCase();
+  return s.includes('odontología') || s.includes('odontologia') || s.includes('dental') ||
+    d.name.toLowerCase().includes('dent') || d.name.toLowerCase().includes('odont');
+};
+const isLabProvider = (d: { specialty: string; name: string }) => {
+  const s = d.specialty.toLowerCase();
+  return s.includes('laboratorio') || s.includes('cruz vital') || d.name.toLowerCase().includes('lab');
+};
+const matchesSpecialtyToken = (d: Doctor, token: string): boolean => {
+  if (token === 'Odontología') return isDentalProvider(d);
+  if (token === 'Laboratorio') return isLabProvider(d);
+  return (d.education || '').toLowerCase().includes(token.toLowerCase());
+};
+
+// Same nivel taxonomy as DirectorioMedico — the network's demo Nivel 2/3
+// centers aren't reachable by any currently sellable plan, so only Nivel 1
+// providers are ever bookable today. Kept data-driven so a future plan tied
+// to a higher nivel just works once added here.
+const NIVEL2_NAMES = new Set(['CENTRO MÉDICO ESPECIALIZADO NORTE (DEMO)', 'CLÍNICA AVANZADA DEL LITORAL (DEMO)']);
+const NIVEL3_NAMES = new Set(['HOSPITAL DE ESPECIALIDADES COLMEDIKAL (DEMO)', 'CLÍNICA INTERNACIONAL COLMEDIKAL (DEMO)']);
+const docNivel = (d: Doctor): number => NIVEL3_NAMES.has(d.name) ? 3 : NIVEL2_NAMES.has(d.name) ? 2 : 1;
+const PLAN_NIVEL: Record<string, number> = { inicio: 1, proteccion: 1, plus: 1 };
 
 export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasProps) {
   const { addAppointment, seoSettings } = useColmedikal();
 
-  // FORM FIELDS
-  const [fullName, setFullName] = useState('');
-  const [cedula, setCedula] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  // ==================== CLIENT AUTH GATE (same session as /mi-colmedikal) ====================
+  const [portalToken, setPortalToken] = useState<string | null>(() => sessionStorage.getItem('colmedikal_portal_token'));
+  const [profile, setProfile] = useState<any | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
-  // Appointment specific fields
+  const [docNumberInput, setDocNumberInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  useEffect(() => {
+    if (!portalToken) { setProfile(null); return; }
+    let cancelled = false;
+    (async () => {
+      setProfileLoading(true);
+      try {
+        const res = await fetch('/api/portal/me', { headers: { Authorization: `Bearer ${portalToken}` } });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) throw new Error();
+        if (!cancelled) setProfile(json.data);
+      } catch {
+        if (!cancelled) {
+          sessionStorage.removeItem('colmedikal_portal_token');
+          setPortalToken(null);
+          setProfile(null);
+        }
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [portalToken]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoggingIn(true);
+    try {
+      const res = await fetch('/api/portal/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docNumber: docNumberInput, password: passwordInput }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.success) {
+        setLoginError(result.message || 'Cédula o contraseña incorrecta.');
+        return;
+      }
+      sessionStorage.setItem('colmedikal_portal_token', result.token);
+      setPortalToken(result.token);
+    } catch {
+      setLoginError('No se pudo conectar. Intenta de nuevo.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('colmedikal_portal_token');
+    setPortalToken(null);
+    setProfile(null);
+  };
+
+  // ==================== APPOINTMENT FIELDS ====================
   const [cityGroup, setCityGroup] = useState('');
-  const [specialty, setSpecialty] = useState(''); // stored as the UPPERCASE token used for matching
+  const [specialty, setSpecialty] = useState('');
   const [facility, setFacility] = useState('');
 
   const [rawDoctors, setRawDoctors] = useState<Doctor[]>([]);
@@ -96,32 +174,41 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
     return rawDoctors.filter(d => !deactivatedIds.includes(d.id) && d.active !== false);
   }, [rawDoctors, seoSettings.deactivated_doctors]);
 
-  // Real, live specialties — derived from every active provider's education field,
-  // not a hardcoded list, so it always matches what's actually in the directory.
+  // Only providers within the nivel that the client's current plan grants access to.
+  const clientNivel = profile ? (PLAN_NIVEL[profile.basePlanId] ?? 1) : 1;
+  const nivelDoctors = useMemo(
+    () => activeDoctors.filter(d => docNivel(d) === clientNivel),
+    [activeDoctors, clientNivel]
+  );
+
+  // Real, live specialties — same derivation (and completion) as the Directorio filter.
   const specialtyOptions = useMemo(() => {
     const counts = new Map<string, number>();
-    activeDoctors.forEach(d => {
+    nivelDoctors.forEach(d => {
       (d.education || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean).forEach(tok => {
         if (NON_SPECIALTY_TOKENS.has(tok)) return;
         counts.set(tok, (counts.get(tok) || 0) + 1);
       });
     });
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1]) // most-available specialty first, so the default always has options
-      .map(([id]) => ({ id, name: toTitleCase(id) }));
-  }, [activeDoctors]);
+    const list = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([tok]) => toTitleCase(tok));
+    if (nivelDoctors.some(isDentalProvider)) list.push('Odontología');
+    if (nivelDoctors.some(isLabProvider)) list.push('Laboratorio');
+    return list;
+  }, [nivelDoctors]);
 
   useEffect(() => {
-    if (!specialty && specialtyOptions.length > 0) setSpecialty(specialtyOptions[0].id);
+    if (!specialty && specialtyOptions.length > 0) setSpecialty(specialtyOptions[0]);
   }, [specialtyOptions]);
 
   // Only offer city groups that actually have a provider for the chosen specialty
   const availableCityGroups = useMemo(() => {
     if (!specialty) return [];
     return CITY_GROUPS.filter(g =>
-      activeDoctors.some(d => matchesCityGroup(d.city, g.id) && (d.education || '').toUpperCase().includes(specialty))
+      nivelDoctors.some(d => matchesCityGroup(d.city, g.id) && matchesSpecialtyToken(d, specialty))
     );
-  }, [activeDoctors, specialty]);
+  }, [nivelDoctors, specialty]);
 
   useEffect(() => {
     if (availableCityGroups.length === 0) { setCityGroup(''); return; }
@@ -135,13 +222,11 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
   const facilitiesForSelection = useMemo(() => {
     if (!specialty || !cityGroup) return [];
     const names = new Set<string>();
-    activeDoctors.forEach(d => {
-      if (matchesCityGroup(d.city, cityGroup) && (d.education || '').toUpperCase().includes(specialty)) {
-        names.add(d.name);
-      }
+    nivelDoctors.forEach(d => {
+      if (matchesCityGroup(d.city, cityGroup) && matchesSpecialtyToken(d, specialty)) names.add(d.name);
     });
     return [...names].sort((a, b) => a.localeCompare(b, 'es'));
-  }, [activeDoctors, specialty, cityGroup]);
+  }, [nivelDoctors, specialty, cityGroup]);
 
   useEffect(() => {
     if (facilitiesForSelection.length === 0) { setFacility(''); return; }
@@ -153,11 +238,9 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
   const facilitiesAllCitiesForSpecialty = useMemo(() => {
     if (!specialty) return [];
     const names = new Set<string>();
-    activeDoctors.forEach(d => {
-      if ((d.education || '').toUpperCase().includes(specialty)) names.add(d.name);
-    });
+    nivelDoctors.forEach(d => { if (matchesSpecialtyToken(d, specialty)) names.add(d.name); });
     return [...names].sort((a, b) => a.localeCompare(b, 'es'));
-  }, [activeDoctors, specialty]);
+  }, [nivelDoctors, specialty]);
 
   const [facilitySearch, setFacilitySearch] = useState('');
   const [facilityOpen, setFacilityOpen] = useState(false);
@@ -172,8 +255,8 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
   // The exact directory record behind the chosen establishment — used at submit
   // time so the appointment stores the REAL city/address, not just the province group.
   const selectedDoctorRecord = useMemo(
-    () => activeDoctors.find(d => d.name === facility),
-    [activeDoctors, facility]
+    () => nivelDoctors.find(d => d.name === facility),
+    [nivelDoctors, facility]
   );
 
   const [preferredDate, setPreferredDate] = useState('');
@@ -188,6 +271,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!profile) return;
     if (!privacyAccepted) {
       alert('Debe aceptar las políticas de protección de datos personales.');
       return;
@@ -211,16 +295,15 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
     // The real city/address from the chosen directory provider — more precise
     // than the province group used for filtering, and consistent with /directorio.
     const realCity = selectedDoctorRecord?.city || CITY_GROUPS.find(g => g.id === cityGroup)?.name || cityGroup;
-    const specialtyLabel = specialtyOptions.find(s => s.id === specialty)?.name || specialty;
 
     // Save to backend (public endpoint, no auth required)
     try {
       await addAppointment({
         doctorName: 'Por Asignar',
-        specialty: specialtyLabel,
-        patientName: fullName,
-        patientId: cedula,
-        patientPhone: phone,
+        specialty,
+        patientName: profile.fullName,
+        patientId: profile.docNumber,
+        patientPhone: profile.phone,
         aptDate: preferredDate,
         aptTime: preferredTimeRange,
         modality: 'presencial',
@@ -232,42 +315,32 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
       });
     } catch { /* continue even if API call fails */ }
 
-    const data = {
+    setTicketDetails({
       opportunityId,
-      timestamp: new Date().toLocaleString(),
-      fullName,
-      cedula,
-      phone,
-      email,
+      fullName: profile.fullName,
+      phone: profile.phone,
       city: realCity,
-      specialty: specialtyLabel,
+      specialty,
       facility,
       preferredDate,
       preferredTimeRange,
-      additionalNotes: additionalNotes || 'Sin comentarios adicionales',
       coordinator: coordinatorName,
-      status: 'Pendiente de Confirmación con el Especialista',
-    };
-
-    setTicketDetails(data);
+    });
     setIsSubmitting(false);
     setSuccess(true);
   };
 
   const handleReset = () => {
-    setFullName('');
-    setCedula('');
-    setPhone('');
-    setEmail('');
     setPreferredDate('');
     setAdditionalNotes('');
+    setPrivacyAccepted(false);
     setSuccess(false);
     setTicketDetails(null);
   };
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16 space-y-12" id="agendamiento-citas-view">
-      
+
       {/* Top Title Head with go back triggers */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-200 pb-8">
         <div>
@@ -276,7 +349,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
             Solicitud de Cita Médica Tentativa
           </h1>
           <p className="text-sm text-slate-500 mt-2 max-w-2xl">
-            Complete los datos de la cita requerida. Su solicitud de cita pasará directamente a nuestro sistema para que nuestros coordinadores verifiquen la agenda del especialista de forma ágil.
+            Este servicio está disponible exclusivamente para clientes activos de Colmedikal.
           </p>
         </div>
 
@@ -289,71 +362,117 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
         </button>
       </div>
 
-      {!success ? (
+      {profileLoading ? (
+        <div className="text-center py-16">
+          <div className="w-8 h-8 border-2 border-slate-200 border-t-[#4597CA] rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-slate-500 mt-3">Verificando tu cuenta...</p>
+        </div>
+      ) : !profile ? (
+        /* ==================== NOT A RECOGNIZED CLIENT ==================== */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
-          
+          <div className="lg:col-span-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+            <div className="flex items-center gap-2 text-[#0C4169]">
+              <Lock className="w-5 h-5" />
+              <span className="text-sm font-bold">Ingresa como Cliente</span>
+            </div>
+            <p className="text-xs text-slate-500">
+              El agendamiento de citas es exclusivo para clientes con un plan activo. Ingresa con la misma cédula y contraseña de tu cuenta Mi Colmedikal.
+            </p>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              {loginError && (
+                <div className="p-3 bg-red-50 border border-red-100 text-red-650 text-xs rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{loginError}</span>
+                </div>
+              )}
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-700">Cédula:</label>
+                <input
+                  type="text"
+                  required
+                  value={docNumberInput}
+                  onChange={(e) => setDocNumberInput(e.target.value)}
+                  placeholder="Ej. 1712345678"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-700">Contraseña:</label>
+                <input
+                  type="password"
+                  required
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full py-3 bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs rounded-xl shadow-md transition-all disabled:opacity-60 cursor-pointer"
+              >
+                {isLoggingIn ? 'Ingresando...' : 'Ingresar'}
+              </button>
+            </form>
+          </div>
+
+          <div className="lg:col-span-6 bg-gradient-to-br from-slate-900 via-[#1D3557] to-[#0C4169] text-white p-6 sm:p-8 rounded-3xl flex flex-col justify-center space-y-4">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-teal-300">¿Aún no eres cliente?</span>
+            <h3 className="text-lg font-extrabold leading-snug">
+              Contrata un plan de medicina prepagada para acceder al agendamiento directo de citas.
+            </h3>
+            <p className="text-xs text-slate-300">
+              Cotiza en minutos y, una vez tu plan quede activo, tu asesor te entregará las credenciales de acceso a Mi Colmedikal.
+            </p>
+            <button
+              onClick={() => setCurrentPage('cotizador')}
+              className="px-5 py-3 bg-[#4597CA] hover:bg-[#4597CA]/90 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer w-fit"
+            >
+              Cotizar un Plan Ahora
+            </button>
+          </div>
+        </div>
+      ) : !success ? (
+        /* ==================== RECOGNIZED CLIENT — SCHEDULING FORM ==================== */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
+
           {/* Form Side */}
           <div className="lg:col-span-8 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-            <span className="block text-xs font-bold text-[#4597CA] uppercase tracking-wider border-b border-slate-100 pb-2">
-              🩺 Registro de Preferencias de Consulta
-            </span>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <span className="block text-xs font-bold text-[#4597CA] uppercase tracking-wider">
+                🩺 Registro de Preferencias de Consulta
+              </span>
+              <button onClick={handleLogout} className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-red-500 cursor-pointer">
+                <LogOut className="w-3 h-3" /> Cerrar sesión
+              </button>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              
-              {/* Patient identities */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-705">Nombre Completo del Asegurado: <span className="text-rose-550">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    placeholder="Ej. María Paulina Cárdenas"
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs focus:ring-1 focus:ring-[#4597CA] outline-none"
-                  />
-                </div>
 
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-705">Cédula o Pasaporte: <span className="text-rose-550">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    value={cedula}
-                    placeholder="Ej. 1718224590"
-                    onChange={(e) => setCedula(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs focus:ring-1 focus:ring-[#4597CA] outline-none font-mono"
-                  />
+              {/* Verified patient identity */}
+              <div className="bg-emerald-50 border border-emerald-150 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <span className="block text-[9px] text-emerald-700 font-bold uppercase">Asegurado Titular</span>
+                  <span className="text-sm font-bold text-slate-900">{profile.fullName}</span>
                 </div>
-
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-705">Celular de Contacto: <span className="text-rose-550">*</span></label>
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    placeholder="Ej. +593 99 876 5432"
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs focus:ring-1 focus:ring-[#4597CA] outline-none font-mono"
-                  />
+                <div>
+                  <span className="block text-[9px] text-emerald-700 font-bold uppercase">Plan Activo</span>
+                  <span className="text-sm font-bold text-slate-900">{profile.selectedPlanName || 'Por confirmar'}</span>
                 </div>
-
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-705">Correo Electrónico: <span className="text-rose-550">*</span></label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    placeholder="Ej. paula.cardenas@mail.com"
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs focus:ring-1 focus:ring-[#4597CA] outline-none"
-                  />
+                <div>
+                  <span className="block text-[9px] text-emerald-700 font-bold uppercase">Cédula</span>
+                  <span className="text-xs font-mono text-slate-700">{profile.docNumber}</span>
+                </div>
+                <div>
+                  <span className="block text-[9px] text-emerald-700 font-bold uppercase">Celular de Contacto</span>
+                  <span className="text-xs font-mono text-slate-700">{profile.phone}</span>
                 </div>
               </div>
 
               {/* Consultation specifics */}
-              <div className="bg-[#4597CA]/5 p-5 rounded-2xl border border-[#4597CA]/10 grid grid-cols-1 md:grid-cols-3 gap-4">
-                
+              <div className="bg-[#4597CA]/5 p-5 rounded-2xl border border-[#4597CA]/10 grid grid-cols-1 md:grid-cols-2 gap-4">
+
                 <div className="space-y-1">
                   <label className="block text-xs font-bold text-slate-700">Especialidad Requerida:</label>
                   <select
@@ -362,7 +481,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"
                   >
                     {specialtyOptions.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
+                      <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
                 </div>
@@ -382,8 +501,8 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                   </select>
                 </div>
 
-                <div className="space-y-1 relative">
-                  <label className="block text-xs font-bold text-slate-700">Establecimiento: <span className="text-rose-500">*</span></label>
+                <div className="space-y-1 relative md:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700">Establecimiento (según tu plan): <span className="text-rose-500">*</span></label>
                   <input
                     type="text"
                     value={facilityEditing ? facilitySearch : facility}
@@ -400,8 +519,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                           key={f}
                           onMouseDown={() => {
                             setFacility(f);
-                            // Cross-city search result: sync the city dropdown to match it
-                            const doc = activeDoctors.find(d => d.name === f);
+                            const doc = nivelDoctors.find(d => d.name === f);
                             const grp = doc && CITY_GROUPS.find(g => matchesCityGroup(doc.city, g.id));
                             if (grp && grp.id !== cityGroup) setCityGroup(grp.id);
                             setFacilitySearch(''); setFacilityOpen(false); setFacilityEditing(false);
@@ -415,18 +533,34 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                   )}
                 </div>
 
+                {/* Modalidad — Telemedicina disabled for now */}
+                <div className="space-y-1 md:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700">Modalidad:</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-2 px-3 py-2.5 bg-[#0C4169] text-white rounded-xl text-xs font-bold">
+                      <User className="w-4 h-4" />
+                      <span>Presencial</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 text-slate-400 rounded-xl text-xs font-bold cursor-not-allowed" title="Próximamente disponible">
+                      <Video className="w-4 h-4" />
+                      <span>Telemedicina</span>
+                      <span className="ml-auto text-[8px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded-full uppercase">Próximamente</span>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               {/* Preferred calendar inputs */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
+
                 <div className="space-y-1">
                   <label className="block text-xs font-bold text-slate-700">Fecha Tentativa Deseada: <span className="text-rose-500">*</span></label>
                   <input
                     type="date"
                     required
                     value={preferredDate}
-                    min={new Date().toISOString().split('T')[0]} // Block historical dates
+                    min={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setPreferredDate(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#4597CA] font-mono text-center cursor-pointer"
                   />
@@ -507,11 +641,11 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                 Paso a Paso
               </span>
               <h3 className="text-sm font-extrabold text-white">¿Cómo funciona la asignación?</h3>
-              
+
               <ul className="space-y-4 text-xs text-slate-350">
                 <li className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-[#4597CA] shrink-0">1</span>
-                  <span>Ingresa tus datos personales y escoge tus horarios de conveniencia en el formulario.</span>
+                  <span>Elige la especialidad y ciudad; el establecimiento se ajusta automáticamente a tu plan.</span>
                 </li>
                 <li className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-[#4597CA] shrink-0">2</span>
@@ -546,7 +680,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
       ) : (
         /* SUCCESS PORTRAIT DISPLAYING OPPORTUNITY INTEGRATION */
         <div className="max-w-3xl mx-auto space-y-8 animate-in zoom-in-95 duration-300">
-          
+
           <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center space-y-4">
             <div className="w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto text-3xl font-bold shadow-lg shadow-emerald-500/10">
               ✓
@@ -573,7 +707,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
               >
                 Solicitar Otra Cita
               </button>
-              
+
               <button
                 onClick={() => setCurrentPage('home')}
                 className="px-5 py-2.5 bg-[#0C4169] text-white hover:bg-slate-900 text-xs font-bold rounded-xl transition-all cursor-pointer"
@@ -622,19 +756,19 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                 <span className="block text-[10px] text-slate-500">Historial de Eventos del Sistema:</span>
                 <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 font-sans space-y-2">
                   <p className="flex items-center gap-2">
-                    <span className="text-emerald-400">● [19:19:07]</span> 
+                    <span className="text-emerald-400">● [19:19:07]</span>
                     <span>Lead unificado creado con nombre direct-link de <strong>{ticketDetails.fullName}</strong>.</span>
                   </p>
                   <p className="flex items-center gap-2">
-                    <span className="text-emerald-400">● [19:19:08]</span> 
+                    <span className="text-emerald-400">● [19:19:08]</span>
                     <span>Oportunidad <strong>{ticketDetails.opportunityId}</strong> instanciada en etapa "Pre-Agendamiento".</span>
                   </p>
                   <p className="flex items-center gap-2">
-                    <span className="text-emerald-400">● [19:19:08]</span> 
+                    <span className="text-emerald-400">● [19:19:08]</span>
                     <span>Notificación webhook enviada con éxito al terminal del coordinador <strong>{ticketDetails.coordinator}</strong>.</span>
                   </p>
                   <p className="flex items-center gap-2">
-                    <span className="text-amber-400">● [Acción Próxima]</span> 
+                    <span className="text-amber-400">● [Acción Próxima]</span>
                     <span>Asesor contrastará la disponibilidad de suites del Hospital con la fecha del <strong>{ticketDetails.preferredDate}</strong> y confirmará al paciente al <strong>{ticketDetails.phone}</strong>.</span>
                   </p>
                 </div>
