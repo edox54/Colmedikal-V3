@@ -28,6 +28,8 @@ interface ColmedikalContextType {
   addLead: (quote: QuoteState, estimatedPrice: number) => Promise<any>;
   deleteLead: (id: string | number) => Promise<void>;
   updateLeadStatus: (id: string, status: LeadQuote['status']) => Promise<void>;
+  updateClientPaymentStatus: (id: string, paymentStatus: NonNullable<QuoteState['paymentStatus']>) => Promise<void>;
+  setClientPassword: (leadId: string, newPassword: string) => Promise<void>;
   addLeadNote: (id: string, note: LeadNote) => void;
   assignLead: (id: string, assignedTo: string) => void;
   setLeadFollowUp: (id: string, followUpDate: string) => void;
@@ -135,6 +137,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const leadFollowUpOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_followup', {}));
   const leadLostReasonOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_lost', {}));
   const leadPlanOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_plan', {}));
+  const leadPaymentOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_payment', {}));
   const deletedLeadIds = useRef<string[]>(loadOverride('colmedikal_deleted_leads', []));
   const persistOverride = (key: string, value: any) => {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
@@ -324,6 +327,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 ? JSON.parse(l.quote_data)
                 : (l.quote_data ?? l.quoteData ?? {});
               if (leadPlanOverrides.current[l.id]) qd.selectedPlanName = leadPlanOverrides.current[l.id];
+              if (leadPaymentOverrides.current[l.id]) qd.paymentStatus = leadPaymentOverrides.current[l.id];
               return qd;
             } catch { return l.quoteData ?? {}; }
           })(),
@@ -762,6 +766,38 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  // ==================== CLIENTES (leads with status 'Cierre Efectivo') ====================
+  const updateClientPaymentStatus = async (id: string, paymentStatus: NonNullable<QuoteState['paymentStatus']>) => {
+    // Optimistic update + persist override so the 10s poll doesn't revert it
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, quoteData: { ...l.quoteData, paymentStatus } } : l));
+    leadPaymentOverrides.current[id] = paymentStatus;
+    persistOverride('colmedikal_lead_payment', leadPaymentOverrides.current);
+    if (!token) return;
+    const current = leads.find(l => l.id === id);
+    if (!current) return;
+    try {
+      // quote_data appears to be replaced wholesale on PUT, so send the full merged object
+      await apiCall(`/api/admin/leads/${id}`, 'PUT', {
+        quote_data: { ...current.quoteData, paymentStatus },
+      }, token);
+    } catch {
+      // API may fail — override layer keeps the change
+    }
+  };
+
+  const setClientPassword = async (leadId: string, newPassword: string) => {
+    if (!token) throw new Error('Not authenticated');
+    const response = await fetch('/api/portal/set-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ leadId, newPassword }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'No se pudo establecer la contraseña');
+    }
+  };
+
   const addLeadNote = (id: string, note: LeadNote) => {
     const existing = leadNotesOverrides.current[id] || [];
     leadNotesOverrides.current[id] = [...existing, note];
@@ -993,6 +1029,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     addLead,
     deleteLead,
     updateLeadStatus,
+    updateClientPaymentStatus,
+    setClientPassword,
     addLeadNote,
     assignLead,
     setLeadFollowUp,

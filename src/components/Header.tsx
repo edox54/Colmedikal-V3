@@ -78,6 +78,7 @@ export default function Header() {
     { label: 'Trámites en línea', id: 'tramites_menu', items: [
         { label: 'Trámites en línea (reembolsos y autorizaciones)', path: '/tramites' },
         { label: 'Agendar Cita', path: '/agendamiento' },
+        { label: 'Portal de Afiliados', path: '/portal-afiliados' },
     ]},
     { label: 'Blog', path: '/blog', id: 'blog' },
     { label: 'Contacto', path: '/contacto', id: 'contacto' },

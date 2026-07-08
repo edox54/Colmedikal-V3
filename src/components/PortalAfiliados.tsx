@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   User, 
   ShieldCheck, 
@@ -34,32 +34,110 @@ interface Member {
 }
 
 export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps) {
-  const { refunds, authorizations, addRefund, addAuthorization } = useColmedikal();
+  const { addRefund, addAuthorization } = useColmedikal();
 
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'dash' | 'carnet' | 'reembolsos' | 'autorizaciones' | 'triage'>('dash');
-  
-  // Login State
-  const [username, setUsername] = useState('demo@colmedikal.ec');
-  const [password, setPassword] = useState('colmedikal2026');
-  const [loginError, setLoginError] = useState('');
 
-  // User Profile Data Info
-  const userProfile = {
-    name: 'Ing. Carlos Ramos Valdiviezo',
-    cardId: 'EC-445892-01',
-    planName: 'Plan Protección 3K',
-    validUntil: '31/12/2026',
-    familyGroup: [
-      { name: 'Elena Mendoza de Ramos', relationship: 'Cónyuge', cardId: 'EC-445892-02' },
-      { name: 'Mateo Ramos Mendoza', relationship: 'Hijo (8 años)', cardId: 'EC-445892-03' },
-      { name: 'Sofía Ramos Mendoza', relationship: 'Hija (4 años)', cardId: 'EC-445892-04' }
-    ]
+  // Real cédula + password login against /api/portal/login (server.ts)
+  const [portalToken, setPortalToken] = useState<string | null>(() => sessionStorage.getItem('colmedikal_portal_token'));
+  const isLoggedIn = !!portalToken;
+  const [docNumberInput, setDocNumberInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Real profile + dashboard data (refunds/authorizations/appointments), loaded after login
+  const [profile, setProfile] = useState<any | null>(null);
+  const [portalData, setPortalData] = useState<{ refunds: any[]; authorizations: any[]; appointments: any[] }>({ refunds: [], authorizations: [], appointments: [] });
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState('');
+
+  const refreshPortalDashboard = async () => {
+    if (!portalToken) return;
+    try {
+      const res = await fetch('/api/portal/dashboard', { headers: { Authorization: `Bearer ${portalToken}` } });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success) setPortalData(json.data);
+    } catch { /* keep previous data on failure */ }
   };
+
+  useEffect(() => {
+    if (!portalToken) return;
+    let cancelled = false;
+    (async () => {
+      setProfileLoading(true);
+      setProfileError('');
+      try {
+        const headers = { Authorization: `Bearer ${portalToken}` };
+        const [meRes, dashRes] = await Promise.all([
+          fetch('/api/portal/me', { headers }),
+          fetch('/api/portal/dashboard', { headers }),
+        ]);
+        const meJson = await meRes.json().catch(() => ({}));
+        const dashJson = await dashRes.json().catch(() => ({}));
+        if (!meRes.ok || !meJson.success) throw new Error(meJson.message || 'Sesión expirada, ingresa de nuevo.');
+        if (cancelled) return;
+        setProfile(meJson.data);
+        setPortalData(dashJson.success ? dashJson.data : { refunds: [], authorizations: [], appointments: [] });
+      } catch (err) {
+        if (cancelled) return;
+        setProfileError(err instanceof Error ? err.message : 'No se pudo cargar tu información.');
+        sessionStorage.removeItem('colmedikal_portal_token');
+        setPortalToken(null);
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [portalToken]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoggingIn(true);
+    try {
+      const res = await fetch('/api/portal/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docNumber: docNumberInput, password: passwordInput }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.success) {
+        setLoginError(result.message || 'Cédula o contraseña incorrecta.');
+        return;
+      }
+      sessionStorage.setItem('colmedikal_portal_token', result.token);
+      setPortalToken(result.token);
+    } catch {
+      setLoginError('No se pudo conectar con el portal. Intenta de nuevo.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('colmedikal_portal_token');
+    setPortalToken(null);
+    setProfile(null);
+    setPortalData({ refunds: [], authorizations: [], appointments: [] });
+    setActiveTab('dash');
+  };
+
+  // No per-dependent name data exists yet — only aggregate count/ages — so we
+  // show honest placeholders instead of fabricating family member names.
+  const familyMembers = useMemo(() => {
+    if (!profile) return [] as { name: string; relationship: string }[];
+    const count = profile.childrenCount || 0;
+    const ages: number[] = profile.childrenAges || [];
+    return Array.from({ length: count }, (_, i) => ({
+      name: `Dependiente ${i + 1}`,
+      relationship: ages[i] ? `${ages[i]} años` : 'Beneficiario',
+    }));
+  }, [profile]);
 
   // Form states for creating refund
   const [newRefund, setNewRefund] = useState({
-    familyMember: 'Carlos Ramos Valdiviezo',
+    familyMember: '',
     specialty: 'Pediatría',
     amount: '',
     invoiceNumber: '',
@@ -70,8 +148,8 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
   // Form states for creating authorization
   const [newAuth, setNewAuth] = useState({
-    patient: 'Carlos Ramos Valdiviezo',
-    procedure: 'Radiografía de Tórax',
+    patient: '',
+    procedure: '',
     facility: 'Hospital Metropolitano',
     fileName: '',
     clinicalNote: ''
@@ -79,21 +157,18 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   const [authIsSubmitting, setAuthIsSubmitting] = useState(false);
   const [authAlert, setAuthAlert] = useState('');
 
+  // Keep the refund/authorization forms defaulting to the real titular's name
+  useEffect(() => {
+    if (!profile?.fullName) return;
+    setNewRefund(prev => ({ ...prev, familyMember: profile.fullName }));
+    setNewAuth(prev => ({ ...prev, patient: profile.fullName }));
+  }, [profile?.fullName]);
+
   // Chat Triage states
   const [triageStep, setTriageStep] = useState<0 | 1 | 2 | 3>(0);
   const [symptoms, setSymptoms] = useState('');
   const [triageLoading, setTriageLoading] = useState(false);
   const [triageResult, setTriageResult] = useState<any>(null);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (username.trim() && password.trim()) {
-      setIsLoggedIn(true);
-      setLoginError('');
-    } else {
-      setLoginError('Código corporativo o clave inválida.');
-    }
-  };
 
   const submitRefundRequest = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,19 +180,21 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
     setRefundIsSubmitting(true);
     setRefundAlert('');
 
-    // Simulate approval and ledger addition
-    setTimeout(() => {
-      addRefund({
+    setTimeout(async () => {
+      await addRefund({
         familyMember: newRefund.familyMember,
         specialty: newRefund.specialty,
         amount: Number(newRefund.amount),
         status: 'Procesando',
-        invoiceNumber: newRefund.invoiceNumber
+        invoiceNumber: newRefund.invoiceNumber,
+        userEmail: profile?.email,
+        userPhone: profile?.phone,
       });
+      await refreshPortalDashboard();
 
       setRefundIsSubmitting(false);
       setNewRefund({
-        familyMember: 'Carlos Ramos Valdiviezo',
+        familyMember: profile?.fullName || '',
         specialty: 'Pediatría',
         amount: '',
         invoiceNumber: '',
@@ -136,18 +213,21 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
     setAuthIsSubmitting(true);
     setAuthAlert('');
 
-    setTimeout(() => {
-      addAuthorization({
+    setTimeout(async () => {
+      await addAuthorization({
         patient: newAuth.patient,
         procedure: newAuth.procedure,
         facility: newAuth.facility,
-        status: 'Pendiente'
+        status: 'Pendiente',
+        userEmail: profile?.email,
+        userPhone: profile?.phone,
       });
+      await refreshPortalDashboard();
 
       setAuthIsSubmitting(false);
       setNewAuth({
-        patient: 'Carlos Ramos Valdiviezo',
-        procedure: 'Radiografía de Tórax',
+        patient: profile?.fullName || '',
+        procedure: '',
         facility: 'Hospital Metropolitano',
         fileName: '',
         clinicalNote: ''
@@ -196,7 +276,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
     <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-portal-view">
       
       {!isLoggedIn ? (
-        /* LOGIN PANEL WITH DEMO BYPASS */
+        /* LOGIN PANEL — cédula + contraseña real contra /api/portal/login */
         <section className="max-w-md mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden" id="portal-login-screen">
           <div className="bg-slate-900 p-8 text-center text-white relative">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tr from-teal-500/10 to-indigo-650/15"></div>
@@ -217,44 +297,42 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-700">Email registrado o Cuenta:</label>
-                <input 
-                  type="email"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                <label className="block text-xs font-semibold text-slate-700">Cédula:</label>
+                <input
+                  type="text"
+                  value={docNumberInput}
+                  onChange={(e) => setDocNumberInput(e.target.value)}
+                  placeholder="Ej. 1712345678"
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-1 focus:ring-teal-555 font-mono text-center"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-700">Clave de Seguridad:</label>
-                <input 
+                <label className="block text-xs font-semibold text-slate-700">Contraseña:</label>
+                <input
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-1 focus:ring-teal-555 font-mono text-center"
                   required
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px]">
-              <label className="flex items-center gap-1.5 text-slate-500">
-                <input type="checkbox" defaultChecked className="accent-teal-500 rounded" />
-                <span>Recordar sesión</span>
-              </label>
-              <a href="#reset" onClick={(e) => { e.preventDefault(); alert("Contacto telefónico de soporte para recuperación: 02-2567191 o WhatsApp: 098 702 8756"); }} className="text-indigo-650 font-semibold hover:underline">
-                ¿Olvidaste tu clave?
+            <div className="flex items-center justify-end text-[11px]">
+              <a href="#reset" onClick={(e) => { e.preventDefault(); alert('Para restablecer tu contraseña contacta a tu asesor Colmedikal: 02-2567191 o WhatsApp: 098 702 8756'); }} className="text-indigo-650 font-semibold hover:underline">
+                ¿Olvidaste tu contraseña?
               </a>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-98 cursor-pointer"
+              disabled={isLoggingIn}
+              className="w-full py-3.5 bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-98 cursor-pointer disabled:opacity-60"
               id="btn-login"
             >
-              Iniciar Sesión Seguro
+              {isLoggingIn ? 'Ingresando...' : 'Iniciar Sesión Seguro'}
             </button>
 
             <div className="pt-2 border-t border-slate-100 text-center">
@@ -263,6 +341,21 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
               </p>
             </div>
           </form>
+        </section>
+      ) : !profile ? (
+        /* Profile still loading (or failed and about to log out) */
+        <section className="max-w-md mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl p-10 text-center space-y-3" id="portal-profile-loading">
+          {profileLoading ? (
+            <>
+              <div className="w-8 h-8 border-2 border-slate-200 border-t-[#4597CA] rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-slate-500">Cargando tu información...</p>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="w-8 h-8 text-red-400 mx-auto" />
+              <p className="text-xs text-red-600">{profileError || 'No se pudo cargar tu información.'}</p>
+            </>
+          )}
         </section>
       ) : (
         /* PORTAL AREA (IS LOGGED IN) */
@@ -274,13 +367,13 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
             {/* Minimal Affiliate avatar info */}
             <div className="flex gap-3.5 items-center pb-4 border-b border-slate-100">
               <div className="w-11 h-11 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center font-bold font-display text-lg">
-                CR
+                {(profile.fullName || '?').trim().split(/\s+/).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
               </div>
               <div className="space-y-0.5">
-                <h4 className="text-xs font-bold text-slate-900 truncate max-w-[150px]" title={userProfile.name}>{userProfile.name}</h4>
+                <h4 className="text-xs font-bold text-slate-900 truncate max-w-[150px]" title={profile.fullName}>{profile.fullName}</h4>
                 <div className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0"></span>
-                  <span className="text-[10px] font-bold text-slate-500 font-mono">ID: {userProfile.cardId}</span>
+                  <span className="text-[10px] font-bold text-slate-500 font-mono">Cédula: {profile.docNumber}</span>
                 </div>
               </div>
             </div>
@@ -369,7 +462,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
             </nav>
 
             <button
-              onClick={() => setIsLoggedIn(false)}
+              onClick={handleLogout}
               className="w-full py-2.5 rounded-xl border border-red-200 text-red-650 font-bold hover:bg-red-50 transition-colors text-xs flex items-center justify-center gap-2 cursor-pointer mt-12"
               id="btn-logout"
             >
@@ -388,16 +481,23 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-slate-100 pb-5">
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">Bienvenido Afiliado</span>
-                    <h2 className="text-2xl font-bold font-display text-slate-900">{userProfile.name}</h2>
+                    <h2 className="text-2xl font-bold font-display text-slate-900">{profile.fullName}</h2>
                     <p className="text-xs text-slate-500 mt-1">
-                      Póliza Vigente: <strong className="text-slate-800">{userProfile.planName}</strong>
+                      Plan: <strong className="text-slate-800">{profile.selectedPlanName || 'Por confirmar con tu asesor'}</strong>
                     </p>
                   </div>
-                  
-                  <div className="flex items-center gap-2 bg-teal-50 text-teal-800 px-3.5 py-2 rounded-xl border border-teal-100 text-xs font-semibold inline-fit">
-                    <ShieldCheck className="w-4.5 h-4.5 shrink-0" />
-                    <span>Póliza Activa al día</span>
-                  </div>
+
+                  {profile.paymentStatus === 'Atrasado' ? (
+                    <div className="flex items-center gap-2 bg-red-50 text-red-700 px-3.5 py-2 rounded-xl border border-red-150 text-xs font-semibold inline-fit">
+                      <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+                      <span>Pago Atrasado</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-teal-50 text-teal-800 px-3.5 py-2 rounded-xl border border-teal-100 text-xs font-semibold inline-fit">
+                      <ShieldCheck className="w-4.5 h-4.5 shrink-0" />
+                      <span>{profile.paymentStatus === 'Pagado' ? 'Póliza Activa al día' : 'Póliza Activa — Pago Pendiente'}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Dashboard Stats */}
@@ -411,15 +511,17 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
                   {/* Reembolsos pagados */}
                   <div className="p-4 p-5 bg-gradient-to-tr from-slate-50 to-indigo-50/20 rounded-2xl border border-slate-150 space-y-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reembolsos Procesados</span>
-                    <span className="block text-xl font-bold text-indigo-700">$95.00 USD</span>
-                    <p className="text-[10px] text-slate-500">Últimos 30 días calendario.</p>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reembolsos Aprobados (90%)</span>
+                    <span className="block text-xl font-bold text-indigo-700">
+                      ${(portalData.refunds.reduce((s, r) => s + Number(r.amount || 0), 0) * 0.9).toFixed(2)} USD
+                    </span>
+                    <p className="text-[10px] text-slate-500">Sobre {portalData.refunds.length} solicitud(es) ingresada(s).</p>
                   </div>
 
                   {/* Auto autorizadas */}
                   <div className="p-4 p-5 bg-gradient-to-tr from-slate-50 to-emerald-50/20 rounded-2xl border border-slate-150 space-y-2">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Autorizaciones Emitidas</span>
-                    <span className="block text-xl font-bold text-emerald-700">{authorizations.length} Aprobados</span>
+                    <span className="block text-xl font-bold text-emerald-700">{portalData.authorizations.length} Registradas</span>
                     <p className="text-[10px] text-slate-500">Disponibles para clínicas.</p>
                   </div>
                 </div>
@@ -443,23 +545,25 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 </div>
 
                 {/* List of family members */}
-                <div className="space-y-3 pt-2">
-                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Grupo Familiar Asegurado</span>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {userProfile.familyGroup.map((fam, idx) => (
-                      <div key={idx} className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">
-                          {fam.name[0]}
+                {familyMembers.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Grupo Familiar Asegurado</span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {familyMembers.map((fam, idx) => (
+                        <div key={idx} className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <span className="block text-xs font-bold text-slate-900">{fam.name}</span>
+                            <span className="block text-[10px] text-slate-500">{fam.relationship}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="block text-xs font-bold text-slate-900">{fam.name}</span>
-                          <span className="block text-[10px] text-slate-500">{fam.relationship}</span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -495,42 +599,43 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
                   <div className="space-y-1.5 z-10 relative">
                     <span className="block text-[8px] text-teal-450 uppercase tracking-widest font-bold">Asegurado Titular</span>
-                    <h3 className="text-lg font-bold font-sans tracking-wide leading-tight">{userProfile.name}</h3>
+                    <h3 className="text-lg font-bold font-sans tracking-wide leading-tight">{profile.fullName}</h3>
                     <div className="flex justify-between text-[11px] font-mono text-slate-350 bg-white/5 px-3 py-1.5 rounded-lg">
-                      <span>Cél: {userProfile.cardId}</span>
-                      <span>Plan: Protección 3K</span>
+                      <span>Cél: {profile.docNumber}</span>
+                      <span>Plan: {profile.selectedPlanName || 'Por confirmar'}</span>
                     </div>
                   </div>
 
                   <div className="flex justify-between items-end z-10 relative border-t border-white/10 pt-3">
                     <div className="space-y-0.5 text-[10px] font-mono">
-                      <span className="text-slate-400 block text-[8px] uppercase">Vencimiento</span>
-                      <span className="text-slate-200 font-semibold">{userProfile.validUntil}</span>
+                      <span className="text-slate-400 block text-[8px] uppercase">Estado de Pago</span>
+                      <span className="text-slate-200 font-semibold">{profile.paymentStatus || 'Pendiente'}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-1 bg-white p-1 rounded-md">
                       <QrCode className="w-8 h-8 text-slate-900" />
                     </div>
                   </div>
                 </div>
 
-                <div className="text-center pt-2 space-y-3">
-                  <span className="text-xs text-slate-600 block">
-                    ¿Quieres ver el carné de un familiar integrante del plan?
-                  </span>
+                {familyMembers.length > 0 && (
+                  <div className="text-center pt-2 space-y-3">
+                    <span className="text-xs text-slate-600 block">
+                      Beneficiarios adicionales en tu plan:
+                    </span>
 
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {userProfile.familyGroup.map((fam, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => alert(`Cargando credencial familiar para: ${fam.name}`)}
-                        className="px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 cursor-pointer"
-                      >
-                        {fam.relationship}: {fam.name.split(' ')[0]}
-                      </button>
-                    ))}
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {familyMembers.map((fam, idx) => (
+                        <span
+                          key={idx}
+                          className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
+                        >
+                          {fam.relationship}: {fam.name}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -568,8 +673,8 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                         onChange={(e) => setNewRefund({...newRefund, familyMember: e.target.value})}
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                       >
-                        <option value="Carlos Ramos Valdiviezo">Carlos Ramos (Titular)</option>
-                        {userProfile.familyGroup.map((f, i) => (
+                        <option value={profile.fullName}>{profile.fullName} (Titular)</option>
+                        {familyMembers.map((f, i) => (
                           <option key={i} value={f.name}>{f.name} ({f.relationship})</option>
                         ))}
                       </select>
@@ -657,7 +762,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Historial de Honorarios Ingresados</span>
                     
                     <div className="space-y-3.5">
-                      {refunds.map((ref) => (
+                      {portalData.refunds.map((ref) => (
                         <div key={ref.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
                           <div className="flex justify-between items-start">
                             <div>
@@ -726,8 +831,8 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                         onChange={(e) => setNewAuth({...newAuth, patient: e.target.value})}
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                       >
-                        <option value="Carlos Ramos Valdiviezo">Carlos Ramos (Titular)</option>
-                        {userProfile.familyGroup.map((f, i) => (
+                        <option value={profile.fullName}>{profile.fullName} (Titular)</option>
+                        {familyMembers.map((f, i) => (
                           <option key={i} value={f.name}>{f.name} ({f.relationship})</option>
                         ))}
                       </select>
@@ -793,7 +898,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Historial de Autorizaciones Activas</span>
                     
                     <div className="space-y-3.5">
-                      {authorizations.map((auth) => (
+                      {portalData.authorizations.map((auth) => (
                         <div key={auth.id} className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
                           <div className="flex justify-between items-start gap-4">
                             <div>

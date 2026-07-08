@@ -258,8 +258,8 @@ async function startServer() {
   let leadsCacheAt = 0;
   // ponytail: 20s cache + linear scan; fine for lead volumes. A resubmit within
   //           20s is still caught same-browser client-side. Tighten if needed.
-  const getLeads = async (): Promise<any[]> => {
-    if (Date.now() - leadsCacheAt < 20_000) return leadsCache;
+  const getLeads = async (force = false): Promise<any[]> => {
+    if (!force && Date.now() - leadsCacheAt < 20_000) return leadsCache;
     const fetchWith = async (tok: string) =>
       httpsJson('https://api.colmedikal.com/api/admin/leads?limit=2000', { headers: { Authorization: `Bearer ${tok}` } });
     let r: any;
@@ -299,6 +299,266 @@ async function startServer() {
     } catch (e) {
       console.error('[lead-lookup]', e);
       res.json({ isDuplicate: false, codes: [] }); // fail-open
+    }
+  });
+
+  // ==================== PORTAL DE AFILIADOS (cédula + contraseña) ====================
+  // Clients are leads with status 'Cierre Efectivo'. An admin sets a password for a
+  // client from the AdminPanel "Clientes" tab (POST /api/portal/set-password, using
+  // the admin's OWN already-authenticated external-API bearer token — forwarded and
+  // validated by the external API itself, never re-implemented here). The hash/salt
+  // are stored inside that lead's quote_data (proven to persist arbitrary JSON keys),
+  // never exposed to the browser after that. Login issues a short-lived portal-scoped
+  // JWT (type: 'portal'), distinct from the admin dashboard's own JWT type, so one
+  // can never be used in place of the other.
+  const PORTAL_HASH_ITERATIONS = 210_000;
+  const PORTAL_HASH_KEYLEN = 32;
+  const PORTAL_HASH_DIGEST = 'sha256';
+
+  function hashPortalPassword(password: string, saltHex?: string): { hash: string; salt: string } {
+    const salt = saltHex || crypto.randomBytes(16).toString('hex');
+    const hash = crypto.pbkdf2Sync(password, salt, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST).toString('hex');
+    return { hash, salt };
+  }
+
+  function verifyPortalPassword(password: string, storedHashHex: string, saltHex: string): boolean {
+    try {
+      const candidate = crypto.pbkdf2Sync(password, saltHex, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST);
+      const stored = Buffer.from(storedHashHex, 'hex');
+      if (candidate.length !== stored.length) return false;
+      return crypto.timingSafeEqual(candidate, stored);
+    } catch {
+      return false;
+    }
+  }
+
+  function verifyPortalToken(req: Request, res: Response, next: NextFunction) {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ success: false, message: 'Token requerido' });
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET!) as any;
+      if (decoded?.type !== 'portal' || !decoded?.leadId) {
+        return res.status(403).json({ success: false, message: 'Token inválido' });
+      }
+      (req as any).leadId = decoded.leadId;
+      next();
+    } catch {
+      return res.status(403).json({ success: false, message: 'Token inválido o expirado' });
+    }
+  }
+
+  // Simple in-memory brute-force throttle, keyed by normalized cédula.
+  // ponytail: single-process memory, resets on restart — swap for a shared
+  //           store (Redis) if this ever runs behind multiple instances.
+  const loginAttempts = new Map<string, { count: number; lockUntil: number }>();
+  const LOGIN_MAX_ATTEMPTS = 5;
+  const LOGIN_LOCKOUT_MS = 15 * 60_000;
+
+  const genericCaches: Record<'refunds' | 'authorizations' | 'appointments', { data: any[]; at: number }> = {
+    refunds: { data: [], at: 0 },
+    authorizations: { data: [], at: 0 },
+    appointments: { data: [], at: 0 },
+  };
+  const getAdminList = async (resource: 'refunds' | 'authorizations' | 'appointments'): Promise<any[]> => {
+    const cache = genericCaches[resource];
+    if (Date.now() - cache.at < 20_000) return cache.data;
+    const fetchWith = async (tok: string) =>
+      httpsJson(`https://api.colmedikal.com/api/admin/${resource}?limit=2000`, { headers: { Authorization: `Bearer ${tok}` } });
+    let r: any;
+    try {
+      r = await fetchWith(await getApiToken());
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 403) r = await fetchWith(await getApiToken(true));
+      else throw e;
+    }
+    cache.data = Array.isArray(r?.data) ? r.data : [];
+    cache.at = Date.now();
+    return cache.data;
+  };
+
+  const parseQuoteData = (l: any): any => {
+    let qd: any = l.quote_data ?? l.quoteData;
+    if (typeof qd === 'string') { try { qd = JSON.parse(qd); } catch { qd = {}; } }
+    return qd || {};
+  };
+
+  app.post('/api/portal/login', express.json(), async (req, res) => {
+    try {
+      if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
+        return res.status(503).json({ success: false, message: 'Portal no disponible por el momento' });
+      }
+      const docNumber = normId(req.body?.docNumber);
+      const password = typeof req.body?.password === 'string' ? req.body.password : '';
+      if (!docNumber || !password) {
+        return res.status(400).json({ success: false, message: 'Cédula y contraseña son requeridas' });
+      }
+
+      const now = Date.now();
+      const attempt = loginAttempts.get(docNumber);
+      if (attempt && attempt.lockUntil > now) {
+        return res.status(429).json({ success: false, message: 'Demasiados intentos. Intenta de nuevo en unos minutos.' });
+      }
+
+      const leads = await getLeads(true);
+      const candidates = leads
+        .map(l => ({ l, qd: parseQuoteData(l) }))
+        .filter(({ qd }) => normId(qd.docNumber) === docNumber && qd.portalPasswordHash && qd.portalPasswordSalt)
+        .sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime());
+
+      const match = candidates.find(({ qd }) => verifyPortalPassword(password, qd.portalPasswordHash, qd.portalPasswordSalt));
+
+      if (!match) {
+        const next = { count: (attempt?.count || 0) + 1, lockUntil: 0 };
+        if (next.count >= LOGIN_MAX_ATTEMPTS) next.lockUntil = now + LOGIN_LOCKOUT_MS;
+        loginAttempts.set(docNumber, next);
+        return res.status(401).json({ success: false, message: 'Cédula o contraseña incorrecta' });
+      }
+
+      loginAttempts.delete(docNumber);
+      const token = jwt.sign({ type: 'portal', leadId: match.l.id, iat: Date.now() }, JWT_SECRET!, { expiresIn: '4h' });
+      res.json({ success: true, token });
+    } catch (e) {
+      console.error('[portal-login]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  app.get('/api/portal/me', verifyPortalToken, async (req, res) => {
+    try {
+      const leadId = (req as any).leadId;
+      const leads = await getLeads();
+      const lead = leads.find(l => String(l.id) === String(leadId));
+      if (!lead) return res.status(404).json({ success: false, message: 'Cliente no encontrado' });
+      const qd = parseQuoteData(lead);
+      res.json({
+        success: true,
+        data: {
+          fullName: qd.fullName || '',
+          docType: qd.docType || 'cedula',
+          docNumber: qd.docNumber || '',
+          email: qd.email || '',
+          phone: qd.phone || '',
+          leadCode: qd.leadCode || '',
+          selectedPlanName: qd.selectedPlanName || '',
+          basePlanId: qd.basePlanId || '',
+          type: qd.type || 'individual',
+          childrenCount: qd.childrenCount || 0,
+          childrenAges: qd.childrenAges || [],
+          estimatedPrice: Number(lead.estimated_price ?? lead.estimatedPrice ?? 0),
+          paymentStatus: qd.paymentStatus || 'Pendiente',
+          status: lead.status || 'Cierre Efectivo',
+        },
+      });
+    } catch (e) {
+      console.error('[portal-me]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  app.get('/api/portal/dashboard', verifyPortalToken, async (req, res) => {
+    try {
+      const leadId = (req as any).leadId;
+      const leads = await getLeads();
+      const lead = leads.find(l => String(l.id) === String(leadId));
+      if (!lead) return res.status(404).json({ success: false, message: 'Cliente no encontrado' });
+      const qd = parseQuoteData(lead);
+      const email = normId(qd.email), phone = normId(qd.phone);
+
+      const [refundsRaw, authsRaw, aptsRaw] = await Promise.all([
+        getAdminList('refunds'),
+        getAdminList('authorizations'),
+        getAdminList('appointments'),
+      ]);
+
+      const mine = (r: any) => (email && normId(r.user_email) === email) || (phone && normId(r.user_phone) === phone);
+
+      res.json({
+        success: true,
+        data: {
+          refunds: refundsRaw.filter(mine).map((r: any) => ({
+            id: r.id,
+            familyMember: r.family_member || '',
+            specialty: r.specialty || '',
+            amount: Number(r.amount || 0),
+            refundDate: r.refund_date ? String(r.refund_date).split('T')[0] : '',
+            status: r.status || 'Procesando',
+            invoiceNumber: r.invoice_number || '',
+            adminComment: r.admin_comment || undefined,
+          })),
+          authorizations: authsRaw.filter(mine).map((a: any) => ({
+            id: a.id,
+            patient: a.patient || '',
+            procedure: a.procedure || '',
+            facility: a.facility || '',
+            requestDate: a.request_date || a.requestDate || '',
+            status: a.status || 'Pendiente',
+            adminComment: a.admin_comment || a.adminComment,
+          })),
+          appointments: aptsRaw.filter((a: any) =>
+            (phone && normId(a.patient_phone) === phone)
+          ).map((a: any) => ({
+            id: a.id,
+            doctorName: a.doctor_name || 'Por Asignar',
+            specialty: a.specialty || '',
+            aptDate: a.appointment_date ? String(a.appointment_date).split('T')[0] : '',
+            aptTime: a.appointment_time || '',
+            modality: a.modality || 'presencial',
+            clinic: a.clinic || '',
+            city: a.city || '',
+            status: a.status || 'Pendiente',
+          })),
+        },
+      });
+    } catch (e) {
+      console.error('[portal-dashboard]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Admin-only: set/reset a client's portal password. Trust is delegated entirely
+  // to the external API — we simply forward the caller's own admin bearer token for
+  // both the read (to preserve existing quoteData) and the write; if that token
+  // isn't a valid admin session, the external API itself rejects both calls.
+  app.post('/api/portal/set-password', express.json(), async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const callerToken = authHeader && authHeader.split(' ')[1];
+      if (!callerToken) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+
+      const leadId = req.body?.leadId;
+      const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+      if (!leadId || newPassword.length < 6) {
+        return res.status(400).json({ success: false, message: 'Datos inválidos (mínimo 6 caracteres)' });
+      }
+
+      // Fetch the lead's current quote_data using the CALLER's token — validates
+      // the caller is a real admin session as a side effect.
+      let current: any;
+      try {
+        current = await httpsJson(`https://api.colmedikal.com/api/admin/leads?limit=2000`, {
+          headers: { Authorization: `Bearer ${callerToken}` },
+        });
+      } catch (e: any) {
+        return res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
+      }
+      const lead = (current?.data || []).find((l: any) => String(l.id) === String(leadId));
+      if (!lead) return res.status(404).json({ success: false, message: 'Cliente no encontrado' });
+
+      const qd = parseQuoteData(lead);
+      const { hash, salt } = hashPortalPassword(newPassword);
+      const mergedQuote = { ...qd, portalPasswordHash: hash, portalPasswordSalt: salt };
+
+      await httpsJson(`https://api.colmedikal.com/api/admin/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${callerToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quote_data: mergedQuote }),
+      });
+
+      res.json({ success: true });
+    } catch (e) {
+      console.error('[portal-set-password]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
     }
   });
 
