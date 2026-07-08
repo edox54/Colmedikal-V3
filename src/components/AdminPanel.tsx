@@ -1467,6 +1467,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
               filteredClusters.map(([clusterId, cluster]) => {
                 const primary = cluster[0];
                 const hasDupes = cluster.length > 1;
+                const planName = resolvePlanName(primary);
                 return (
                 <div key={clusterId} className={`bg-white p-5 rounded-2xl border shadow-sm flex flex-col justify-between ${hasDupes ? 'border-amber-200' : 'border-slate-200'}`}>
                   <div className="space-y-3">
@@ -1484,16 +1485,16 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                           )}
                         </div>
                         <h4 className="text-sm font-black text-slate-900">{primary.quoteData?.fullName || '—'}</h4>
-                        {(() => {
-                          const planName = resolvePlanName(primary);
-                          return planName
-                            ? <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase">{planName}</span>
-                            : <span className="text-[9px] bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded font-medium italic">Sin plan seleccionado</span>;
-                        })()}
+                        {planName
+                          ? <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase">{planName}</span>
+                          : <span className="text-[9px] bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded font-medium italic">Sin plan seleccionado</span>}
                       </div>
                       <div className="text-right">
-                        <span className="text-[9px] text-slate-400 font-mono block">Est.:</span>
-                        <span className="text-sm font-black text-indigo-750 font-mono">${Number(primary.estimatedPrice || 0).toFixed(2)}/m</span>
+                        {/* Without a chosen plan, this is a rough ballpark, not a quote for
+                            a specific plan — labeled distinctly so it can't be misread as
+                            "the customer picked the $X/mes plan" when none was picked. */}
+                        <span className="text-[9px] text-slate-400 font-mono block">{planName ? 'Est.:' : 'Est. Preliminar:'}</span>
+                        <span className={`text-sm font-black font-mono ${planName ? 'text-indigo-750' : 'text-slate-400'}`}>${Number(primary.estimatedPrice || 0).toFixed(2)}/m</span>
                       </div>
                     </div>
 
