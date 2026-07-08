@@ -306,14 +306,30 @@ async function startServer() {
   // Clients are leads with status 'Cierre Efectivo'. An admin sets a password for a
   // client from the AdminPanel "Clientes" tab (POST /api/portal/set-password, using
   // the admin's OWN already-authenticated external-API bearer token — forwarded and
-  // validated by the external API itself, never re-implemented here). The hash/salt
-  // are stored inside that lead's quote_data (proven to persist arbitrary JSON keys),
-  // never exposed to the browser after that. Login issues a short-lived portal-scoped
-  // JWT (type: 'portal'), distinct from the admin dashboard's own JWT type, so one
-  // can never be used in place of the other.
+  // validated by the external API itself, never re-implemented here).
+  //
+  // We ALSO mirror the hash/salt into a local JSON file (data/portal-credentials.json).
+  // This is the authoritative store login actually checks: PUT /api/admin/leads/{id}
+  // has turned out not to reliably persist quote_data changes on this external API
+  // (the same reason every other lead mutation in this app — status, notes, plan name,
+  // payment status — carries a client-side override fallback). A password can't rely on
+  // a client-side override since ANY visitor must be able to verify it, so the fallback
+  // lives here on the server instead. The external API write is still attempted
+  // best-effort (harmless if it works, ignored if it doesn't).
   const PORTAL_HASH_ITERATIONS = 210_000;
   const PORTAL_HASH_KEYLEN = 32;
   const PORTAL_HASH_DIGEST = 'sha256';
+
+  const PORTAL_DATA_DIR = path.join(process.cwd(), 'data');
+  const PORTAL_CREDS_FILE = path.join(PORTAL_DATA_DIR, 'portal-credentials.json');
+  type PortalCredsStore = Record<string, { docNumber: string; hash: string; salt: string; updatedAt: number }>;
+  function loadPortalCreds(): PortalCredsStore {
+    try { return JSON.parse(fs.readFileSync(PORTAL_CREDS_FILE, 'utf8')); } catch { return {}; }
+  }
+  function savePortalCreds(store: PortalCredsStore) {
+    fs.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    fs.writeFileSync(PORTAL_CREDS_FILE, JSON.stringify(store));
+  }
 
   function hashPortalPassword(password: string, saltHex?: string): { hash: string; salt: string } {
     const salt = saltHex || crypto.randomBytes(16).toString('hex');
@@ -400,15 +416,30 @@ async function startServer() {
         return res.status(429).json({ success: false, message: 'Demasiados intentos. Intenta de nuevo en unos minutos.' });
       }
 
-      const leads = await getLeads(true);
-      const candidates = leads
-        .map(l => ({ l, qd: parseQuoteData(l) }))
-        .filter(({ qd }) => normId(qd.docNumber) === docNumber && qd.portalPasswordHash && qd.portalPasswordSalt)
-        .sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime());
+      // Primary: local credentials store (authoritative — see comment above).
+      const credsStore = loadPortalCreds();
+      let matchedLeadId: string | null = null;
+      for (const [leadId, cred] of Object.entries(credsStore)) {
+        if (cred.docNumber === docNumber && verifyPortalPassword(password, cred.hash, cred.salt)) {
+          matchedLeadId = leadId;
+          break;
+        }
+      }
 
-      const match = candidates.find(({ qd }) => verifyPortalPassword(password, qd.portalPasswordHash, qd.portalPasswordSalt));
+      // Fallback: hash/salt embedded in quote_data, in case it did persist.
+      // Best-effort — the external API being unreachable must not turn into a
+      // 500 here, since the local store above is already authoritative.
+      if (!matchedLeadId) {
+        const leads = await getLeads(true).catch(() => [] as any[]);
+        const candidates = leads
+          .map(l => ({ l, qd: parseQuoteData(l) }))
+          .filter(({ qd }) => normId(qd.docNumber) === docNumber && qd.portalPasswordHash && qd.portalPasswordSalt)
+          .sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime());
+        const match = candidates.find(({ qd }) => verifyPortalPassword(password, qd.portalPasswordHash, qd.portalPasswordSalt));
+        if (match) matchedLeadId = String(match.l.id);
+      }
 
-      if (!match) {
+      if (!matchedLeadId) {
         const next = { count: (attempt?.count || 0) + 1, lockUntil: 0 };
         if (next.count >= LOGIN_MAX_ATTEMPTS) next.lockUntil = now + LOGIN_LOCKOUT_MS;
         loginAttempts.set(docNumber, next);
@@ -416,7 +447,7 @@ async function startServer() {
       }
 
       loginAttempts.delete(docNumber);
-      const token = jwt.sign({ type: 'portal', leadId: match.l.id, iat: Date.now() }, JWT_SECRET!, { expiresIn: '4h' });
+      const token = jwt.sign({ type: 'portal', leadId: matchedLeadId, iat: Date.now() }, JWT_SECRET!, { expiresIn: '4h' });
       res.json({ success: true, token });
     } catch (e) {
       console.error('[portal-login]', e);
@@ -546,14 +577,27 @@ async function startServer() {
       if (!lead) return res.status(404).json({ success: false, message: 'Cliente no encontrado' });
 
       const qd = parseQuoteData(lead);
+      const docNumber = normId(qd.docNumber);
+      if (!docNumber) return res.status(400).json({ success: false, message: 'Este lead no tiene cédula registrada' });
       const { hash, salt } = hashPortalPassword(newPassword);
-      const mergedQuote = { ...qd, portalPasswordHash: hash, portalPasswordSalt: salt };
 
-      await httpsJson(`https://api.colmedikal.com/api/admin/leads/${leadId}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${callerToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quote_data: mergedQuote }),
-      });
+      // Authoritative write — this is what /api/portal/login actually checks.
+      const store = loadPortalCreds();
+      store[String(leadId)] = { docNumber, hash, salt, updatedAt: Date.now() };
+      savePortalCreds(store);
+
+      // Best-effort mirror into quote_data — harmless if the external API
+      // doesn't persist it, since the local store above is already authoritative.
+      try {
+        const mergedQuote = { ...qd, portalPasswordHash: hash, portalPasswordSalt: salt };
+        await httpsJson(`https://api.colmedikal.com/api/admin/leads/${leadId}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${callerToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quote_data: mergedQuote }),
+        });
+      } catch (e) {
+        console.warn('[portal-set-password] external API mirror failed (non-fatal):', e);
+      }
 
       res.json({ success: true });
     } catch (e) {
