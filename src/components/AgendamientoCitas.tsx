@@ -22,52 +22,142 @@ interface AgendamientoCitasProps {
   setCurrentPage: (page: Page) => void;
 }
 
+// Same province groupings used by the Directorio Médico filter — kept in sync
+// so "Ciudad de Atención" here always matches what /directorio offers.
+const CITY_GROUPS = [
+  { id: 'quito', name: 'Quito y Valles (Pichincha)' },
+  { id: 'guayaquil', name: 'Guayaquil y Vías (Guayas)' },
+  { id: 'santodomingo', name: 'Santo Domingo de los Tsáchilas' },
+  { id: 'manabi', name: 'Manabí (Manta / Portoviejo / El Carmen)' },
+  { id: 'esmeraldas', name: 'Esmeraldas / Atacames' },
+  { id: 'imbabura', name: 'Imbabura (Ibarra / Otavalo / Atuntaqui)' },
+  { id: 'losrios', name: 'Los Ríos (Babahoyo / Quevedo)' },
+  { id: 'eloro', name: 'El Oro (Machala / Santa Rosa / Arenillas)' },
+  { id: 'azuay', name: 'Azuay (Cuenca)' },
+  { id: 'santaelena', name: 'Santa Elena (Libertad / Salinas)' },
+  { id: 'sierracentro', name: 'Sierra Centro (Ambato / Riobamba / Latacunga / Tulcán)' },
+  { id: 'loja', name: 'Loja' },
+  { id: 'amazonia', name: 'Amazonía (Tena / Puyo / Macas)' },
+];
+
+// Identical predicate to DirectorioMedico's city filter — same taxonomy everywhere.
+function matchesCityGroup(cityRaw: string, groupId: string): boolean {
+  const c = (cityRaw || '').toLowerCase();
+  switch (groupId) {
+    case 'quito': return c.includes('quito') || c.includes('tumbaco') || c.includes('puellaro') || c.includes('puéllaro') || c.includes('guayllabamba') || c.includes('carapungo') || c.includes('batán') || c.includes('batan') || c.includes('villaflora') || c.includes('tabacundo') || c.includes('quinche') || c.includes('cayambe') || c.includes('pifo') || c.includes('chilibulo');
+    case 'guayaquil': return c.includes('guay') || c.includes('samborondon') || c.includes('samborondón');
+    case 'santodomingo': return c.includes('santo domingo') || c.includes('concordia');
+    case 'manabi': return c.includes('manta') || c.includes('portoviejo') || c.includes('carmen') || c.includes('manabi') || c.includes('manabí');
+    case 'esmeraldas': return c.includes('esmeraldas');
+    case 'imbabura': return c.includes('ibarra') || c.includes('otavalo') || c.includes('atuntaqui') || c.includes('imbabura');
+    case 'losrios': return c.includes('quevedo') || c.includes('babahoyo') || c.includes('rios') || c.includes('ríos');
+    case 'eloro': return c.includes('machala') || c.includes('el oro') || c.includes('pasaje') || c.includes('santa rosa') || c.includes('arenillas') || c.includes('triunfo');
+    case 'azuay': return c.includes('cuenca') || c.includes('azuay');
+    case 'santaelena': return c.includes('santa elena') || c.includes('libertad') || c.includes('salinas') || c.includes('san pablo');
+    case 'sierracentro': return c.includes('ambato') || c.includes('tungurahua') || c.includes('riobamba') || c.includes('chimborazo') || c.includes('latacunga') || c.includes('cotopaxi') || c.includes('tulcan') || c.includes('tulcán') || c.includes('carchi') || c.includes('troncal') || c.includes('cañar') || c.includes('machachi');
+    case 'loja': return c.includes('loja');
+    case 'amazonia': return c.includes('tena') || c.includes('napo') || c.includes('puyo') || c.includes('pastaza') || c.includes('macas') || c.includes('morona');
+    default: return false;
+  }
+}
+
+// Services listed in a provider's education field that aren't a bookable
+// clinical specialty — excluded from the "Especialidad Requerida" options.
+const NON_SPECIALTY_TOKENS = new Set(['LABORATORIO', 'RAYOS X', 'TELEMEDICINA']);
+const toTitleCase = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+
 export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasProps) {
-  const { addAppointment } = useColmedikal();
+  const { addAppointment, seoSettings } = useColmedikal();
 
   // FORM FIELDS
   const [fullName, setFullName] = useState('');
   const [cedula, setCedula] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  
+
   // Appointment specific fields
-  const [city, setCity] = useState('QUITO');
-  const [specialty, setSpecialty] = useState('Pediatría');
+  const [cityGroup, setCityGroup] = useState('');
+  const [specialty, setSpecialty] = useState(''); // stored as the UPPERCASE token used for matching
   const [facility, setFacility] = useState('');
 
-  const [facilityDoctors, setFacilityDoctors] = useState<Doctor[]>([]);
+  const [rawDoctors, setRawDoctors] = useState<Doctor[]>([]);
 
   useEffect(() => {
     fetch('https://api.colmedikal.com/api/doctors?limit=500')
       .then(r => r.json())
-      .then(d => {
-        const medCenters = (d.data || []).filter(
-          (doc: Doctor) => doc.active !== false &&
-            (doc.specialty === 'Hospital' || doc.specialty === 'Clínica')
-        );
-        setFacilityDoctors(medCenters);
-      })
+      .then(d => setRawDoctors(d.data || []))
       .catch(() => {});
   }, []);
 
-  const { facilityCities, facilitiesByCity } = useMemo(() => {
-    const byCity: Record<string, string[]> = {};
-    facilityDoctors.forEach((d) => {
-      const cityKey = (d.city || '').trim();
-      if (!byCity[cityKey]) byCity[cityKey] = [];
-      if (!byCity[cityKey].includes(d.name)) byCity[cityKey].push(d.name);
+  // Same active-provider filter as the Directorio (respects deactivated_doctors)
+  const activeDoctors = useMemo(() => {
+    let deactivatedIds: string[] = [];
+    try { deactivatedIds = JSON.parse(seoSettings.deactivated_doctors || '[]'); } catch { /* noop */ }
+    return rawDoctors.filter(d => !deactivatedIds.includes(d.id) && d.active !== false);
+  }, [rawDoctors, seoSettings.deactivated_doctors]);
+
+  // Real, live specialties — derived from every active provider's education field,
+  // not a hardcoded list, so it always matches what's actually in the directory.
+  const specialtyOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    activeDoctors.forEach(d => {
+      (d.education || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean).forEach(tok => {
+        if (NON_SPECIALTY_TOKENS.has(tok)) return;
+        counts.set(tok, (counts.get(tok) || 0) + 1);
+      });
     });
-    const cities = Object.keys(byCity).sort();
-    return { facilityCities: cities, facilitiesByCity: byCity };
-  }, [facilityDoctors]);
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1]) // most-available specialty first, so the default always has options
+      .map(([id]) => ({ id, name: toTitleCase(id) }));
+  }, [activeDoctors]);
 
   useEffect(() => {
-    if (facilityCities.length === 0) return;
-    const defaultCity = facilityCities.includes('QUITO') ? 'QUITO' : facilityCities[0];
-    setCity(defaultCity);
-    setFacility(facilitiesByCity[defaultCity]?.[0] || '');
-  }, [facilityCities]);
+    if (!specialty && specialtyOptions.length > 0) setSpecialty(specialtyOptions[0].id);
+  }, [specialtyOptions]);
+
+  // Only offer city groups that actually have a provider for the chosen specialty
+  const availableCityGroups = useMemo(() => {
+    if (!specialty) return [];
+    return CITY_GROUPS.filter(g =>
+      activeDoctors.some(d => matchesCityGroup(d.city, g.id) && (d.education || '').toUpperCase().includes(specialty))
+    );
+  }, [activeDoctors, specialty]);
+
+  useEffect(() => {
+    if (availableCityGroups.length === 0) { setCityGroup(''); return; }
+    if (!availableCityGroups.some(g => g.id === cityGroup)) {
+      const preferred = availableCityGroups.find(g => g.id === 'quito') || availableCityGroups[0];
+      setCityGroup(preferred.id);
+    }
+  }, [availableCityGroups]);
+
+  // Establishments matching the selected city group + specialty
+  const facilitiesForSelection = useMemo(() => {
+    if (!specialty || !cityGroup) return [];
+    const names = new Set<string>();
+    activeDoctors.forEach(d => {
+      if (matchesCityGroup(d.city, cityGroup) && (d.education || '').toUpperCase().includes(specialty)) {
+        names.add(d.name);
+      }
+    });
+    return [...names].sort((a, b) => a.localeCompare(b, 'es'));
+  }, [activeDoctors, specialty, cityGroup]);
+
+  useEffect(() => {
+    if (facilitiesForSelection.length === 0) { setFacility(''); return; }
+    if (!facilitiesForSelection.includes(facility)) setFacility(facilitiesForSelection[0]);
+  }, [facilitiesForSelection]);
+
+  // Same establishments but across ALL cities — used while the user is typing
+  // a facility search, so they can find a specialist outside their default city.
+  const facilitiesAllCitiesForSpecialty = useMemo(() => {
+    if (!specialty) return [];
+    const names = new Set<string>();
+    activeDoctors.forEach(d => {
+      if ((d.education || '').toUpperCase().includes(specialty)) names.add(d.name);
+    });
+    return [...names].sort((a, b) => a.localeCompare(b, 'es'));
+  }, [activeDoctors, specialty]);
 
   const [facilitySearch, setFacilitySearch] = useState('');
   const [facilityOpen, setFacilityOpen] = useState(false);
@@ -75,10 +165,16 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
 
   const filteredFacilities = useMemo(() => {
     const q = facilitySearch.toLowerCase();
-    if (!q) return facilitiesByCity[city] || [];
-    // Search across ALL cities when typing
-    return Object.values(facilitiesByCity).flat().filter((f) => f.toLowerCase().includes(q));
-  }, [facilitySearch, city, facilitiesByCity]);
+    if (!q) return facilitiesForSelection;
+    return facilitiesAllCitiesForSpecialty.filter((f) => f.toLowerCase().includes(q));
+  }, [facilitySearch, facilitiesForSelection, facilitiesAllCitiesForSpecialty]);
+
+  // The exact directory record behind the chosen establishment — used at submit
+  // time so the appointment stores the REAL city/address, not just the province group.
+  const selectedDoctorRecord = useMemo(
+    () => activeDoctors.find(d => d.name === facility),
+    [activeDoctors, facility]
+  );
 
   const [preferredDate, setPreferredDate] = useState('');
   const [preferredTimeRange, setPreferredTimeRange] = useState('Mañana (08:00 - 12:00)');
@@ -108,16 +204,20 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
     setIsSubmitting(true);
 
     let coordinatorName = 'Lcda. Carmen Falconí - Sede Quito';
-    if (city === 'Guayaquil') coordinatorName = 'Ing. Christian Solórzano - Sede Guayaquil';
-    if (city === 'Cuenca') coordinatorName = 'Dra. Verónica Arizaga - Sede Austro';
+    if (cityGroup === 'guayaquil') coordinatorName = 'Ing. Christian Solórzano - Sede Guayaquil';
+    if (cityGroup === 'azuay') coordinatorName = 'Dra. Verónica Arizaga - Sede Austro';
 
     const opportunityId = 'OP-APT-' + Math.floor(Math.random() * 90000 + 10000);
+    // The real city/address from the chosen directory provider — more precise
+    // than the province group used for filtering, and consistent with /directorio.
+    const realCity = selectedDoctorRecord?.city || CITY_GROUPS.find(g => g.id === cityGroup)?.name || cityGroup;
+    const specialtyLabel = specialtyOptions.find(s => s.id === specialty)?.name || specialty;
 
     // Save to backend (public endpoint, no auth required)
     try {
       await addAppointment({
         doctorName: 'Por Asignar',
-        specialty,
+        specialty: specialtyLabel,
         patientName: fullName,
         patientId: cedula,
         patientPhone: phone,
@@ -125,7 +225,7 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
         aptTime: preferredTimeRange,
         modality: 'presencial',
         clinic: facility,
-        city,
+        city: realCity,
         cost: 0,
         status: 'Pendiente',
         notes: additionalNotes || '',
@@ -139,8 +239,8 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
       cedula,
       phone,
       email,
-      city,
-      specialty,
+      city: realCity,
+      specialty: specialtyLabel,
       facility,
       preferredDate,
       preferredTimeRange,
@@ -255,35 +355,30 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
               <div className="bg-[#4597CA]/5 p-5 rounded-2xl border border-[#4597CA]/10 grid grid-cols-1 md:grid-cols-3 gap-4">
                 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">Ciudad de Atención:</label>
-                  <select
-                    value={city}
-                    onChange={(e) => {
-                      const newCity = e.target.value;
-                      setCity(newCity);
-                      setFacility(facilitiesByCity[newCity]?.[0] || '');
-                    }}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"
-                  >
-                    {facilityCities.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
                   <label className="block text-xs font-bold text-slate-700">Especialidad Requerida:</label>
                   <select
                     value={specialty}
                     onChange={(e) => setSpecialty(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"
                   >
-                    <option value="Pediatría">Pediatría</option>
-                    <option value="Cardiología">Cardiología</option>
-                    <option value="Ginecología y Obstetricia">Ginecología y Obstetricia</option>
-                    <option value="Dermatología">Dermatología</option>
-                    <option value="Traumatología">Traumatología</option>
-                    <option value="Medicina Interna">Medicina Interna</option>
+                    {specialtyOptions.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-slate-700">Ciudad de Atención:</label>
+                  <select
+                    value={cityGroup}
+                    onChange={(e) => setCityGroup(e.target.value)}
+                    disabled={availableCityGroups.length === 0}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none disabled:opacity-50"
+                  >
+                    {availableCityGroups.length === 0 && <option value="">Sin cobertura para esta especialidad</option>}
+                    {availableCityGroups.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -303,7 +398,14 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                       {filteredFacilities.map((f) => (
                         <li
                           key={f}
-                          onMouseDown={() => { setFacility(f); setFacilitySearch(''); setFacilityOpen(false); setFacilityEditing(false); }}
+                          onMouseDown={() => {
+                            setFacility(f);
+                            // Cross-city search result: sync the city dropdown to match it
+                            const doc = activeDoctors.find(d => d.name === f);
+                            const grp = doc && CITY_GROUPS.find(g => matchesCityGroup(doc.city, g.id));
+                            if (grp && grp.id !== cityGroup) setCityGroup(grp.id);
+                            setFacilitySearch(''); setFacilityOpen(false); setFacilityEditing(false);
+                          }}
                           className={`px-3 py-2 cursor-pointer hover:bg-[#4597CA]/10 hover:text-[#0C4169] ${f === facility ? 'bg-[#4597CA]/10 font-semibold text-[#0C4169]' : 'text-slate-700'}`}
                         >
                           {f}
