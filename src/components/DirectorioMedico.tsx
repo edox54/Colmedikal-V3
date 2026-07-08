@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, 
   MapPin, 
@@ -80,6 +80,24 @@ export default function DirectorioMedico() {
     { id: 'odontologia', name: 'Odontología' },
     { id: 'laboratorio', name: 'Laboratorio' },
   ];
+
+  // Real medical specialties, derived live from every active provider's education
+  // field (same source used by Agendamiento de Citas) — never a hardcoded list,
+  // so the options always match what the directory actually offers.
+  const NON_SPECIALTY_TOKENS = new Set(['LABORATORIO', 'RAYOS X', 'TELEMEDICINA']);
+  const toTitleCase = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+  const medicalSpecialties = useMemo(() => {
+    const counts = new Map<string, number>();
+    doctors.filter(d => d.active !== false).forEach(d => {
+      (d.education || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean).forEach(tok => {
+        if (NON_SPECIALTY_TOKENS.has(tok)) return;
+        counts.set(tok, (counts.get(tok) || 0) + 1);
+      });
+    });
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([tok]) => toTitleCase(tok));
+  }, [doctors]);
 
   const cities = [
     { id: 'all', name: 'Todas las Ubicaciones' },
@@ -254,22 +272,37 @@ export default function DirectorioMedico() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          {/* Key Term search */}
-          <div className="md:col-span-5 relative">
-            <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text"
-              placeholder="Buscar por nombre, especialidad o palabra clave..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-350 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none placeholder:text-slate-400 font-medium"
-              id="doc-keyword-search"
-            />
+        {/* Key Term search */}
+        <div className="relative">
+          <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre, especialidad o palabra clave..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-350 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none placeholder:text-slate-400 font-medium"
+            id="doc-keyword-search"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Medical specialty selector — real specialties, derived live from the network */}
+          <div>
+            <select
+              value={doctorSpecialty}
+              onChange={(e) => setDoctorSpecialty(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-350 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none font-medium"
+              id="doc-medical-specialty-select"
+            >
+              <option value="">Todas las Especialidades</option>
+              {medicalSpecialties.map(spec => (
+                <option key={spec} value={spec}>{spec}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Specialty selector */}
-          <div className="md:col-span-4">
+          {/* Category selector (facility type) */}
+          <div>
             <select
               value={selectedSpecialty}
               onChange={(e) => setSelectedSpecialty(e.target.value)}
@@ -283,7 +316,7 @@ export default function DirectorioMedico() {
           </div>
 
           {/* City selector */}
-          <div className="md:col-span-3">
+          <div>
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
@@ -307,6 +340,7 @@ export default function DirectorioMedico() {
           <button 
             onClick={() => {
               setSearchTerm('');
+              setDoctorSpecialty('');
               setSelectedSpecialty('all');
               setSelectedCity('all');
               setSelectedNivel(null);
