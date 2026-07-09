@@ -139,6 +139,11 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const leadPlanOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_plan', {}));
   const leadPaymentOverrides = useRef<Record<string, string>>(loadOverride('colmedikal_lead_payment', {}));
   const deletedLeadIds = useRef<string[]>(loadOverride('colmedikal_deleted_leads', []));
+  // NOT a localStorage override — this one comes from our own server's
+  // authoritative address store (GET /api/admin/client-addresses), refreshed
+  // every fetchAllData cycle, so it stays correct across browsers/devices
+  // instead of only in the admin's own browser like the overrides above.
+  const clientAddressOverrides = useRef<Record<string, string>>({});
   const persistOverride = (key: string, value: any) => {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
   };
@@ -260,6 +265,13 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Load admin users list from DB
       await fetchAdmins(authToken);
 
+      // Server-authoritative client addresses (see clientAddressOverrides comment above)
+      try {
+        const addrRes = await fetch('/api/admin/client-addresses', { headers: { Authorization: `Bearer ${authToken}` } });
+        const addrJson = await addrRes.json().catch(() => ({}));
+        if (addrRes.ok && addrJson.success) clientAddressOverrides.current = addrJson.data || {};
+      } catch { /* keep previous values on failure */ }
+
       let fetchedDoctors: any[] = doctorsRes.data || [];
       if (fetchedDoctors.length === 0) {
         try {
@@ -328,6 +340,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 : (l.quote_data ?? l.quoteData ?? {});
               if (leadPlanOverrides.current[l.id]) qd.selectedPlanName = leadPlanOverrides.current[l.id];
               if (leadPaymentOverrides.current[l.id]) qd.paymentStatus = leadPaymentOverrides.current[l.id];
+              if (clientAddressOverrides.current[l.id]) qd.address = clientAddressOverrides.current[l.id];
               return qd;
             } catch { return l.quoteData ?? {}; }
           })(),

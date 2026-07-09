@@ -1881,6 +1881,10 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                         <span className="block text-[9px] text-slate-400 font-bold uppercase">Cédula:</span>
                         <span className="font-semibold text-slate-800 font-mono text-[11px]">{c.quoteData?.docNumber || '—'}</span>
                       </div>
+                      <div className="col-span-2">
+                        <span className="block text-[9px] text-slate-400 font-bold uppercase">Dirección (ingresada por el cliente):</span>
+                        <span className="text-[11px] text-slate-700">{c.quoteData?.address || 'No registrada'}</span>
+                      </div>
                     </div>
 
                     {/* Payment status */}

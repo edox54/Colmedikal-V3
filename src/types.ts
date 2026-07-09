@@ -52,6 +52,7 @@ export interface QuoteState {
   leadCode?: string;
   selectedPlanName?: string;
   province?: string;
+  address?: string;
   // Client/portal fields — only present once a lead becomes a client
   // (status 'Cierre Efectivo') and an admin sets up their portal access.
   paymentStatus?: 'Pagado' | 'Pendiente' | 'Atrasado';

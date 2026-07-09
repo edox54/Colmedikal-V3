@@ -22,7 +22,9 @@ import {
   Calendar,
   MapPin,
   Mail,
-  Phone
+  Phone,
+  Check,
+  X
 } from 'lucide-react';
 import { Page } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
@@ -38,12 +40,41 @@ interface Member {
   cardId: string;
 }
 
-// Benefits per plan — duplicated from Cotizador.tsx's plansComparativo (same
+// Plan details — duplicated from Cotizador.tsx's plansComparativo (same
 // duplication-over-shared-module pattern already used for specialties/cities
 // across this codebase) since there's no real contract/PDF system to link to.
-const PLAN_BENEFITS: Record<string, { name: string; caracteristicas: string[] }> = {
+// Kept field-for-field identical so the portal's plan modal matches the
+// Cotizador one exactly.
+const PLAN_DETAILS: Record<string, {
+  name: string;
+  cobertura: string;
+  dedHosp: string;
+  maternidad: string;
+  muerteAccidente: string;
+  sepelio: string;
+  ambulancia: string;
+  especialidades: Record<string, boolean>;
+  caracteristicas: string[];
+}> = {
   inicio: {
     name: 'Plan Inicio 2K',
+    cobertura: '$2.000,00 USD Anual',
+    dedHosp: '$40,00 USD Anual',
+    maternidad: '$250,00 USD',
+    muerteAccidente: '$1.500,00 USD',
+    sepelio: '$500,00 USD',
+    ambulancia: '$200,00 USD',
+    especialidades: {
+      'Medicina General': true,
+      'Medicina Familiar': true,
+      'Ginecología': true,
+      'Gastroenterología': true,
+      'Urología': false,
+      'Traumatología': false,
+      'Medicina Interna': false,
+      'Cardiología': false,
+      'Odontología (6 proced./año)': true,
+    },
     caracteristicas: [
       'Entrega de medicina al 100% (Sin costo ni copago)',
       'Especialidades: Medicina General, Familiar, Ginecología y Odontología',
@@ -53,6 +84,23 @@ const PLAN_BENEFITS: Record<string, { name: string; caracteristicas: string[] }>
   },
   proteccion: {
     name: 'Plan Protección 3K',
+    cobertura: '$3.000,00 USD Anual',
+    dedHosp: '$40,00 USD Anual',
+    maternidad: '$500,00 USD',
+    muerteAccidente: '$2.500,00 USD',
+    sepelio: '$500,00 USD',
+    ambulancia: '$200,00 USD',
+    especialidades: {
+      'Medicina General': true,
+      'Medicina Familiar': true,
+      'Ginecología': true,
+      'Gastroenterología': true,
+      'Urología': true,
+      'Traumatología': true,
+      'Medicina Interna': false,
+      'Cardiología': false,
+      'Odontología (6 proced./año)': true,
+    },
     caracteristicas: [
       'Especialidades: Incluye Urología y Traumatología',
       'Telemedicina ilimitada sin carencia (activa desde el primer día)',
@@ -63,6 +111,23 @@ const PLAN_BENEFITS: Record<string, { name: string; caracteristicas: string[] }>
   },
   plus: {
     name: 'Plan Plus 5K',
+    cobertura: '$5.000,00 USD Anual',
+    dedHosp: '$40,00 USD Anual',
+    maternidad: '$700,00 USD',
+    muerteAccidente: '$3.500,00 USD',
+    sepelio: '$800,00 USD',
+    ambulancia: '$200,00 USD',
+    especialidades: {
+      'Medicina General': true,
+      'Medicina Familiar': true,
+      'Ginecología': true,
+      'Gastroenterología': true,
+      'Urología': true,
+      'Traumatología': true,
+      'Medicina Interna': true,
+      'Cardiología': true,
+      'Odontología (6 proced./año)': true,
+    },
     caracteristicas: [
       'Especialidades: Medicina Interna, Cardiología y Odontología premium',
       'Telemedicina ilimitada sin carencia (activa desde el primer día)',
@@ -217,6 +282,39 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
     setNewRefund(prev => ({ ...prev, familyMember: profile.fullName }));
     setNewAuth(prev => ({ ...prev, patient: profile.fullName }));
   }, [profile?.fullName]);
+
+  // Plan detail modal — same content/layout as Cotizador's, without the
+  // "Contratar" CTA since this client is already contracted.
+  const [showPlanModal, setShowPlanModal] = useState(false);
+
+  // Client-editable address (synced server-side, see /api/portal/address)
+  const [addressInput, setAddressInput] = useState('');
+  const [addressSaving, setAddressSaving] = useState(false);
+  const [addressSaveMsg, setAddressSaveMsg] = useState('');
+  useEffect(() => {
+    setAddressInput(profile?.address || '');
+  }, [profile?.address]);
+
+  const saveAddress = async () => {
+    if (!portalToken || !addressInput.trim()) return;
+    setAddressSaving(true);
+    setAddressSaveMsg('');
+    try {
+      const res = await fetch('/api/portal/address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${portalToken}` },
+        body: JSON.stringify({ address: addressInput.trim() }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.success) throw new Error(result.message || 'No se pudo guardar');
+      setProfile((prev: any) => prev ? { ...prev, address: addressInput.trim() } : prev);
+      setAddressSaveMsg('¡Dirección guardada!');
+    } catch (err) {
+      setAddressSaveMsg(err instanceof Error ? err.message : 'No se pudo guardar la dirección.');
+    } finally {
+      setAddressSaving(false);
+    }
+  };
 
   // Chat Triage states
   const [triageStep, setTriageStep] = useState<0 | 1 | 2 | 3>(0);
@@ -1068,13 +1166,40 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                       <span className="text-xs font-semibold text-slate-800">{profile.phone || 'No registrado'}</span>
                     </div>
                   </div>
-                  <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex items-center gap-3 sm:col-span-2">
+                  <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex items-center gap-3">
                     <MapPin className="w-4.5 h-4.5 text-teal-600 shrink-0" />
                     <div>
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase">Dirección / Provincia de Residencia</span>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase">Provincia de Residencia</span>
                       <span className="text-xs font-semibold text-slate-800">{profile.province || 'No registrada'}</span>
                     </div>
                   </div>
+                </div>
+
+                {/* Editable address — synced with the DB and visible in the AdminPanel */}
+                <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4.5 h-4.5 text-teal-600 shrink-0" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Dirección</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={addressInput}
+                      onChange={(e) => setAddressInput(e.target.value)}
+                      placeholder="Ej. Av. Amazonas N34-451 y Av. Atahualpa, Quito"
+                      className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
+                    />
+                    <button
+                      onClick={saveAddress}
+                      disabled={addressSaving || !addressInput.trim()}
+                      className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors shrink-0"
+                    >
+                      {addressSaving ? 'Guardando...' : 'Guardar'}
+                    </button>
+                  </div>
+                  {addressSaveMsg && (
+                    <p className={`text-[10px] font-semibold ${addressSaveMsg.startsWith('¡') ? 'text-emerald-600' : 'text-red-600'}`}>{addressSaveMsg}</p>
+                  )}
                 </div>
 
                 {familyMembers.length > 0 && (
@@ -1093,19 +1218,29 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
                 {/* Plan benefits / "contract" summary */}
                 <div className="bg-teal-50/60 p-5 rounded-2xl border border-teal-100 space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <h4 className="text-xs font-bold text-teal-950">
-                      Beneficios de tu {PLAN_BENEFITS[profile.basePlanId]?.name || profile.selectedPlanName || 'Plan'}
+                      Beneficios de tu {PLAN_DETAILS[profile.basePlanId]?.name || profile.selectedPlanName || 'Plan'}
                     </h4>
-                    <button
-                      onClick={() => setCurrentPage('faqs')}
-                      className="text-[10px] font-bold text-teal-700 hover:underline cursor-pointer shrink-0"
-                    >
-                      Ver condiciones generales →
-                    </button>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {PLAN_DETAILS[profile.basePlanId] && (
+                        <button
+                          onClick={() => setShowPlanModal(true)}
+                          className="text-[10px] font-bold text-teal-700 hover:underline cursor-pointer"
+                        >
+                          Ver detalle completo del plan →
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setCurrentPage('faqs')}
+                        className="text-[10px] font-bold text-teal-700 hover:underline cursor-pointer"
+                      >
+                        Ver condiciones generales →
+                      </button>
+                    </div>
                   </div>
                   <ul className="space-y-1.5 text-[11px] text-slate-700">
-                    {(PLAN_BENEFITS[profile.basePlanId]?.caracteristicas || ['Contacta a tu asesor para el detalle completo de tu cobertura.']).map((b, i) => (
+                    {(PLAN_DETAILS[profile.basePlanId]?.caracteristicas || ['Contacta a tu asesor para el detalle completo de tu cobertura.']).map((b, i) => (
                       <li key={i} className="flex items-start gap-1.5">
                         <CheckCircle className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
                         <span>{b}</span>
@@ -1144,6 +1279,78 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     </div>
                   )}
                 </div>
+
+                {/* Plan detail modal — same layout as Cotizador's, read-only */}
+                {showPlanModal && PLAN_DETAILS[profile.basePlanId] && (
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setShowPlanModal(false)}
+                  >
+                    <div
+                      className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="sticky top-0 bg-[#0C4169] text-white px-6 py-4 rounded-t-3xl flex justify-between items-center">
+                        <div>
+                          <p className="text-[10px] font-mono tracking-widest text-sky-300 uppercase">Detalle del Plan</p>
+                          <h3 className="text-lg font-black">{PLAN_DETAILS[profile.basePlanId].name}</h3>
+                        </div>
+                        <button onClick={() => setShowPlanModal(false)} className="p-2 hover:bg-white/10 rounded-xl transition cursor-pointer">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="p-6 space-y-6">
+                        <div className="space-y-2">
+                          <span className="block text-[9.5px] font-black tracking-widest text-[#0C4169] uppercase font-mono">Coberturas</span>
+                          <div className="space-y-1.5 text-[11px] text-slate-700">
+                            {[
+                              ['Cobertura Anual Máxima', PLAN_DETAILS[profile.basePlanId].cobertura],
+                              ['Deducible Hospitalización', PLAN_DETAILS[profile.basePlanId].dedHosp],
+                              ['Bono Maternidad', PLAN_DETAILS[profile.basePlanId].maternidad],
+                              ['Muerte por Accidente', PLAN_DETAILS[profile.basePlanId].muerteAccidente],
+                              ['Sepelio por Accidente', PLAN_DETAILS[profile.basePlanId].sepelio],
+                              ['Ambulancias Terrestres', PLAN_DETAILS[profile.basePlanId].ambulancia],
+                              ['Lab e Imágenes (ambos)', '$100 USD/Año'],
+                            ].map(([label, val]) => (
+                              <div key={label} className="flex justify-between border-b border-slate-100 py-1.5">
+                                <span className="text-slate-500">{label}</span>
+                                <span className="font-bold text-slate-800">{val}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <span className="block text-[9.5px] font-black tracking-widest text-[#0C4169] uppercase font-mono">Especialidades Cubiertas</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {Object.entries(PLAN_DETAILS[profile.basePlanId].especialidades).sort(([, a], [, b]) => Number(b) - Number(a)).map(([spec, inc]) => (
+                              <div key={spec} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-[10.5px] ${inc ? 'bg-emerald-50/50 border-emerald-100 text-slate-800' : 'bg-slate-50 border-slate-100 text-slate-400 line-through'}`}>
+                                {inc
+                                  ? <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0"><Check className="w-2.5 h-2.5 stroke-[3.5]" /></span>
+                                  : <span className="w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center shrink-0"><X className="w-2.5 h-2.5 stroke-[3.5]" /></span>
+                                }
+                                <span className="font-bold leading-tight">{spec}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <span className="block text-[9.5px] font-black tracking-widest text-[#0C4169] uppercase font-mono">Beneficios Destacados</span>
+                          <ul className="space-y-1.5">
+                            {PLAN_DETAILS[profile.basePlanId].caracteristicas.map((feat, idx) => (
+                              <li key={idx} className="flex gap-2 items-start text-[11px] text-slate-600">
+                                <Check className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
+                                <span>{feat}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

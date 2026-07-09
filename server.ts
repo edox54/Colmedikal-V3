@@ -345,6 +345,21 @@ async function startServer() {
     fs.writeFileSync(PORTAL_CREDS_FILE, JSON.stringify(store));
   }
 
+  // Client-editable address — same non-persistence issue as passwords/payment
+  // status above. The client sets this themselves from the portal; this file
+  // is the single source of truth both /api/portal/me and the AdminPanel
+  // (via GET /api/admin/client-addresses) read, instead of each side drifting
+  // independently.
+  const CLIENT_ADDRESS_FILE = path.join(PORTAL_DATA_DIR, 'client-address-overrides.json');
+  type ClientAddressStore = Record<string, { address: string; updatedAt: number }>;
+  function loadClientAddresses(): ClientAddressStore {
+    try { return JSON.parse(fs.readFileSync(CLIENT_ADDRESS_FILE, 'utf8')); } catch { return {}; }
+  }
+  function saveClientAddresses(store: ClientAddressStore) {
+    fs.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    fs.writeFileSync(CLIENT_ADDRESS_FILE, JSON.stringify(store));
+  }
+
   function hashPortalPassword(password: string, saltHex?: string): { hash: string; salt: string } {
     const salt = saltHex || crypto.randomBytes(16).toString('hex');
     const hash = crypto.pbkdf2Sync(password, salt, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST).toString('hex');
@@ -477,6 +492,7 @@ async function startServer() {
       if (!lead) return res.status(404).json({ success: false, message: 'Cliente no encontrado' });
       const qd = parseQuoteData(lead);
       const paymentOverride = loadPaymentOverrides()[String(leadId)];
+      const addressOverride = loadClientAddresses()[String(leadId)];
       res.json({
         success: true,
         data: {
@@ -486,6 +502,7 @@ async function startServer() {
           email: qd.email || '',
           phone: qd.phone || '',
           province: qd.province || '',
+          address: addressOverride?.address || '',
           leadCode: qd.leadCode || '',
           selectedPlanName: qd.selectedPlanName || '',
           basePlanId: qd.basePlanId || '',
@@ -653,6 +670,52 @@ async function startServer() {
       res.json({ success: true });
     } catch (e) {
       console.error('[admin-set-payment-status]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Client self-service: set/update their own address. Authoritative store —
+  // read by /api/portal/me and mirrored to the admin panel below.
+  app.post('/api/portal/address', verifyPortalToken, express.json(), async (req, res) => {
+    try {
+      const leadId = (req as any).leadId;
+      const address = typeof req.body?.address === 'string' ? req.body.address.trim().slice(0, 300) : '';
+      if (!address) return res.status(400).json({ success: false, message: 'Ingresa una dirección válida' });
+
+      const store = loadClientAddresses();
+      store[String(leadId)] = { address, updatedAt: Date.now() };
+      saveClientAddresses(store);
+
+      res.json({ success: true, address });
+    } catch (e) {
+      console.error('[portal-address]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Admin: read the client-set addresses so the Clientes tab stays in sync
+  // with what clients actually entered (the external API PUT path is unreliable,
+  // so this is server-side truth, not something the admin browser can drift from).
+  app.get('/api/admin/client-addresses', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const callerToken = authHeader && authHeader.split(' ')[1];
+      if (!callerToken) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+
+      try {
+        await httpsJson(`https://api.colmedikal.com/api/admin/leads?limit=1`, {
+          headers: { Authorization: `Bearer ${callerToken}` },
+        });
+      } catch (e: any) {
+        return res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
+      }
+
+      const store = loadClientAddresses();
+      const data: Record<string, string> = {};
+      for (const [leadId, v] of Object.entries(store)) data[leadId] = v.address;
+      res.json({ success: true, data });
+    } catch (e) {
+      console.error('[admin-client-addresses]', e);
       res.status(500).json({ success: false, message: 'Error interno' });
     }
   });
