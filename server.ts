@@ -322,6 +322,20 @@ async function startServer() {
 
   const PORTAL_DATA_DIR = path.join(process.cwd(), 'data');
   const PORTAL_CREDS_FILE = path.join(PORTAL_DATA_DIR, 'portal-credentials.json');
+  // Same non-persistence issue as passwords above, but for paymentStatus: the
+  // AdminPanel's "Clientes" tab change was only ever surviving via a
+  // client-side (admin's own browser) localStorage override, so the portal
+  // — served from this server, reading the external API directly — never saw
+  // it. This file is now the authoritative store /api/portal/me checks first.
+  const PAYMENT_OVERRIDES_FILE = path.join(PORTAL_DATA_DIR, 'payment-status-overrides.json');
+  type PaymentOverridesStore = Record<string, { paymentStatus: string; updatedAt: number }>;
+  function loadPaymentOverrides(): PaymentOverridesStore {
+    try { return JSON.parse(fs.readFileSync(PAYMENT_OVERRIDES_FILE, 'utf8')); } catch { return {}; }
+  }
+  function savePaymentOverrides(store: PaymentOverridesStore) {
+    fs.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    fs.writeFileSync(PAYMENT_OVERRIDES_FILE, JSON.stringify(store));
+  }
   type PortalCredsStore = Record<string, { docNumber: string; hash: string; salt: string; updatedAt: number }>;
   function loadPortalCreds(): PortalCredsStore {
     try { return JSON.parse(fs.readFileSync(PORTAL_CREDS_FILE, 'utf8')); } catch { return {}; }
@@ -462,6 +476,7 @@ async function startServer() {
       const lead = leads.find(l => String(l.id) === String(leadId));
       if (!lead) return res.status(404).json({ success: false, message: 'Cliente no encontrado' });
       const qd = parseQuoteData(lead);
+      const paymentOverride = loadPaymentOverrides()[String(leadId)];
       res.json({
         success: true,
         data: {
@@ -470,6 +485,7 @@ async function startServer() {
           docNumber: qd.docNumber || '',
           email: qd.email || '',
           phone: qd.phone || '',
+          province: qd.province || '',
           leadCode: qd.leadCode || '',
           selectedPlanName: qd.selectedPlanName || '',
           basePlanId: qd.basePlanId || '',
@@ -477,8 +493,9 @@ async function startServer() {
           childrenCount: qd.childrenCount || 0,
           childrenAges: qd.childrenAges || [],
           estimatedPrice: Number(lead.estimated_price ?? lead.estimatedPrice ?? 0),
-          paymentStatus: qd.paymentStatus || 'Pendiente',
+          paymentStatus: paymentOverride?.paymentStatus || qd.paymentStatus || 'Pendiente',
           status: lead.status || 'Cierre Efectivo',
+          clientSince: lead.timestamp || lead.created_at || '',
         },
       });
     } catch (e) {
@@ -602,6 +619,40 @@ async function startServer() {
       res.json({ success: true });
     } catch (e) {
       console.error('[portal-set-password]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Admin-only: authoritative paymentStatus write — same rationale/pattern as
+  // /api/portal/set-password above (external API PUT doesn't reliably persist
+  // quote_data). Validates the caller via their own admin bearer token.
+  app.post('/api/admin/set-payment-status', express.json(), async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const callerToken = authHeader && authHeader.split(' ')[1];
+      if (!callerToken) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+
+      const leadId = req.body?.leadId;
+      const paymentStatus = req.body?.paymentStatus;
+      if (!leadId || !['Pagado', 'Pendiente', 'Atrasado'].includes(paymentStatus)) {
+        return res.status(400).json({ success: false, message: 'Datos inválidos' });
+      }
+
+      try {
+        await httpsJson(`https://api.colmedikal.com/api/admin/leads?limit=1`, {
+          headers: { Authorization: `Bearer ${callerToken}` },
+        });
+      } catch (e: any) {
+        return res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
+      }
+
+      const store = loadPaymentOverrides();
+      store[String(leadId)] = { paymentStatus, updatedAt: Date.now() };
+      savePaymentOverrides(store);
+
+      res.json({ success: true });
+    } catch (e) {
+      console.error('[admin-set-payment-status]', e);
       res.status(500).json({ success: false, message: 'Error interno' });
     }
   });

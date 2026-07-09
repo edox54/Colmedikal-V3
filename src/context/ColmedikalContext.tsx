@@ -783,6 +783,17 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch {
       // API may fail — override layer keeps the change
     }
+    try {
+      // Authoritative for the portal: PUT above isn't reliably persisted by the
+      // external API, so this server-side store is what /api/portal/me actually reads.
+      await fetch('/api/admin/set-payment-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ leadId: id, paymentStatus }),
+      });
+    } catch {
+      // Local browser override above still keeps the admin's own view correct
+    }
   };
 
   const setClientPassword = async (leadId: string, newPassword: string) => {

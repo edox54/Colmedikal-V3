@@ -18,10 +18,15 @@ import {
   ChevronRight,
   Bell,
   Stethoscope,
-  HeartPulse
+  HeartPulse,
+  Calendar,
+  MapPin,
+  Mail,
+  Phone
 } from 'lucide-react';
 import { Page } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
+import AgendamientoCitas from './AgendamientoCitas';
 
 interface PortalAfiliadosProps {
   setCurrentPage: (page: Page) => void;
@@ -33,10 +38,45 @@ interface Member {
   cardId: string;
 }
 
+// Benefits per plan — duplicated from Cotizador.tsx's plansComparativo (same
+// duplication-over-shared-module pattern already used for specialties/cities
+// across this codebase) since there's no real contract/PDF system to link to.
+const PLAN_BENEFITS: Record<string, { name: string; caracteristicas: string[] }> = {
+  inicio: {
+    name: 'Plan Inicio 2K',
+    caracteristicas: [
+      'Entrega de medicina al 100% (Sin costo ni copago)',
+      'Especialidades: Medicina General, Familiar, Ginecología y Odontología',
+      'Telemedicina sin carencia (activa desde el primer día)',
+      'Odontología (Consultas, profilaxis, restauraciones resina)',
+    ],
+  },
+  proteccion: {
+    name: 'Plan Protección 3K',
+    caracteristicas: [
+      'Especialidades: Incluye Urología y Traumatología',
+      'Telemedicina ilimitada sin carencia (activa desde el primer día)',
+      'Bono de Maternidad de $500,00 para titular',
+      'Entrega de medicina al 100% sin copago',
+      'Soporte a cirugías programadas preautorizadas',
+    ],
+  },
+  plus: {
+    name: 'Plan Plus 5K',
+    caracteristicas: [
+      'Especialidades: Medicina Interna, Cardiología y Odontología premium',
+      'Telemedicina ilimitada sin carencia (activa desde el primer día)',
+      'Bono de Maternidad premium de $700,00 USD',
+      'Límite de Gastos Hospitalarios de $5.000,00 USD',
+      'Exámenes de lab e imágenes diagnósticas: $100 totales (ambos incluidos)',
+    ],
+  },
+};
+
 export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps) {
   const { addRefund, addAuthorization } = useColmedikal();
 
-  const [activeTab, setActiveTab] = useState<'dash' | 'carnet' | 'reembolsos' | 'autorizaciones' | 'triage'>('dash');
+  const [activeTab, setActiveTab] = useState<'dash' | 'carnet' | 'reembolsos' | 'autorizaciones' | 'triage' | 'agendamiento' | 'datos'>('dash');
 
   // Real cédula + password login against /api/portal/login (server.ts)
   const [portalToken, setPortalToken] = useState<string | null>(() => sessionStorage.getItem('colmedikal_portal_token'));
@@ -134,6 +174,20 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
       relationship: ages[i] ? `${ages[i]} años` : 'Beneficiario',
     }));
   }, [profile]);
+
+  // ponytail: no real billing/invoicing system exists yet, so "próximo pago"
+  // is a heuristic — same day-of-month as the client's start date, next
+  // occurrence from today. Upgrade to a real due-date once billing exists.
+  const billingDates = useMemo(() => {
+    if (!profile?.clientSince) return null;
+    const since = new Date(profile.clientSince);
+    if (isNaN(since.getTime())) return null;
+    const today = new Date();
+    const next = new Date(today.getFullYear(), today.getMonth(), since.getDate());
+    if (next <= today) next.setMonth(next.getMonth() + 1);
+    const fmt = (d: Date) => d.toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' });
+    return { since: fmt(since), next: fmt(next) };
+  }, [profile?.clientSince]);
 
   // Form states for creating refund
   const [newRefund, setNewRefund] = useState({
@@ -397,6 +451,38 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
               </button>
 
               <button
+                onClick={() => setActiveTab('agendamiento')}
+                className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
+                  activeTab === 'agendamiento'
+                    ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-sm'
+                    : 'text-slate-650 hover:bg-slate-50'
+                }`}
+                id="portal-tab-agendamiento"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Calendar className="w-4.5 h-4.5 shrink-0" />
+                  <span>Agendar Cita</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+              </button>
+
+              <button
+                onClick={() => setActiveTab('datos')}
+                className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
+                  activeTab === 'datos'
+                    ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-sm'
+                    : 'text-slate-650 hover:bg-slate-50'
+                }`}
+                id="portal-tab-datos"
+              >
+                <div className="flex items-center gap-2.5">
+                  <User className="w-4.5 h-4.5 shrink-0" />
+                  <span>Mis Datos y Plan</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+              </button>
+
+              <button
                 onClick={() => setActiveTab('carnet')}
                 className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
                   activeTab === 'carnet'
@@ -445,19 +531,17 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
               </button>
 
               <button
-                onClick={() => setActiveTab('triage')}
-                className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
-                  activeTab === 'triage'
-                    ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-sm'
-                    : 'text-slate-650 hover:bg-slate-50'
-                }`}
+                type="button"
+                disabled
+                title="Próximamente disponible"
+                className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl text-left text-slate-350 cursor-not-allowed opacity-60"
                 id="portal-tab-triage"
               >
                 <div className="flex items-center gap-2.5">
-                  <HeartPulse className="w-4.5 h-4.5 shrink-0 animate-bounce" />
+                  <HeartPulse className="w-4.5 h-4.5 shrink-0" />
                   <span>Triage de Síntomas AI</span>
                 </div>
-                <span className="bg-rose-50 text-rose-700 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider font-sans">Nuevo</span>
+                <span className="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider font-sans">Próximamente</span>
               </button>
             </nav>
 
@@ -483,30 +567,35 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">Bienvenido Afiliado</span>
                     <h2 className="text-2xl font-bold font-display text-slate-900">{profile.fullName}</h2>
                     <p className="text-xs text-slate-500 mt-1">
-                      Plan: <strong className="text-slate-800">{profile.selectedPlanName || 'Por confirmar con tu asesor'}</strong>
+                      Plan: <strong className="text-slate-800">{(profile.selectedPlanName || 'Por confirmar con tu asesor').replace(/^Plan\s+/i, '')}</strong>
                     </p>
                   </div>
 
-                  {profile.paymentStatus === 'Atrasado' ? (
-                    <div className="flex items-center gap-2 bg-red-50 text-red-700 px-3.5 py-2 rounded-xl border border-red-150 text-xs font-semibold inline-fit">
-                      <AlertCircle className="w-4.5 h-4.5 shrink-0" />
-                      <span>Pago Atrasado</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 bg-teal-50 text-teal-800 px-3.5 py-2 rounded-xl border border-teal-100 text-xs font-semibold inline-fit">
-                      <ShieldCheck className="w-4.5 h-4.5 shrink-0" />
-                      <span>{profile.paymentStatus === 'Pagado' ? 'Póliza Activa al día' : 'Póliza Activa — Pago Pendiente'}</span>
-                    </div>
-                  )}
+                  <div className="text-right space-y-1">
+                    {profile.paymentStatus === 'Atrasado' ? (
+                      <div className="flex items-center gap-2 bg-red-50 text-red-700 px-3.5 py-2 rounded-xl border border-red-150 text-xs font-semibold inline-fit">
+                        <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+                        <span>Pago Atrasado</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 bg-teal-50 text-teal-800 px-3.5 py-2 rounded-xl border border-teal-100 text-xs font-semibold inline-fit">
+                        <ShieldCheck className="w-4.5 h-4.5 shrink-0" />
+                        <span>{profile.paymentStatus === 'Pagado' ? 'Póliza Activa al día' : 'Póliza Activa — Pago Pendiente'}</span>
+                      </div>
+                    )}
+                    {billingDates && (
+                      <p className="text-[10px] text-slate-400">Próximo pago: <strong className="text-slate-600">{billingDates.next}</strong></p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Dashboard Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {/* Cobertura */}
+                  {/* Cliente desde */}
                   <div className="p-4 p-5 bg-gradient-to-tr from-slate-50 to-teal-50/20 rounded-2xl border border-slate-150 space-y-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Gimnasio y Dental</span>
-                    <span className="block text-xl font-bold text-teal-700">Incluido (100%)</span>
-                    <p className="text-[10px] text-slate-500">Beneficios complementarios activos.</p>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cliente Desde</span>
+                    <span className="block text-xl font-bold text-teal-700">{billingDates?.since || '—'}</span>
+                    <p className="text-[10px] text-slate-500">Fecha de afiliación a Colmedikal.</p>
                   </div>
 
                   {/* Reembolsos pagados */}
@@ -533,13 +622,13 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     <span>¿Necesitas una Consulta Médica de Emergencia?</span>
                   </h4>
                   <p className="text-xs text-indigo-800 leading-relaxed">
-                    Utiliza la videoconsulta inmediata de telemedicina para que un especialista general evalúe tus síntomas en red en menos de 5 minutos, totalmente gratis y sin copagos adicionales.
+                    Agenda una cita directa con un médico de la red en minutos, o revisa el directorio para encontrar especialistas disponibles cerca de ti.
                   </p>
                   <button
-                    onClick={() => setActiveTab('triage')}
+                    onClick={() => setActiveTab('agendamiento')}
                     className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer inline-flex items-center gap-1.5"
                   >
-                    <span>Iniciar Telemedicina Express</span>
+                    <span>Agendar Cita Ahora</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -602,7 +691,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     <h3 className="text-lg font-bold font-sans tracking-wide leading-tight">{profile.fullName}</h3>
                     <div className="flex justify-between text-[11px] font-mono text-slate-350 bg-white/5 px-3 py-1.5 rounded-lg">
                       <span>Cél: {profile.docNumber}</span>
-                      <span>Plan: {profile.selectedPlanName || 'Por confirmar'}</span>
+                      <span>Plan: {(profile.selectedPlanName || 'Por confirmar').replace(/^Plan\s+/i, '')}</span>
                     </div>
                   </div>
 
@@ -936,6 +1025,124 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     </div>
                   </div>
 
+                </div>
+              </div>
+            )}
+
+            {/* B4.5: AGENDAMIENTO EMBEBIDO — reuses AgendamientoCitas as-is; it
+                shares the same sessionStorage portal token so it's already
+                authenticated and nivel-filtered for this same client. */}
+            {activeTab === 'agendamiento' && (
+              <div className="-m-6 sm:-m-8 animate-in fade-in duration-200" id="portal-panel-agendamiento">
+                <AgendamientoCitas setCurrentPage={setCurrentPage} />
+              </div>
+            )}
+
+            {/* B4.6: MIS DATOS Y PLAN — personal data, dependants, plan benefits,
+                and appointment history (fetched by portalData.appointments but
+                previously never shown anywhere). */}
+            {activeTab === 'datos' && (
+              <div className="space-y-8 animate-in fade-in duration-200" id="portal-panel-datos">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <User className="w-6 h-6 text-teal-600" />
+                    <span>Mis Datos y Mi Plan</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Información de contacto, beneficiarios y detalle de cobertura de tu plan contratado.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex items-center gap-3">
+                    <Mail className="w-4.5 h-4.5 text-teal-600 shrink-0" />
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase">Correo</span>
+                      <span className="text-xs font-semibold text-slate-800">{profile.email || 'No registrado'}</span>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex items-center gap-3">
+                    <Phone className="w-4.5 h-4.5 text-teal-600 shrink-0" />
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase">Teléfono</span>
+                      <span className="text-xs font-semibold text-slate-800">{profile.phone || 'No registrado'}</span>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex items-center gap-3 sm:col-span-2">
+                    <MapPin className="w-4.5 h-4.5 text-teal-600 shrink-0" />
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase">Dirección / Provincia de Residencia</span>
+                      <span className="text-xs font-semibold text-slate-800">{profile.province || 'No registrada'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {familyMembers.length > 0 && (
+                  <div className="space-y-3">
+                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Otras Personas en tu Plan</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {familyMembers.map((fam, idx) => (
+                        <div key={idx} className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm text-xs">
+                          <span className="block font-bold text-slate-900">{fam.name}</span>
+                          <span className="block text-[10px] text-slate-500">{fam.relationship}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Plan benefits / "contract" summary */}
+                <div className="bg-teal-50/60 p-5 rounded-2xl border border-teal-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-teal-950">
+                      Beneficios de tu {PLAN_BENEFITS[profile.basePlanId]?.name || profile.selectedPlanName || 'Plan'}
+                    </h4>
+                    <button
+                      onClick={() => setCurrentPage('faqs')}
+                      className="text-[10px] font-bold text-teal-700 hover:underline cursor-pointer shrink-0"
+                    >
+                      Ver condiciones generales →
+                    </button>
+                  </div>
+                  <ul className="space-y-1.5 text-[11px] text-slate-700">
+                    {(PLAN_BENEFITS[profile.basePlanId]?.caracteristicas || ['Contacta a tu asesor para el detalle completo de tu cobertura.']).map((b, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Appointment history */}
+                <div className="space-y-3">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Histórico de Citas Agendadas</span>
+                  {portalData.appointments.length === 0 ? (
+                    <p className="text-xs text-slate-400">Aún no has agendado citas médicas.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {portalData.appointments.map((apt) => (
+                        <div key={apt.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center gap-4">
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-900">{apt.specialty} — {apt.doctorName}</h4>
+                            <p className="text-[10px] text-slate-500">{apt.clinic} ({apt.city})</p>
+                            <p className="text-[10px] text-slate-400 font-mono">{apt.aptDate} {apt.aptTime}</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border shrink-0 ${
+                            apt.status === 'Confirmada'
+                              ? 'text-emerald-800 bg-emerald-50 border-emerald-100'
+                              : apt.status === 'Completada'
+                              ? 'text-indigo-800 bg-indigo-50 border-indigo-100'
+                              : apt.status === 'Cancelada'
+                              ? 'text-rose-800 bg-rose-50 border-rose-100'
+                              : 'text-amber-800 bg-amber-50 border-amber-100'
+                          }`}>
+                            {apt.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
