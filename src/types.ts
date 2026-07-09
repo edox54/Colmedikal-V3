@@ -37,6 +37,14 @@ export interface Plan {
   color: string; // Tailwind color class names
 }
 
+export interface ClientAddress {
+  province: string;
+  city: string;
+  address1: string;
+  address2?: string;
+  postalCode: string;
+}
+
 export interface QuoteState {
   fullName: string;
   email: string;
@@ -52,7 +60,7 @@ export interface QuoteState {
   leadCode?: string;
   selectedPlanName?: string;
   province?: string;
-  address?: string;
+  address?: ClientAddress;
   // Client/portal fields — only present once a lead becomes a client
   // (status 'Cierre Efectivo') and an admin sets up their portal access.
   paymentStatus?: 'Pagado' | 'Pendiente' | 'Atrasado';

@@ -1883,7 +1883,15 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       </div>
                       <div className="col-span-2">
                         <span className="block text-[9px] text-slate-400 font-bold uppercase">Dirección (ingresada por el cliente):</span>
-                        <span className="text-[11px] text-slate-700">{c.quoteData?.address || 'No registrada'}</span>
+                        {c.quoteData?.address?.address1 ? (
+                          <span className="text-[11px] text-slate-700">
+                            {c.quoteData.address.address1}
+                            {c.quoteData.address.address2 ? `, ${c.quoteData.address.address2}` : ''}
+                            {' — '}{c.quoteData.address.city}, {c.quoteData.address.province} (CP {c.quoteData.address.postalCode})
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">No registrada</span>
+                        )}
                       </div>
                     </div>
 

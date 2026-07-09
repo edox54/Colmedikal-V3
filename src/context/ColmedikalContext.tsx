@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, LeadNote, QuoteState, AdminUser } from '../types';
+import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, LeadNote, QuoteState, AdminUser, ClientAddress } from '../types';
 
 interface ColmedikalContextType {
   doctors: Doctor[];
@@ -143,7 +143,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // authoritative address store (GET /api/admin/client-addresses), refreshed
   // every fetchAllData cycle, so it stays correct across browsers/devices
   // instead of only in the admin's own browser like the overrides above.
-  const clientAddressOverrides = useRef<Record<string, string>>({});
+  const clientAddressOverrides = useRef<Record<string, ClientAddress>>({});
   const persistOverride = (key: string, value: any) => {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
   };

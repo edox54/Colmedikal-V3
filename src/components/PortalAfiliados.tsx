@@ -138,6 +138,85 @@ const PLAN_DETAILS: Record<string, {
   },
 };
 
+// Same province list as Cotizador.tsx (duplicated — same pattern as
+// specialties/cities elsewhere in this codebase).
+const PROVINCES = [
+  'Pichincha (Quito, etc.)', 'Guayas (Guayaquil, etc.)', 'Azuay (Cuenca, etc.)',
+  'Manabí (Manta, Portoviejo)', 'Loja', 'Tungurahua (Ambato)', 'El Oro (Machala)',
+  'Imbabura (Ibarra)', 'Santo Domingo de los Tsáchilas', 'Santa Elena', 'Los Ríos',
+  'Esmeraldas', 'Chimborazo (Riobamba)', 'Cotopaxi (Latacunga)', 'Carchi', 'Bolívar',
+  'Cañar', 'Galápagos', 'Morona Santiago', 'Napo', 'Orellana', 'Pastaza',
+  'Sucumbíos', 'Zamora Chinchipe',
+];
+
+interface AddressFormState {
+  province: string;
+  city: string;
+  address1: string;
+  address2: string;
+  postalCode: string;
+}
+const EMPTY_ADDRESS: AddressFormState = { province: '', city: '', address1: '', address2: '', postalCode: '' };
+
+// Shared by the "Mis Datos y Plan" tab and the mandatory first-login modal.
+function AddressFormFields({ value, onChange }: { value: AddressFormState; onChange: (v: AddressFormState) => void }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="space-y-1">
+        <label className="block text-[11px] font-semibold text-slate-700">Provincia: *</label>
+        <select
+          value={value.province}
+          onChange={(e) => onChange({ ...value, province: e.target.value })}
+          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
+        >
+          <option value="">Selecciona...</option>
+          {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <label className="block text-[11px] font-semibold text-slate-700">Ciudad: *</label>
+        <input
+          type="text"
+          value={value.city}
+          onChange={(e) => onChange({ ...value, city: e.target.value })}
+          placeholder="Ej. Quito"
+          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
+        />
+      </div>
+      <div className="space-y-1 sm:col-span-2">
+        <label className="block text-[11px] font-semibold text-slate-700">Dirección 1: *</label>
+        <input
+          type="text"
+          value={value.address1}
+          onChange={(e) => onChange({ ...value, address1: e.target.value })}
+          placeholder="Calle principal y secundaria, número"
+          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
+        />
+      </div>
+      <div className="space-y-1 sm:col-span-2">
+        <label className="block text-[11px] font-semibold text-slate-700">Dirección 2 (opcional):</label>
+        <input
+          type="text"
+          value={value.address2}
+          onChange={(e) => onChange({ ...value, address2: e.target.value })}
+          placeholder="Referencia, edificio, conjunto..."
+          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
+        />
+      </div>
+      <div className="space-y-1">
+        <label className="block text-[11px] font-semibold text-slate-700">Código Postal: *</label>
+        <input
+          type="text"
+          value={value.postalCode}
+          onChange={(e) => onChange({ ...value, postalCode: e.target.value })}
+          placeholder="Ej. 170150"
+          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps) {
   const { addRefund, addAuthorization } = useColmedikal();
 
@@ -287,28 +366,44 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   // "Contratar" CTA since this client is already contracted.
   const [showPlanModal, setShowPlanModal] = useState(false);
 
-  // Client-editable address (synced server-side, see /api/portal/address)
-  const [addressInput, setAddressInput] = useState('');
+  // Client-editable structured address (synced server-side, see /api/portal/address).
+  // Mandatory on first login — the modal is forced open until addressComplete is true.
+  const [addressForm, setAddressForm] = useState<AddressFormState>(EMPTY_ADDRESS);
   const [addressSaving, setAddressSaving] = useState(false);
   const [addressSaveMsg, setAddressSaveMsg] = useState('');
+  const [showAddressModal, setShowAddressModal] = useState(false);
+
   useEffect(() => {
-    setAddressInput(profile?.address || '');
-  }, [profile?.address]);
+    if (!profile) return;
+    setAddressForm({
+      province: profile.address?.province || '',
+      city: profile.address?.city || '',
+      address1: profile.address?.address1 || '',
+      address2: profile.address?.address2 || '',
+      postalCode: profile.address?.postalCode || '',
+    });
+    setShowAddressModal(!profile.addressComplete);
+  }, [profile]);
 
   const saveAddress = async () => {
-    if (!portalToken || !addressInput.trim()) return;
+    if (!portalToken) return;
+    if (!addressForm.province || !addressForm.city || !addressForm.address1 || !addressForm.postalCode) {
+      setAddressSaveMsg('Provincia, ciudad, Dirección 1 y código postal son obligatorios.');
+      return;
+    }
     setAddressSaving(true);
     setAddressSaveMsg('');
     try {
       const res = await fetch('/api/portal/address', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${portalToken}` },
-        body: JSON.stringify({ address: addressInput.trim() }),
+        body: JSON.stringify(addressForm),
       });
       const result = await res.json().catch(() => ({}));
       if (!res.ok || !result.success) throw new Error(result.message || 'No se pudo guardar');
-      setProfile((prev: any) => prev ? { ...prev, address: addressInput.trim() } : prev);
+      setProfile((prev: any) => prev ? { ...prev, address: result.address, addressComplete: true } : prev);
       setAddressSaveMsg('¡Dirección guardada!');
+      setShowAddressModal(false);
     } catch (err) {
       setAddressSaveMsg(err instanceof Error ? err.message : 'No se pudo guardar la dirección.');
     } finally {
@@ -511,8 +606,38 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
         </section>
       ) : (
         /* PORTAL AREA (IS LOGGED IN) */
+        <>
+        {/* Mandatory first-login address modal — blocks until Provincia/Ciudad/
+            Dirección 1/Código Postal are completed; skipped automatically once
+            addressComplete is true (no close button while incomplete). */}
+        {showAddressModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200" id="mandatory-address-modal">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+              <div className="bg-[#0C4169] text-white px-6 py-4 rounded-t-3xl">
+                <p className="text-[10px] font-mono tracking-widest text-sky-300 uppercase">Paso obligatorio</p>
+                <h3 className="text-lg font-black">Completa tu dirección</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-xs text-slate-500">
+                  Antes de continuar, necesitamos tu dirección para envíos de carné físico, correspondencia y verificación de cobertura por zona.
+                </p>
+                <AddressFormFields value={addressForm} onChange={setAddressForm} />
+                {addressSaveMsg && (
+                  <p className={`text-[11px] font-semibold ${addressSaveMsg.startsWith('¡') ? 'text-emerald-600' : 'text-red-600'}`}>{addressSaveMsg}</p>
+                )}
+                <button
+                  onClick={saveAddress}
+                  disabled={addressSaving}
+                  className="w-full py-3 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl cursor-pointer transition-colors"
+                >
+                  {addressSaving ? 'Guardando...' : 'Guardar y Continuar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start align-stretch" id="portal-affiliate-area">
-          
+
           {/* A. SIDENAV TAB CONTROLLER */}
           <div className="lg:col-span-3 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-6">
             
@@ -1166,40 +1291,27 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                       <span className="text-xs font-semibold text-slate-800">{profile.phone || 'No registrado'}</span>
                     </div>
                   </div>
-                  <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex items-center gap-3">
-                    <MapPin className="w-4.5 h-4.5 text-teal-600 shrink-0" />
-                    <div>
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase">Provincia de Residencia</span>
-                      <span className="text-xs font-semibold text-slate-800">{profile.province || 'No registrada'}</span>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Editable address — synced with the DB and visible in the AdminPanel */}
-                <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 space-y-2">
+                {/* Editable structured address — synced with the DB and visible in the AdminPanel */}
+                <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 space-y-3">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4.5 h-4.5 text-teal-600 shrink-0" />
                     <span className="text-[10px] font-bold text-slate-400 uppercase">Dirección</span>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={addressInput}
-                      onChange={(e) => setAddressInput(e.target.value)}
-                      placeholder="Ej. Av. Amazonas N34-451 y Av. Atahualpa, Quito"
-                      className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                    />
+                  <AddressFormFields value={addressForm} onChange={setAddressForm} />
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={saveAddress}
-                      disabled={addressSaving || !addressInput.trim()}
+                      disabled={addressSaving}
                       className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors shrink-0"
                     >
-                      {addressSaving ? 'Guardando...' : 'Guardar'}
+                      {addressSaving ? 'Guardando...' : 'Guardar Dirección'}
                     </button>
+                    {addressSaveMsg && (
+                      <p className={`text-[10px] font-semibold ${addressSaveMsg.startsWith('¡') ? 'text-emerald-600' : 'text-red-600'}`}>{addressSaveMsg}</p>
+                    )}
                   </div>
-                  {addressSaveMsg && (
-                    <p className={`text-[10px] font-semibold ${addressSaveMsg.startsWith('¡') ? 'text-emerald-600' : 'text-red-600'}`}>{addressSaveMsg}</p>
-                  )}
                 </div>
 
                 {familyMembers.length > 0 && (
@@ -1479,6 +1591,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
           </div>
 
         </div>
+        </>
       )}
 
     </div>

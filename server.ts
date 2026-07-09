@@ -351,7 +351,8 @@ async function startServer() {
   // (via GET /api/admin/client-addresses) read, instead of each side drifting
   // independently.
   const CLIENT_ADDRESS_FILE = path.join(PORTAL_DATA_DIR, 'client-address-overrides.json');
-  type ClientAddressStore = Record<string, { address: string; updatedAt: number }>;
+  type ClientAddressEntry = { province: string; city: string; address1: string; address2?: string; postalCode: string; updatedAt: number };
+  type ClientAddressStore = Record<string, ClientAddressEntry>;
   function loadClientAddresses(): ClientAddressStore {
     try { return JSON.parse(fs.readFileSync(CLIENT_ADDRESS_FILE, 'utf8')); } catch { return {}; }
   }
@@ -493,6 +494,7 @@ async function startServer() {
       const qd = parseQuoteData(lead);
       const paymentOverride = loadPaymentOverrides()[String(leadId)];
       const addressOverride = loadClientAddresses()[String(leadId)];
+      const addressComplete = !!(addressOverride?.province && addressOverride?.city && addressOverride?.address1 && addressOverride?.postalCode);
       res.json({
         success: true,
         data: {
@@ -501,8 +503,14 @@ async function startServer() {
           docNumber: qd.docNumber || '',
           email: qd.email || '',
           phone: qd.phone || '',
-          province: qd.province || '',
-          address: addressOverride?.address || '',
+          address: {
+            province: addressOverride?.province || qd.province || '',
+            city: addressOverride?.city || '',
+            address1: addressOverride?.address1 || '',
+            address2: addressOverride?.address2 || '',
+            postalCode: addressOverride?.postalCode || '',
+          },
+          addressComplete,
           leadCode: qd.leadCode || '',
           selectedPlanName: qd.selectedPlanName || '',
           basePlanId: qd.basePlanId || '',
@@ -679,14 +687,21 @@ async function startServer() {
   app.post('/api/portal/address', verifyPortalToken, express.json(), async (req, res) => {
     try {
       const leadId = (req as any).leadId;
-      const address = typeof req.body?.address === 'string' ? req.body.address.trim().slice(0, 300) : '';
-      if (!address) return res.status(400).json({ success: false, message: 'Ingresa una dirección válida' });
+      const str = (v: unknown, max: number) => typeof v === 'string' ? v.trim().slice(0, max) : '';
+      const province = str(req.body?.province, 100);
+      const city = str(req.body?.city, 100);
+      const address1 = str(req.body?.address1, 200);
+      const address2 = str(req.body?.address2, 200);
+      const postalCode = str(req.body?.postalCode, 20);
+      if (!province || !city || !address1 || !postalCode) {
+        return res.status(400).json({ success: false, message: 'Provincia, ciudad, Dirección 1 y código postal son obligatorios' });
+      }
 
       const store = loadClientAddresses();
-      store[String(leadId)] = { address, updatedAt: Date.now() };
+      store[String(leadId)] = { province, city, address1, address2, postalCode, updatedAt: Date.now() };
       saveClientAddresses(store);
 
-      res.json({ success: true, address });
+      res.json({ success: true, address: { province, city, address1, address2, postalCode } });
     } catch (e) {
       console.error('[portal-address]', e);
       res.status(500).json({ success: false, message: 'Error interno' });
@@ -711,8 +726,10 @@ async function startServer() {
       }
 
       const store = loadClientAddresses();
-      const data: Record<string, string> = {};
-      for (const [leadId, v] of Object.entries(store)) data[leadId] = v.address;
+      const data: Record<string, { province: string; city: string; address1: string; address2?: string; postalCode: string }> = {};
+      for (const [leadId, v] of Object.entries(store)) {
+        data[leadId] = { province: v.province, city: v.city, address1: v.address1, address2: v.address2, postalCode: v.postalCode };
+      }
       res.json({ success: true, data });
     } catch (e) {
       console.error('[admin-client-addresses]', e);
