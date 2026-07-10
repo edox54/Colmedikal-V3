@@ -361,6 +361,24 @@ async function startServer() {
     fs.writeFileSync(CLIENT_ADDRESS_FILE, JSON.stringify(store));
   }
 
+  // Same non-persistence issue, but for an anonymous lead's chosen plan: a
+  // customer first submits the generic 3-step quote (blank selectedPlanName/
+  // basePlanId, by design), then picks a specific plan and hits "Contratar".
+  // That second write is a duplicate-merge PUT to the external API (unreliable,
+  // as above) with only a browser-localStorage fallback — which is useless here
+  // because the WRITER (the anonymous customer's browser) is never the READER
+  // (the admin's browser). This file is the cross-device fix.
+  const LEAD_PLAN_FILE = path.join(PORTAL_DATA_DIR, 'lead-plan-overrides.json');
+  type LeadPlanEntry = { selectedPlanName: string; estimatedPrice?: number; updatedAt: number };
+  type LeadPlanStore = Record<string, LeadPlanEntry>;
+  function loadLeadPlanOverrides(): LeadPlanStore {
+    try { return JSON.parse(fs.readFileSync(LEAD_PLAN_FILE, 'utf8')); } catch { return {}; }
+  }
+  function saveLeadPlanOverrides(store: LeadPlanStore) {
+    fs.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    fs.writeFileSync(LEAD_PLAN_FILE, JSON.stringify(store));
+  }
+
   function hashPortalPassword(password: string, saltHex?: string): { hash: string; salt: string } {
     const salt = saltHex || crypto.randomBytes(16).toString('hex');
     const hash = crypto.pbkdf2Sync(password, salt, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST).toString('hex');
@@ -733,6 +751,62 @@ async function startServer() {
       res.json({ success: true, data });
     } catch (e) {
       console.error('[admin-client-addresses]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Public (anonymous, same as the existing duplicate-merge PUT it backs up):
+  // record the plan a customer picked after their initial generic quote.
+  // Guarded by matching the caller's own email/phone/docNumber against the
+  // lead's, so this can't be used to graffiti an arbitrary lead by ID alone.
+  app.post('/api/leads/plan-override', express.json(), async (req, res) => {
+    try {
+      const leadId = req.body?.leadId;
+      const selectedPlanName = typeof req.body?.selectedPlanName === 'string' ? req.body.selectedPlanName.trim().slice(0, 200) : '';
+      const estimatedPrice = Number(req.body?.estimatedPrice);
+      if (!leadId || !selectedPlanName) return res.status(400).json({ success: false, message: 'Datos inválidos' });
+
+      const email = normId(req.body?.email), phone = normId(req.body?.phone), docNumber = normId(req.body?.docNumber);
+      const leads = await getLeads();
+      const lead = leads.find(l => String(l.id) === String(leadId));
+      if (!lead) return res.status(404).json({ success: false, message: 'No encontrado' });
+      const qd = parseQuoteData(lead);
+      const owns = (email && normId(qd.email) === email) || (phone && normId(qd.phone) === phone) || (docNumber && normId(qd.docNumber) === docNumber);
+      if (!owns) return res.status(403).json({ success: false, message: 'No autorizado' });
+
+      const store = loadLeadPlanOverrides();
+      store[String(leadId)] = { selectedPlanName, estimatedPrice: Number.isFinite(estimatedPrice) ? estimatedPrice : undefined, updatedAt: Date.now() };
+      saveLeadPlanOverrides(store);
+
+      res.json({ success: true });
+    } catch (e) {
+      console.error('[leads-plan-override]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Admin: read the plan overrides so the leads list reflects what the
+  // customer actually picked, not just what the external API happened to persist.
+  app.get('/api/admin/lead-overrides', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const callerToken = authHeader && authHeader.split(' ')[1];
+      if (!callerToken) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+
+      try {
+        await httpsJson(`https://api.colmedikal.com/api/admin/leads?limit=1`, {
+          headers: { Authorization: `Bearer ${callerToken}` },
+        });
+      } catch (e: any) {
+        return res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
+      }
+
+      const store = loadLeadPlanOverrides();
+      const data: Record<string, { selectedPlanName: string; estimatedPrice?: number }> = {};
+      for (const [leadId, v] of Object.entries(store)) data[leadId] = { selectedPlanName: v.selectedPlanName, estimatedPrice: v.estimatedPrice };
+      res.json({ success: true, data });
+    } catch (e) {
+      console.error('[admin-lead-overrides]', e);
       res.status(500).json({ success: false, message: 'Error interno' });
     }
   });

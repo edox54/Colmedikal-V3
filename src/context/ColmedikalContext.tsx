@@ -144,6 +144,11 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // every fetchAllData cycle, so it stays correct across browsers/devices
   // instead of only in the admin's own browser like the overrides above.
   const clientAddressOverrides = useRef<Record<string, ClientAddress>>({});
+  // Same rationale as clientAddressOverrides — server-authoritative, refreshed
+  // every fetchAllData cycle, since leadPlanOverrides (browser localStorage,
+  // populated when an ANONYMOUS customer picks a plan) can never reach the
+  // admin's own browser on its own.
+  const leadPriceOverrides = useRef<Record<string, number>>({});
   const persistOverride = (key: string, value: any) => {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
   };
@@ -272,6 +277,20 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (addrRes.ok && addrJson.success) clientAddressOverrides.current = addrJson.data || {};
       } catch { /* keep previous values on failure */ }
 
+      // Server-authoritative plan-selection overrides (see leadPriceOverrides comment above)
+      try {
+        const planRes = await fetch('/api/admin/lead-overrides', { headers: { Authorization: `Bearer ${authToken}` } });
+        const planJson = await planRes.json().catch(() => ({}));
+        if (planRes.ok && planJson.success) {
+          const prices: Record<string, number> = {};
+          for (const [leadId, v] of Object.entries<any>(planJson.data || {})) {
+            if (v.selectedPlanName) leadPlanOverrides.current[leadId] = v.selectedPlanName;
+            if (typeof v.estimatedPrice === 'number') prices[leadId] = v.estimatedPrice;
+          }
+          leadPriceOverrides.current = prices;
+        }
+      } catch { /* keep previous values on failure */ }
+
       let fetchedDoctors: any[] = doctorsRes.data || [];
       if (fetchedDoctors.length === 0) {
         try {
@@ -344,7 +363,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               return qd;
             } catch { return l.quoteData ?? {}; }
           })(),
-          estimatedPrice: Number(l.estimated_price ?? l.estimatedPrice ?? 0),
+          estimatedPrice: leadPriceOverrides.current[l.id] ?? Number(l.estimated_price ?? l.estimatedPrice ?? 0),
           timestamp: l.timestamp ?? l.created_at ?? new Date().toISOString(),
           status: (leadStatusOverrides.current[l.id] || l.status || 'Nuevo Plan') as LeadQuote['status'],
           notes: leadNotesOverrides.current[l.id] ?? l.notes ?? [],
@@ -656,6 +675,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       if (!token) {
         // Persist the selected plan name so the 10s poll doesn't overwrite it
+        // (this browser-local override only helps THIS browser — see the
+        // server-side plan-override call below for what actually reaches the admin)
         if (quote.selectedPlanName) {
           leadPlanOverrides.current[String(existing.id)] = quote.selectedPlanName;
           persistOverride('colmedikal_lead_plan', leadPlanOverrides.current);
@@ -670,6 +691,25 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         try {
           await apiCall(`/api/leads/${existing.id}`, 'PUT', { quote_data: mergedQuote, estimated_price: estimatedPrice });
         } catch { /* silent */ }
+        if (quote.selectedPlanName) {
+          try {
+            // Authoritative for the admin: the PUT above and the localStorage
+            // override are both invisible cross-device — this is what
+            // /api/admin/lead-overrides actually reads.
+            await fetch('/api/leads/plan-override', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                leadId: existing.id,
+                selectedPlanName: quote.selectedPlanName,
+                estimatedPrice,
+                email: quote.email,
+                phone: quote.phone,
+                docNumber: quote.docNumber,
+              }),
+            });
+          } catch { /* silent — localStorage override above still keeps this browser correct */ }
+        }
         return { ...updated, isDuplicate: true, previousCodes: dupCodes };
       }
 
