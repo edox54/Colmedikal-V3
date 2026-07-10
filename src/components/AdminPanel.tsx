@@ -42,6 +42,7 @@ import {
   AlertCircle,
   Lock,
   EyeOff,
+  ChevronRight,
 } from 'lucide-react';
 import { Page, Doctor, AppointmentItem } from '../types';
 import avatarGomez from '../assets/images/avatar_gomez_1780024902226.png';
@@ -1491,85 +1492,66 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
             </button>
           </div>
 
-          {/* Lead cards — grouped by duplicate cluster */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Lead list — grouped by duplicate cluster. Compact rows (not tall
+              cards) so more leads fit on screen without scrolling; secondary
+              info (duplicates/asignación/notas) is tucked behind "Más detalles". */}
+          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
             {filteredClusters.length > 0 ? (
               filteredClusters.map(([clusterId, cluster]) => {
                 const primary = cluster[0];
                 const hasDupes = cluster.length > 1;
                 const planName = resolvePlanName(primary);
                 return (
-                <div key={clusterId} className={`bg-white p-5 rounded-2xl border shadow-sm flex flex-col justify-between ${hasDupes ? 'border-amber-200' : 'border-slate-200'}`}>
-                  <div className="space-y-3">
-                    {/* Header */}
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest font-mono">
-                            {primary.quoteData?.leadCode || primary.id.slice(0, 12).toUpperCase()}
+                <div key={clusterId} className={`p-3.5 ${hasDupes ? 'bg-amber-50/40' : ''}`}>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    {/* Identity */}
+                    <div className="min-w-[160px]">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest font-mono">
+                          {primary.quoteData?.leadCode || primary.id.slice(0, 12).toUpperCase()}
+                        </span>
+                        {hasDupes && (
+                          <span className="text-[8px] bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-bold">
+                            {cluster.length} registros
                           </span>
-                          {hasDupes && (
-                            <span className="text-[8px] bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-bold">
-                              {cluster.length} registros
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="text-sm font-black text-slate-900">{primary.quoteData?.fullName || '—'}</h4>
-                        {planName
-                          ? <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase">{planName}</span>
-                          : <span className="text-[9px] bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded font-medium italic">Sin plan seleccionado</span>}
-                      </div>
-                      <div className="text-right">
-                        {/* Without a chosen plan, this is a rough ballpark, not a quote for
-                            a specific plan — labeled distinctly so it can't be misread as
-                            "the customer picked the $X/mes plan" when none was picked. */}
-                        <span className="text-[9px] text-slate-400 font-mono block">{planName ? 'Est.:' : 'Est. Preliminar:'}</span>
-                        <span className={`text-sm font-black font-mono ${planName ? 'text-indigo-750' : 'text-slate-400'}`}>${Number(primary.estimatedPrice || 0).toFixed(2)}/m</span>
-                      </div>
-                    </div>
-
-                    {/* Contact + Doc info */}
-                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
-                      <div>
-                        <span className="block text-[9px] text-slate-400 font-bold uppercase">Contacto:</span>
-                        <a href={`tel:${primary.quoteData?.phone}`} className="font-bold text-indigo-650 hover:underline flex items-center gap-1 mt-0.5">
-                          <Phone className="w-3 h-3" /><span>{primary.quoteData?.phone || '—'}</span>
-                        </a>
-                        <span className="text-[10px] text-slate-500 truncate block">{primary.quoteData?.email || '—'}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[9px] text-slate-400 font-bold uppercase">Identificacion:</span>
-                        <span className="font-semibold text-slate-800 font-mono text-[11px]">
-                          {primary.quoteData?.docNumber || '—'}
-                        </span>
-                        <span className="block text-[9px] text-slate-400 capitalize">
-                          {primary.quoteData?.docType === 'pasaporte' ? 'Pasaporte' : 'Cedula'} • {primary.quoteData?.type || '—'}
-                          {(primary.quoteData?.childrenCount ?? 0) > 0 ? ` • ${primary.quoteData?.childrenCount} dep.` : ''}
-                        </span>
-                        {primary.quoteData?.birthDate && (
-                          <span className="block text-[9px] text-slate-400">Nac.: {primary.quoteData.birthDate}</span>
                         )}
                       </div>
+                      <h4 className="text-sm font-black text-slate-900">{primary.quoteData?.fullName || '—'}</h4>
+                      {planName
+                        ? <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase inline-block">{planName}</span>
+                        : <span className="text-[9px] bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded font-medium italic inline-block">Sin plan seleccionado</span>}
                     </div>
 
-                    {/* Duplicate history (collapsed) */}
-                    {hasDupes && (
-                      <details className="text-[10px]">
-                        <summary className="cursor-pointer text-amber-600 font-bold hover:underline">Ver {cluster.length - 1} cotizacion(es) anterior(es)</summary>
-                        <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-amber-200">
-                          {cluster.slice(1).map(dup => (
-                            <div key={dup.id} className="text-slate-500 flex justify-between">
-                              <span>{new Date(dup.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })} — ${Number(dup.estimatedPrice || 0).toFixed(2)}/m</span>
-                              <span className="text-slate-400">{dup.status}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
-                  </div>
+                    {/* Contact */}
+                    <div className="min-w-[140px] text-xs">
+                      <a href={`tel:${primary.quoteData?.phone}`} className="font-bold text-indigo-650 hover:underline flex items-center gap-1">
+                        <Phone className="w-3 h-3" /><span>{primary.quoteData?.phone || '—'}</span>
+                      </a>
+                      <span className="text-[10px] text-slate-500 truncate block max-w-[160px]">{primary.quoteData?.email || '—'}</span>
+                    </div>
 
-                  {/* Footer: status + actions */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    {/* Doc */}
+                    <div className="min-w-[120px] text-xs">
+                      <span className="font-semibold text-slate-800 font-mono text-[11px] block">{primary.quoteData?.docNumber || '—'}</span>
+                      <span className="block text-[9px] text-slate-400 capitalize">
+                        {primary.quoteData?.docType === 'pasaporte' ? 'Pasaporte' : 'Cedula'} • {primary.quoteData?.type || '—'}
+                        {(primary.quoteData?.childrenCount ?? 0) > 0 ? ` • ${primary.quoteData?.childrenCount} dep.` : ''}
+                      </span>
+                      {primary.quoteData?.birthDate && (
+                        <span className="block text-[9px] text-slate-400">Nac.: {primary.quoteData.birthDate}</span>
+                      )}
+                    </div>
+
+                    {/* Price */}
+                    <div className="text-right">
+                      {/* Without a chosen plan, this is a rough ballpark, not a quote for
+                          a specific plan — labeled distinctly so it can't be misread as
+                          "the customer picked the $X/mes plan" when none was picked. */}
+                      <span className="text-[9px] text-slate-400 font-mono block">{planName ? 'Est.:' : 'Est. Preliminar:'}</span>
+                      <span className={`text-sm font-black font-mono ${planName ? 'text-indigo-750' : 'text-slate-400'}`}>${Number(primary.estimatedPrice || 0).toFixed(2)}/m</span>
+                    </div>
+
+                    {/* Status */}
                     <div>
                       <span className="text-[10px] text-slate-400 font-mono block">
                         {new Date(primary.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
@@ -1590,7 +1572,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       )}
                     </div>
 
-                    <div className="flex gap-1.5 items-center flex-wrap justify-end">
+                    {/* Actions */}
+                    <div className="flex gap-1.5 items-center flex-wrap ml-auto">
                       {/* WhatsApp quick contact */}
                       {primary.quoteData?.phone && (
                         <a
@@ -1672,81 +1655,102 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                     </div>
                   </div>
 
-                  {/* Assignment + Notes */}
-                  <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
-                    {/* Assign to */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Asignado:</span>
-                      <select
-                        value={primary.assignedTo || ''}
-                        onChange={e => assignLead(primary.id, e.target.value)}
-                        className="flex-1 px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:border-teal-400 font-sans"
-                      >
-                        <option value="">— Sin asignar —</option>
-                        {admins.filter(a => a.active).map(a => (
-                          <option key={a.email} value={a.email}>{a.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                  {/* Everything used less often lives behind this toggle — keeps
+                      the default row short so more leads fit without scrolling. */}
+                  <details className="mt-2 text-[10px] group">
+                    <summary className="cursor-pointer text-slate-400 font-semibold hover:text-teal-600 list-none flex items-center gap-1">
+                      <ChevronRight className="w-3 h-3 transition-transform group-open:rotate-90" />
+                      <span>Más detalles</span>
+                      {(primary.notes || []).length > 0 && <span className="text-amber-500">({(primary.notes || []).length} nota{(primary.notes || []).length === 1 ? '' : 's'})</span>}
+                    </summary>
+                    <div className="mt-2 space-y-2.5 pl-4 border-l-2 border-slate-150">
+                      {/* Duplicate history */}
+                      {hasDupes && (
+                        <div className="space-y-1.5">
+                          <span className="block font-bold text-amber-600">{cluster.length - 1} cotizacion(es) anterior(es):</span>
+                          {cluster.slice(1).map(dup => (
+                            <div key={dup.id} className="text-slate-500 flex justify-between">
+                              <span>{new Date(dup.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })} — ${Number(dup.estimatedPrice || 0).toFixed(2)}/m</span>
+                              <span className="text-slate-400">{dup.status}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
-                    {/* Notes list */}
-                    {(primary.notes || []).length > 0 && (
-                      <div className="space-y-1.5 max-h-24 overflow-y-auto">
-                        {(primary.notes || []).map((n, i) => (
-                          <div key={i} className="bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 text-[10px]">
-                            <span className="text-amber-800 font-medium leading-snug block">{n.text}</span>
-                            <span className="text-amber-500 font-mono">{n.author} · {new Date(n.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}</span>
-                          </div>
-                        ))}
+                      {/* Assign to */}
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-400 uppercase tracking-wider shrink-0">Asignado:</span>
+                        <select
+                          value={primary.assignedTo || ''}
+                          onChange={e => assignLead(primary.id, e.target.value)}
+                          className="flex-1 px-2 py-1 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:border-teal-400 font-sans max-w-[220px]"
+                        >
+                          <option value="">— Sin asignar —</option>
+                          {admins.filter(a => a.active).map(a => (
+                            <option key={a.email} value={a.email}>{a.name}</option>
+                          ))}
+                        </select>
                       </div>
-                    )}
 
-                    {/* Add note */}
-                    {openNoteLeadId === primary.id ? (
-                      <div className="flex gap-1.5">
-                        <input
-                          autoFocus
-                          type="text"
-                          value={noteText}
-                          onChange={e => setNoteText(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' && noteText.trim()) {
-                              const stored = sessionStorage.getItem('colmedikal_user');
-                              const author = stored ? JSON.parse(stored)?.name || 'Admin' : 'Admin';
-                              addLeadNote(primary.id, { text: noteText.trim(), author, timestamp: new Date().toISOString() });
+                      {/* Notes list */}
+                      {(primary.notes || []).length > 0 && (
+                        <div className="space-y-1.5 max-h-24 overflow-y-auto">
+                          {(primary.notes || []).map((n, i) => (
+                            <div key={i} className="bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
+                              <span className="text-amber-800 font-medium leading-snug block">{n.text}</span>
+                              <span className="text-amber-500 font-mono">{n.author} · {new Date(n.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add note */}
+                      {openNoteLeadId === primary.id ? (
+                        <div className="flex gap-1.5">
+                          <input
+                            autoFocus
+                            type="text"
+                            value={noteText}
+                            onChange={e => setNoteText(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && noteText.trim()) {
+                                const stored = sessionStorage.getItem('colmedikal_user');
+                                const author = stored ? JSON.parse(stored)?.name || 'Admin' : 'Admin';
+                                addLeadNote(primary.id, { text: noteText.trim(), author, timestamp: new Date().toISOString() });
+                                setNoteText(''); setOpenNoteLeadId(null);
+                              }
+                              if (e.key === 'Escape') { setNoteText(''); setOpenNoteLeadId(null); }
+                            }}
+                            placeholder="Escribe una nota... (Enter para guardar)"
+                            className="flex-1 px-2.5 py-1.5 border border-teal-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-400 bg-teal-50"
+                          />
+                          <button
+                            onClick={() => {
+                              if (noteText.trim()) {
+                                const stored = sessionStorage.getItem('colmedikal_user');
+                                const author = stored ? JSON.parse(stored)?.name || 'Admin' : 'Admin';
+                                addLeadNote(primary.id, { text: noteText.trim(), author, timestamp: new Date().toISOString() });
+                              }
                               setNoteText(''); setOpenNoteLeadId(null);
-                            }
-                            if (e.key === 'Escape') { setNoteText(''); setOpenNoteLeadId(null); }
-                          }}
-                          placeholder="Escribe una nota... (Enter para guardar)"
-                          className="flex-1 px-2.5 py-1.5 text-[10px] border border-teal-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-400 bg-teal-50"
-                        />
+                            }}
+                            className="px-2 py-1 bg-teal-500 hover:bg-teal-600 text-white font-bold rounded-lg cursor-pointer"
+                          >✓</button>
+                        </div>
+                      ) : (
                         <button
-                          onClick={() => {
-                            if (noteText.trim()) {
-                              const stored = sessionStorage.getItem('colmedikal_user');
-                              const author = stored ? JSON.parse(stored)?.name || 'Admin' : 'Admin';
-                              addLeadNote(primary.id, { text: noteText.trim(), author, timestamp: new Date().toISOString() });
-                            }
-                            setNoteText(''); setOpenNoteLeadId(null);
-                          }}
-                          className="px-2 py-1 bg-teal-500 hover:bg-teal-600 text-white text-[10px] font-bold rounded-lg cursor-pointer"
-                        >✓</button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => { setOpenNoteLeadId(primary.id); setNoteText(''); }}
-                        className="text-[10px] text-slate-400 hover:text-teal-600 font-semibold cursor-pointer flex items-center gap-1"
-                      >
-                        <span>+</span> Agregar nota
-                      </button>
-                    )}
-                  </div>
+                          onClick={() => { setOpenNoteLeadId(primary.id); setNoteText(''); }}
+                          className="text-slate-400 hover:text-teal-600 font-semibold cursor-pointer flex items-center gap-1"
+                        >
+                          <span>+</span> Agregar nota
+                        </button>
+                      )}
+                    </div>
+                  </details>
                 </div>
                 );
               })
             ) : (
-              <div className="col-span-2 text-center py-12 bg-white rounded-3xl border p-6">
+              <div className="text-center py-12 p-6">
                 <Briefcase className="w-12 h-12 text-slate-350 mx-auto mb-2" />
                 <p className="text-sm font-bold text-slate-700">{leads.length === 0 ? 'No hay cotizaciones registradas.' : 'No hay resultados con los filtros actuales.'}</p>
               </div>
@@ -1848,17 +1852,19 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
             />
           </div>
 
-          {/* Client cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Client list — compact rows instead of tall cards, so more
+              clients fit on screen without scrolling. */}
+          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
             {filtered.length > 0 ? (
               filtered.map((c) => {
                 const planName = resolvePlanName(c);
                 const paymentStatus = c.quoteData?.paymentStatus || 'Pendiente';
                 const hasPortalAccess = !!c.quoteData?.portalPasswordHash;
                 return (
-                  <div key={c.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1">
+                  <div key={c.id} className="p-3.5">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                      {/* Identity */}
+                      <div className="min-w-[160px]">
                         <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest font-mono block">
                           {c.quoteData?.leadCode || c.id.slice(0, 12).toUpperCase()}
                         </span>
@@ -1867,85 +1873,91 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                           ? <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase inline-block">{planName}</span>
                           : <span className="text-[9px] bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded font-medium italic inline-block">Sin plan registrado</span>}
                       </div>
-                      <div className="text-right">
-                        <span className="text-[9px] text-slate-400 font-mono block">Prima:</span>
-                        <span className="text-sm font-black text-indigo-750 font-mono">${Number(c.estimatedPrice || 0).toFixed(2)}/m</span>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
-                      <div>
-                        <span className="block text-[9px] text-slate-400 font-bold uppercase">Contacto:</span>
-                        <a href={`tel:${c.quoteData?.phone}`} className="font-bold text-indigo-650 hover:underline flex items-center gap-1 mt-0.5">
+                      {/* Contact */}
+                      <div className="min-w-[140px] text-xs">
+                        <a href={`tel:${c.quoteData?.phone}`} className="font-bold text-indigo-650 hover:underline flex items-center gap-1">
                           <Phone className="w-3 h-3" /><span>{c.quoteData?.phone || '—'}</span>
                         </a>
-                        <span className="text-[10px] text-slate-500 truncate block">{c.quoteData?.email || '—'}</span>
+                        <span className="text-[10px] text-slate-500 truncate block max-w-[160px]">{c.quoteData?.email || '—'}</span>
                       </div>
-                      <div>
-                        <span className="block text-[9px] text-slate-400 font-bold uppercase">Cédula:</span>
-                        <span className="font-semibold text-slate-800 font-mono text-[11px]">{c.quoteData?.docNumber || '—'}</span>
+
+                      {/* Doc */}
+                      <div className="min-w-[110px] text-xs">
+                        <span className="font-semibold text-slate-800 font-mono text-[11px] block">{c.quoteData?.docNumber || '—'}</span>
                         {c.quoteData?.birthDate && (
                           <span className="block text-[9px] text-slate-400">Nac.: {c.quoteData.birthDate}</span>
                         )}
                       </div>
-                      <div className="col-span-2">
-                        <span className="block text-[9px] text-slate-400 font-bold uppercase">Dirección (ingresada por el cliente):</span>
+
+                      {/* Price */}
+                      <div className="text-right">
+                        <span className="text-[9px] text-slate-400 font-mono block">Prima:</span>
+                        <span className="text-sm font-black text-indigo-750 font-mono">${Number(c.estimatedPrice || 0).toFixed(2)}/m</span>
+                      </div>
+
+                      {/* Payment status */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">Pago:</span>
+                        <select
+                          value={paymentStatus}
+                          onChange={(e) => updateClientPaymentStatus(c.id, e.target.value as any)}
+                          className={`text-[11px] font-bold px-2 py-1 rounded-lg border outline-none cursor-pointer ${
+                            paymentStatus === 'Pagado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : paymentStatus === 'Atrasado' ? 'bg-red-50 text-red-700 border-red-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}
+                        >
+                          <option value="Pagado">Pagado</option>
+                          <option value="Pendiente">Pendiente</option>
+                          <option value="Atrasado">Atrasado</option>
+                        </select>
+                      </div>
+
+                      {/* Portal access */}
+                      <div className="flex items-center gap-2 ml-auto">
+                        {hasPortalAccess ? (
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700"><Lock className="w-3 h-3" /> Activo</span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400"><Lock className="w-3 h-3" /> Sin acceso</span>
+                        )}
+                        <button
+                          onClick={() => {
+                            setPasswordModalLeadId(c.id);
+                            setNewPasswordInput('');
+                            setPasswordSaveError('');
+                            setPasswordSaveSuccess(null);
+                          }}
+                          className="text-[10px] font-bold text-[#0C4169] hover:underline cursor-pointer whitespace-nowrap"
+                        >
+                          {hasPortalAccess ? 'Restablecer clave' : 'Establecer clave'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Address — collapsed by default, less frequently needed */}
+                    <details className="mt-1.5 text-[10px] group">
+                      <summary className="cursor-pointer text-slate-400 font-semibold hover:text-teal-600 list-none flex items-center gap-1">
+                        <ChevronRight className="w-3 h-3 transition-transform group-open:rotate-90" />
+                        <span>Dirección</span>
+                      </summary>
+                      <div className="mt-1 pl-4 border-l-2 border-slate-150">
                         {c.quoteData?.address?.address1 ? (
-                          <span className="text-[11px] text-slate-700">
+                          <span className="text-slate-700">
                             {c.quoteData.address.address1}
                             {c.quoteData.address.address2 ? `, ${c.quoteData.address.address2}` : ''}
                             {' — '}{c.quoteData.address.city}, {c.quoteData.address.province} (CP {c.quoteData.address.postalCode})
                           </span>
                         ) : (
-                          <span className="text-[11px] text-slate-400">No registrada</span>
+                          <span className="text-slate-400">No registrada por el cliente aún.</span>
                         )}
                       </div>
-                    </div>
-
-                    {/* Payment status */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Estado de Pago:</span>
-                      <select
-                        value={paymentStatus}
-                        onChange={(e) => updateClientPaymentStatus(c.id, e.target.value as any)}
-                        className={`text-[11px] font-bold px-2 py-1 rounded-lg border outline-none cursor-pointer ${
-                          paymentStatus === 'Pagado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : paymentStatus === 'Atrasado' ? 'bg-red-50 text-red-700 border-red-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}
-                      >
-                        <option value="Pagado">Pagado</option>
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="Atrasado">Atrasado</option>
-                      </select>
-                    </div>
-
-                    {/* Portal access */}
-                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold">
-                        {hasPortalAccess ? (
-                          <span className="flex items-center gap-1 text-emerald-700"><Lock className="w-3 h-3" /> Portal Activo</span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-slate-400"><Lock className="w-3 h-3" /> Sin acceso al portal</span>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => {
-                          setPasswordModalLeadId(c.id);
-                          setNewPasswordInput('');
-                          setPasswordSaveError('');
-                          setPasswordSaveSuccess(null);
-                        }}
-                        className="text-[10px] font-bold text-[#0C4169] hover:underline cursor-pointer"
-                      >
-                        {hasPortalAccess ? 'Restablecer contraseña' : 'Establecer contraseña'}
-                      </button>
-                    </div>
+                    </details>
                   </div>
                 );
               })
             ) : (
-              <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-slate-200">
+              <div className="text-center py-12">
                 <UserCheck className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                 <p className="text-sm font-bold text-slate-600">
                   {clients.length === 0 ? 'Aún no hay clientes.' : 'No hay resultados con ese criterio de búsqueda.'}

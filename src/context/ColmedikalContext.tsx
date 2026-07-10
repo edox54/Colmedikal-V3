@@ -810,21 +810,25 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateLeadStatus = async (id: string, status: LeadQuote['status']) => {
-    if (id.startsWith('local-')) {
+    // Lead IDs from the external API are numeric at runtime despite the
+    // `string` type annotation — .startsWith on a number throws and silently
+    // kills this whole function (no state update, button looks "broken").
+    const strId = String(id);
+    if (strId.startsWith('local-')) {
       setLocalLeads(prev => {
-        const updated = prev.map(l => l.id === id ? { ...l, status } : l);
+        const updated = prev.map(l => String(l.id) === strId ? { ...l, status } : l);
         try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(updated)); } catch {}
         return updated;
       });
       return;
     }
     // Optimistic update + persist override so the 10s poll doesn't revert it
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
-    leadStatusOverrides.current[id] = status;
+    setLeads(prev => prev.map(l => String(l.id) === strId ? { ...l, status } : l));
+    leadStatusOverrides.current[strId] = status;
     persistOverride('colmedikal_lead_overrides', leadStatusOverrides.current);
     if (!token) return;
     try {
-      await apiCall(`/api/admin/leads/${id}`, 'PUT', { status }, token);
+      await apiCall(`/api/admin/leads/${strId}`, 'PUT', { status }, token);
     } catch {
       // API may fail — override layer keeps the change
     }
