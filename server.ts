@@ -308,7 +308,10 @@ async function startServer() {
       res.json({ isDuplicate: matched, codes: Array.from(codes) });
     } catch (e) {
       console.error('[lead-lookup]', e);
-      res.json({ isDuplicate: false, codes: [] }); // fail-open
+      // fail-open, but flagged as unconfirmed so callers (e.g. the frontend's
+      // stale-local-cache pruning) don't mistake "couldn't check" for "checked,
+      // no duplicate" — those need different handling.
+      res.json({ isDuplicate: false, codes: [], configured: false });
     }
   });
 

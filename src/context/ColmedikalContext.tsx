@@ -654,7 +654,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
              (ePhone && nPhone && ePhone === nPhone) ||
              (eDoc && nDoc && eDoc === nDoc);
     });
-    const existing = matches[0];
+    let existing = matches[0];
     // Codes from every matching prior request (deduped), so the UI can show them
     const previousCodes = Array.from(new Set(
       matches.map(m => m.quoteData?.leadCode).filter((c): c is string => !!c)
@@ -664,6 +664,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // prior requests with these identifiers from ANY device/browser. Fail-open.
     let serverCodes: string[] = [];
     let serverDuplicate = false;
+    let serverConfigured = false; // only trust a "not a duplicate" answer if the lookup actually ran
     if (!token) {
       try {
         const r = await fetch('/api/leads/lookup', {
@@ -674,9 +675,26 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (r.ok) {
           const j = await r.json();
           serverDuplicate = !!j.isDuplicate;
+          serverConfigured = j.configured !== false;
           if (Array.isArray(j.codes)) serverCodes = j.codes.filter((c: unknown): c is string => typeof c === 'string');
         }
       } catch { /* fail-open: never block a legitimate lead on a lookup glitch */ }
+    }
+
+    // The server excludes admin-deleted leads (see /api/leads/lookup in
+    // server.ts); this browser's own localLeads cache does not — it's never
+    // pruned when a lead is deleted elsewhere. So if the server successfully
+    // checked and found no duplicate, a stale local-only match (e.g. a lead
+    // that was deleted after this same browser originally submitted it) must
+    // not resurrect it as "ya tienes una cotización" forever.
+    if (existing && serverConfigured && !serverDuplicate) {
+      const staleId = existing.id;
+      setLocalLeads(prev => {
+        const pruned = prev.filter(l => l.id !== staleId);
+        try { localStorage.setItem('colmedikal_local_leads', JSON.stringify(pruned)); } catch {}
+        return pruned;
+      });
+      existing = undefined;
     }
 
     if (existing) {
