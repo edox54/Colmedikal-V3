@@ -262,13 +262,15 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     setIsLoading(true);
     try {
-      const empty = { data: [] };
+      // null (not an empty dataset) marks "this specific fetch failed" — a
+      // transient network/API hiccup during the 10s poll must never wipe out
+      // perfectly good data already on screen by replacing it with [].
       const [doctorsRes, refundsRes, appointmentsRes, authorizationsRes, leadsRes] = await Promise.all([
-        apiCall('/api/admin/doctors?limit=500', 'GET', undefined, authToken).catch(() => empty),
-        apiCall('/api/admin/refunds?limit=100', 'GET', undefined, authToken).catch(() => empty),
-        apiCall('/api/admin/appointments?limit=100', 'GET', undefined, authToken).catch(() => empty),
-        apiCall('/api/admin/authorizations?limit=100', 'GET', undefined, authToken).catch(() => empty),
-        apiCall('/api/admin/leads?limit=100', 'GET', undefined, authToken).catch(() => empty),
+        apiCall('/api/admin/doctors?limit=500', 'GET', undefined, authToken).catch(() => null),
+        apiCall('/api/admin/refunds?limit=100', 'GET', undefined, authToken).catch(() => null),
+        apiCall('/api/admin/appointments?limit=100', 'GET', undefined, authToken).catch(() => null),
+        apiCall('/api/admin/authorizations?limit=100', 'GET', undefined, authToken).catch(() => null),
+        apiCall('/api/admin/leads?limit=100', 'GET', undefined, authToken).catch(() => null),
       ]);
 
       // Load admin users list from DB
@@ -312,63 +314,71 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
       } catch { /* keep previous values on failure */ }
 
-      let fetchedDoctors: any[] = doctorsRes.data || [];
-      if (fetchedDoctors.length === 0) {
-        try {
-          const pub = await fetch(`${API_BASE_URL}/api/doctors?limit=500`);
-          const pubData = await pub.json();
-          fetchedDoctors = pubData.data || [];
-        } catch { /* silent */ }
+      if (doctorsRes) {
+        let fetchedDoctors: any[] = doctorsRes.data || [];
+        if (fetchedDoctors.length === 0) {
+          try {
+            const pub = await fetch(`${API_BASE_URL}/api/doctors?limit=500`);
+            const pubData = await pub.json();
+            fetchedDoctors = pubData.data || [];
+          } catch { /* silent */ }
+        }
+        setDoctors(fetchedDoctors);
       }
-      setDoctors(fetchedDoctors);
-      setRefunds((refundsRes.data || []).map((r: any) => ({
-        id: r.id,
-        familyMember: r.family_member || '',
-        specialty: r.specialty || '',
-        amount: Number(r.amount || 0),
-        refundDate: r.refund_date ? r.refund_date.split('T')[0] : '',
-        status: r.status || 'Procesando',
-        invoiceNumber: r.invoice_number || '',
-        adminComment: r.admin_comment || undefined,
-        fileName: r.file_url || undefined,
-        userEmail: r.user_email || undefined,
-        userPhone: r.user_phone || undefined,
-      })));
-      setAppointments((appointmentsRes.data || []).map((a: any) => ({
-        id: a.id,
-        doctorName: a.doctor_name || 'Por Asignar',
-        specialty: a.specialty || '',
-        patientName: a.patient_name || '',
-        patientId: a.patient_id || '',
-        patientPhone: a.patient_phone || '',
-        aptDate: a.appointment_date ? a.appointment_date.split('T')[0] : '',
-        aptTime: a.appointment_time || '',
-        modality: a.modality || 'presencial',
-        clinic: a.clinic || '',
-        city: a.city || '',
-        cost: Number(a.cost || 0),
-        // Apply local status override if the backend didn't persist the change
-        status: aptStatusOverrides.current[a.id] || a.status || 'Pendiente',
-        notes: a.notes || '',
-      })));
-      setAuthorizations((authorizationsRes.data || []).map((a: any) => ({
-        id: a.id,
-        patient: a.patient || '',
-        procedure: a.procedure || '',
-        facility: a.facility || '',
-        requestDate: a.request_date || a.requestDate || '',
-        status: a.status || 'Pendiente',
-        adminComment: a.admin_comment || a.adminComment,
-        fileName: a.file_url || a.file_name || a.fileName,
-        userEmail: a.user_email || a.userEmail,
-        userPhone: a.user_phone || a.userPhone,
-      })));
+      if (refundsRes) {
+        setRefunds((refundsRes.data || []).map((r: any) => ({
+          id: r.id,
+          familyMember: r.family_member || '',
+          specialty: r.specialty || '',
+          amount: Number(r.amount || 0),
+          refundDate: r.refund_date ? r.refund_date.split('T')[0] : '',
+          status: r.status || 'Procesando',
+          invoiceNumber: r.invoice_number || '',
+          adminComment: r.admin_comment || undefined,
+          fileName: r.file_url || undefined,
+          userEmail: r.user_email || undefined,
+          userPhone: r.user_phone || undefined,
+        })));
+      }
+      if (appointmentsRes) {
+        setAppointments((appointmentsRes.data || []).map((a: any) => ({
+          id: a.id,
+          doctorName: a.doctor_name || 'Por Asignar',
+          specialty: a.specialty || '',
+          patientName: a.patient_name || '',
+          patientId: a.patient_id || '',
+          patientPhone: a.patient_phone || '',
+          aptDate: a.appointment_date ? a.appointment_date.split('T')[0] : '',
+          aptTime: a.appointment_time || '',
+          modality: a.modality || 'presencial',
+          clinic: a.clinic || '',
+          city: a.city || '',
+          cost: Number(a.cost || 0),
+          // Apply local status override if the backend didn't persist the change
+          status: aptStatusOverrides.current[a.id] || a.status || 'Pendiente',
+          notes: a.notes || '',
+        })));
+      }
+      if (authorizationsRes) {
+        setAuthorizations((authorizationsRes.data || []).map((a: any) => ({
+          id: a.id,
+          patient: a.patient || '',
+          procedure: a.procedure || '',
+          facility: a.facility || '',
+          requestDate: a.request_date || a.requestDate || '',
+          status: a.status || 'Pendiente',
+          adminComment: a.admin_comment || a.adminComment,
+          fileName: a.file_url || a.file_name || a.fileName,
+          userEmail: a.user_email || a.userEmail,
+          userPhone: a.user_phone || a.userPhone,
+        })));
+      }
 
       // Transform API leads: snake_case → camelCase, parse JSON quote_data
       // Load CMS blog posts (admin sees all, including drafts)
       fetchAdminBlog(authToken);
 
-      setLeads((leadsRes.data || [])
+      if (leadsRes) setLeads((leadsRes.data || [])
         // Filter out leads the user deleted locally (backend may not persist DELETE)
         .filter((l: any) => !deletedLeadIds.current.includes(String(l.id)))
         .map((l: any) => ({
