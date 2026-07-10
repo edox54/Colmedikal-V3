@@ -38,6 +38,14 @@ if (!DASHBOARD_PASSWORD) {
   process.exit(1);
 }
 
+// Optional: external payment-provider integration. Unset by default — the
+// endpoint below refuses all requests until this is configured, so its
+// absence never breaks the rest of the app. Generate a long random value
+// (e.g. `openssl rand -hex 32`) and set it in .env (never committed) and
+// share ONLY that value with the provider through a secure channel — not
+// email/Slack in plaintext, and never put it in this repo.
+const PARTNER_API_KEY = process.env.PARTNER_API_KEY;
+
 // Middleware: Verify JWT token
 function verifyToken(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
@@ -879,6 +887,56 @@ async function startServer() {
       res.json({ success: true, data: Object.keys(loadDeletedLeads()) });
     } catch (e) {
       console.error('[admin-deleted-leads]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // ==================== EXTERNAL PAYMENT PROVIDER (pull model) ====================
+  // The provider calls this to get the minimal data it needs to generate and
+  // send its own payment link to the client — we never handle the payment
+  // itself, only hand over name/contact/amount/reference for clients who
+  // owe a payment. Authenticated with a static API key (PARTNER_API_KEY, set
+  // in .env, never in this repo) compared with a timing-safe check, same
+  // pattern as the portal password verification above.
+  function verifyPartnerApiKey(req: Request, res: Response, next: NextFunction) {
+    if (!PARTNER_API_KEY) return res.status(503).json({ success: false, message: 'Integración no configurada' });
+    const authHeader = req.headers.authorization;
+    const provided = authHeader && authHeader.split(' ')[1];
+    if (!provided) return res.status(401).json({ success: false, message: 'API key requerida' });
+    const a = Buffer.from(provided);
+    const b = Buffer.from(PARTNER_API_KEY);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      return res.status(403).json({ success: false, message: 'API key inválida' });
+    }
+    next();
+  }
+
+  app.get('/api/partner/pending-payments', verifyPartnerApiKey, async (req, res) => {
+    try {
+      const leads = await getLeads();
+      const paymentOverrides = loadPaymentOverrides();
+      const deleted = loadDeletedLeads();
+
+      const data = leads
+        .filter(l => !deleted[String(l.id)] && l.status === 'Cierre Efectivo')
+        .map(l => {
+          const qd = parseQuoteData(l);
+          const paymentStatus = paymentOverrides[String(l.id)]?.paymentStatus || qd.paymentStatus || 'Pendiente';
+          return { l, qd, paymentStatus };
+        })
+        .filter(({ paymentStatus }) => paymentStatus === 'Pendiente' || paymentStatus === 'Atrasado')
+        .map(({ l, qd }) => ({
+          reference: qd.leadCode || String(l.id),
+          fullName: qd.fullName || '',
+          email: qd.email || '',
+          phone: qd.phone || '',
+          docNumber: qd.docNumber || '',
+          amount: Number(l.estimated_price ?? l.estimatedPrice ?? 0),
+        }));
+
+      res.json({ success: true, data });
+    } catch (e) {
+      console.error('[partner-pending-payments]', e);
       res.status(500).json({ success: false, message: 'Error interno' });
     }
   });
