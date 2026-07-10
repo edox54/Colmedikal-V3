@@ -29,6 +29,8 @@ interface ColmedikalContextType {
   deleteLead: (id: string | number) => Promise<void>;
   updateLeadStatus: (id: string, status: LeadQuote['status']) => Promise<void>;
   updateClientPaymentStatus: (id: string, paymentStatus: NonNullable<QuoteState['paymentStatus']>) => Promise<void>;
+  updateLeadPlan: (id: string, basePlanId: string, selectedPlanName: string, estimatedPrice: number) => Promise<void>;
+  setClientContractNumber: (id: string, contractNumber: string) => Promise<void>;
   setClientPassword: (leadId: string, newPassword: string) => Promise<void>;
   addLeadNote: (id: string, note: LeadNote) => void;
   assignLead: (id: string, assignedTo: string) => void;
@@ -149,6 +151,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // populated when an ANONYMOUS customer picks a plan) can never reach the
   // admin's own browser on its own.
   const leadPriceOverrides = useRef<Record<string, number>>({});
+  const leadBasePlanOverrides = useRef<Record<string, string>>({});
+  const clientContractNumbers = useRef<Record<string, string>>({});
   const persistOverride = (key: string, value: any) => {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
   };
@@ -283,11 +287,17 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const planJson = await planRes.json().catch(() => ({}));
         if (planRes.ok && planJson.success) {
           const prices: Record<string, number> = {};
+          const basePlans: Record<string, string> = {};
+          const contractNumbers: Record<string, string> = {};
           for (const [leadId, v] of Object.entries<any>(planJson.data || {})) {
             if (v.selectedPlanName) leadPlanOverrides.current[leadId] = v.selectedPlanName;
             if (typeof v.estimatedPrice === 'number') prices[leadId] = v.estimatedPrice;
+            if (v.basePlanId) basePlans[leadId] = v.basePlanId;
+            if (v.contractNumber) contractNumbers[leadId] = v.contractNumber;
           }
           leadPriceOverrides.current = prices;
+          leadBasePlanOverrides.current = basePlans;
+          clientContractNumbers.current = contractNumbers;
         }
       } catch { /* keep previous values on failure */ }
 
@@ -369,8 +379,10 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 ? JSON.parse(l.quote_data)
                 : (l.quote_data ?? l.quoteData ?? {});
               if (leadPlanOverrides.current[l.id]) qd.selectedPlanName = leadPlanOverrides.current[l.id];
+              if (leadBasePlanOverrides.current[l.id]) qd.basePlanId = leadBasePlanOverrides.current[l.id];
               if (leadPaymentOverrides.current[l.id]) qd.paymentStatus = leadPaymentOverrides.current[l.id];
               if (clientAddressOverrides.current[l.id]) qd.address = clientAddressOverrides.current[l.id];
+              if (clientContractNumbers.current[l.id]) qd.contractNumber = clientContractNumbers.current[l.id];
               return qd;
             } catch { return l.quoteData ?? {}; }
           })(),
@@ -713,6 +725,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               body: JSON.stringify({
                 leadId: existing.id,
                 selectedPlanName: quote.selectedPlanName,
+                basePlanId: quote.basePlanId,
                 estimatedPrice,
                 email: quote.email,
                 phone: quote.phone,
@@ -861,6 +874,40 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
     } catch {
       // Local browser override above still keeps the admin's own view correct
+    }
+  };
+
+  const updateLeadPlan = async (id: string, basePlanId: string, selectedPlanName: string, estimatedPrice: number) => {
+    // Optimistic update + refs so the 10s poll doesn't revert it before the
+    // next successful fetch of /api/admin/lead-overrides confirms it server-side.
+    setLeads(prev => prev.map(l => String(l.id) === String(id) ? { ...l, quoteData: { ...l.quoteData, basePlanId, selectedPlanName }, estimatedPrice } : l));
+    leadPlanOverrides.current[String(id)] = selectedPlanName;
+    leadBasePlanOverrides.current[String(id)] = basePlanId;
+    leadPriceOverrides.current[String(id)] = estimatedPrice;
+    if (!token) return;
+    try {
+      await fetch('/api/admin/set-lead-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ leadId: id, basePlanId, estimatedPrice }),
+      });
+    } catch {
+      // Local refs above still keep this admin's own view correct
+    }
+  };
+
+  const setClientContractNumber = async (id: string, contractNumber: string) => {
+    setLeads(prev => prev.map(l => String(l.id) === String(id) ? { ...l, quoteData: { ...l.quoteData, contractNumber } } : l));
+    clientContractNumbers.current[String(id)] = contractNumber;
+    if (!token) return;
+    try {
+      await fetch('/api/admin/set-contract-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ leadId: id, contractNumber }),
+      });
+    } catch {
+      // Local ref above still keeps this admin's own view correct
     }
   };
 
@@ -1120,6 +1167,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     deleteLead,
     updateLeadStatus,
     updateClientPaymentStatus,
+    updateLeadPlan,
+    setClientContractNumber,
     setClientPassword,
     addLeadNote,
     assignLead,

@@ -3,11 +3,9 @@ import {
   User, 
   ShieldCheck, 
   QrCode, 
-  DollarSign, 
-  FileText, 
-  Clock, 
-  FileCheck, 
-  LogOut, 
+  DollarSign,
+  Clock,
+  LogOut,
   Lock, 
   Upload, 
   Activity, 
@@ -218,9 +216,9 @@ function AddressFormFields({ value, onChange }: { value: AddressFormState; onCha
 }
 
 export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps) {
-  const { addRefund, addAuthorization } = useColmedikal();
+  const { addRefund } = useColmedikal();
 
-  const [activeTab, setActiveTab] = useState<'dash' | 'carnet' | 'reembolsos' | 'autorizaciones' | 'triage' | 'agendamiento' | 'datos'>('dash');
+  const [activeTab, setActiveTab] = useState<'dash' | 'carnet' | 'reembolsos' | 'triage' | 'agendamiento' | 'datos'>('dash');
 
   // Real cédula + password login against /api/portal/login (server.ts)
   const [portalToken, setPortalToken] = useState<string | null>(() => sessionStorage.getItem('colmedikal_portal_token'));
@@ -344,22 +342,10 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   const [refundIsSubmitting, setRefundIsSubmitting] = useState(false);
   const [refundAlert, setRefundAlert] = useState('');
 
-  // Form states for creating authorization
-  const [newAuth, setNewAuth] = useState({
-    patient: '',
-    procedure: '',
-    facility: 'Hospital Metropolitano',
-    fileName: '',
-    clinicalNote: ''
-  });
-  const [authIsSubmitting, setAuthIsSubmitting] = useState(false);
-  const [authAlert, setAuthAlert] = useState('');
-
-  // Keep the refund/authorization forms defaulting to the real titular's name
+  // Keep the refund form defaulting to the real titular's name
   useEffect(() => {
     if (!profile?.fullName) return;
     setNewRefund(prev => ({ ...prev, familyMember: profile.fullName }));
-    setNewAuth(prev => ({ ...prev, patient: profile.fullName }));
   }, [profile?.fullName]);
 
   // Plan detail modal — same content/layout as Cotizador's, without the
@@ -451,37 +437,6 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
     }, 1500);
   };
 
-  const submitAuthRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newAuth.procedure || !newAuth.clinicalNote) {
-      setAuthAlert('Describa el procedimiento e ingrese la orden médica.');
-      return;
-    }
-    setAuthIsSubmitting(true);
-    setAuthAlert('');
-
-    setTimeout(async () => {
-      await addAuthorization({
-        patient: newAuth.patient,
-        procedure: newAuth.procedure,
-        facility: newAuth.facility,
-        status: 'Pendiente',
-        userEmail: profile?.email,
-        userPhone: profile?.phone,
-      });
-      await refreshPortalDashboard();
-
-      setAuthIsSubmitting(false);
-      setNewAuth({
-        patient: profile?.fullName || '',
-        procedure: '',
-        facility: 'Hospital Metropolitano',
-        fileName: '',
-        clinicalNote: ''
-      });
-      setAuthAlert('¡Procedimiento médico enviado a auditoría de Colmedikal! Código en trámite; recibirás el dictamen de inmediato.');
-    }, 1200);
-  };
 
 
   const handleTriageQuery = (symptomKey: string) => {
@@ -738,22 +693,6 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
               </button>
 
               <button
-                onClick={() => setActiveTab('autorizaciones')}
-                className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
-                  activeTab === 'autorizaciones'
-                    ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-sm'
-                    : 'text-slate-650 hover:bg-slate-50'
-                }`}
-                id="portal-tab-autorizaciones"
-              >
-                <div className="flex items-center gap-2.5">
-                  <FileText className="w-4.5 h-4.5 shrink-0" />
-                  <span>Autorizaciones Médicas</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
-              </button>
-
-              <button
                 type="button"
                 disabled
                 title="Próximamente disponible"
@@ -830,11 +769,11 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     <p className="text-[10px] text-slate-500">Sobre {portalData.refunds.length} solicitud(es) ingresada(s).</p>
                   </div>
 
-                  {/* Auto autorizadas */}
+                  {/* Citas agendadas */}
                   <div className="p-4 p-5 bg-gradient-to-tr from-slate-50 to-emerald-50/20 rounded-2xl border border-slate-150 space-y-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Autorizaciones Emitidas</span>
-                    <span className="block text-xl font-bold text-emerald-700">{portalData.authorizations.length} Registradas</span>
-                    <p className="text-[10px] text-slate-500">Disponibles para clínicas.</p>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Citas Agendadas</span>
+                    <span className="block text-xl font-bold text-emerald-700">{portalData.appointments.length} Registradas</span>
+                    <p className="text-[10px] text-slate-500">Ver histórico en "Mis Datos y Plan".</p>
                   </div>
                 </div>
 
@@ -1100,148 +1039,6 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                           <div className="text-[10px] text-slate-400 border-t border-slate-50 pt-2 flex justify-between">
                             <span>Ingresado el: {ref.refundDate}</span>
                             <span>Valor Aprobado (90%): <strong>${(Number(ref.amount || 0) * 0.9).toFixed(2)}</strong></span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            )}
-
-            {/* B4: AUTORIZACIONES */}
-            {activeTab === 'autorizaciones' && (
-              <div className="space-y-8 animate-in fade-in duration-200" id="portal-panel-autorizaciones">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-teal-600" />
-                    <span>Gestión de Autorizaciones Médicas</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Envíanos tu orden médica programada para cirugías, exámenes de imagen médica diagnóstica o laboratorios. Recibe tu código de respuesta en menos de 4 horas hábiles.
-                  </p>
-                </div>
-
-                {authAlert && (
-                  <div className="p-4 bg-emerald-50 border border-emerald-150 text-emerald-800 text-xs rounded-xl flex items-center gap-2.5">
-                    <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <span>{authAlert}</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                  
-                  {/* Authorization Application Intake */}
-                  <form onSubmit={submitAuthRequest} className="lg:col-span-5 space-y-4 bg-slate-50/50 p-5 rounded-2xl border border-slate-200">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Crear Autorización</span>
-
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-slate-700">Paciente:</label>
-                      <select 
-                        value={newAuth.patient}
-                        onChange={(e) => setNewAuth({...newAuth, patient: e.target.value})}
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                      >
-                        <option value={profile.fullName}>{profile.fullName} (Titular)</option>
-                        {familyMembers.map((f, i) => (
-                          <option key={i} value={f.name}>{f.name} ({f.relationship})</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-slate-700">Procedimiento / Examen:</label>
-                      <input 
-                        type="text"
-                        required
-                        placeholder="Ej. Resonancia Magnética de Cerebro, Ecocardiograma..."
-                        value={newAuth.procedure}
-                        onChange={(e) => setNewAuth({...newAuth, procedure: e.target.value})}
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-slate-700">Clínica Preestablecida de Convenio:</label>
-                      <select 
-                        value={newAuth.facility}
-                        onChange={(e) => setNewAuth({...newAuth, facility: e.target.value})}
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                      >
-                        <option value="Hospital Metropolitano">Hospital Metropolitano (UIO)</option>
-                        <option value="Clínica San Francisco">Clínica San Francisco (UIO)</option>
-                        <option value="Clínica Kennedy">Clínica Kennedy (GYE)</option>
-                        <option value="Hospital Alcívar">Hospital Alcívar (GYE)</option>
-                        <option value="Clínica Santa Inés">Clínica Santa Inés (Cue)</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-slate-700">Diagnóstico médico u Orden Médica textual:</label>
-                      <textarea 
-                        rows={3}
-                        required
-                        placeholder="Escriba el diagnóstico del especialista e indicación médica..."
-                        value={newAuth.clinicalNote}
-                        onChange={(e) => setNewAuth({...newAuth, clinicalNote: e.target.value})}
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs resize-none"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={authIsSubmitting}
-                      className="w-full py-3 bg-teal-500 hover:bg-teal-600 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-1"
-                    >
-                      {authIsSubmitting ? (
-                        <>
-                          <Clock className="w-4 h-4 animate-spin" />
-                          <span>Emitiendo Autorización...</span>
-                        </>
-                      ) : (
-                        <span>Enviar para Autorización</span>
-                      )}
-                    </button>
-                  </form>
-
-                  {/* Ledger of authorizations */}
-                  <div className="lg:col-span-7 space-y-4">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Historial de Autorizaciones Activas</span>
-                    
-                    <div className="space-y-3.5">
-                      {portalData.authorizations.map((auth) => (
-                        <div key={auth.id} className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-                          <div className="flex justify-between items-start gap-4">
-                            <div>
-                              <span className="inline-block bg-slate-150 text-slate-800 text-[9px] font-mono font-bold px-2 py-0.5 rounded">
-                                {auth.id}
-                              </span>
-                              <h4 className="text-xs font-bold text-slate-900 mt-1">{auth.patient}</h4>
-                              <p className="text-[11px] text-slate-600 font-medium">{auth.procedure}</p>
-                              <p className="text-[10px] text-slate-500">Destino: {auth.facility}</p>
-                            </div>
-
-                            <span className={`block text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 font-sans border shrink-0 ${
-                              auth.status === 'Aprobado'
-                                ? 'text-emerald-800 bg-emerald-50 border-emerald-100'
-                                : auth.status === 'Rechazado'
-                                ? 'text-rose-800 bg-rose-50 border-rose-100'
-                                : 'text-amber-800 bg-amber-50 border-amber-100'
-                            }`}>
-                              <FileCheck className="w-3.5 h-3.5" /> {auth.status}
-                            </span>
-                          </div>
-
-                          {auth.adminComment && (
-                            <div className="p-2.5 bg-slate-50 border border-slate-150 rounded-lg text-[10px] text-slate-600 leading-relaxed">
-                              <strong>Nota Auditada:</strong> {auth.adminComment}
-                            </div>
-                          )}
-
-                          <div className="text-[9px] text-slate-400 border-t border-slate-100 pt-2 flex justify-between items-center font-mono">
-                            <span>Solicitado: {auth.requestDate}</span>
-                            <span className="text-indigo-600 font-bold">Oficina de Trámites Colmedikal</span>
                           </div>
                         </div>
                       ))}

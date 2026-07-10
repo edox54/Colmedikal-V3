@@ -72,6 +72,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     updateAppointmentStatus,
     updateLeadStatus,
     updateClientPaymentStatus,
+    updateLeadPlan,
+    setClientContractNumber,
     setClientPassword,
     addLeadNote,
     assignLead,
@@ -147,6 +149,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   // Notes UI — tracks which lead card has the note input open
   const [openNoteLeadId, setOpenNoteLeadId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
+  // Contract number inline edit — tracks which client row has the input open
+  const [contractEditId, setContractEditId] = useState<string | null>(null);
+  const [contractNumberInput, setContractNumberInput] = useState('');
 
   // Administradores form and registration states
   const [newAdmin, setNewAdmin] = useState<{
@@ -237,6 +242,21 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   };
   const resolvePlanName = (l: { quoteData?: { selectedPlanName?: string; basePlanId?: string } }): string =>
     normalizePlanName(l.quoteData?.selectedPlanName) || PLAN_ID_TO_NAME[l.quoteData?.basePlanId || ''] || '';
+
+  // Canonical catalog for the admin "Cambiar Plan" control — same 3 real
+  // plans as Cotizador.tsx / server.ts's PLAN_CATALOG (duplicated, same
+  // pattern used elsewhere in this codebase).
+  const PLAN_CATALOG: Record<string, { name: string; basePrice: number }> = {
+    inicio: { name: 'Plan Inicio 2K', basePrice: 8 },
+    proteccion: { name: 'Plan Protección 3K', basePrice: 12 },
+    plus: { name: 'Plan Plus 5K', basePrice: 22 },
+  };
+  const handlePlanChange = (leadId: string, basePlanId: string) => {
+    if (!basePlanId) return;
+    const plan = PLAN_CATALOG[basePlanId];
+    if (!plan) return;
+    updateLeadPlan(leadId, basePlanId, `${plan.name} — $${plan.basePrice}/mes`, plan.basePrice);
+  };
 
   const exportLeadsCSV = (clusters: [string, typeof leads][]) => {
     const headers = ['Código','Nombre','Email','Teléfono','Cédula','Fecha de Nacimiento','Plan','Precio/mes','Estado','Asignado a','Fecha'];
@@ -1520,6 +1540,17 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       {planName
                         ? <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase inline-block">{planName}</span>
                         : <span className="text-[9px] bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded font-medium italic inline-block">Sin plan seleccionado</span>}
+                      <select
+                        defaultValue=""
+                        onChange={(e) => { handlePlanChange(primary.id, e.target.value); e.target.value = ''; }}
+                        className="mt-1 block text-[9px] px-1.5 py-0.5 border border-slate-200 rounded-lg bg-white text-slate-500 outline-none cursor-pointer"
+                        title="Cambiar el plan del cliente"
+                      >
+                        <option value="" disabled>Cambiar plan…</option>
+                        {Object.entries(PLAN_CATALOG).map(([id, p]) => (
+                          <option key={id} value={id}>{p.name} — ${p.basePrice}/mes</option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* Contact */}
@@ -1865,13 +1896,53 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                       {/* Identity */}
                       <div className="min-w-[160px]">
-                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest font-mono block">
-                          {c.quoteData?.leadCode || c.id.slice(0, 12).toUpperCase()}
-                        </span>
+                        {contractEditId === c.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={contractNumberInput}
+                              onChange={(e) => setContractNumberInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && contractNumberInput.trim()) {
+                                  setClientContractNumber(c.id, contractNumberInput.trim());
+                                  setContractEditId(null);
+                                }
+                                if (e.key === 'Escape') setContractEditId(null);
+                              }}
+                              placeholder="N° de contrato"
+                              className="text-[10px] font-bold font-mono px-1.5 py-0.5 border border-teal-300 rounded bg-teal-50 outline-none w-28"
+                            />
+                            <button
+                              onClick={() => { if (contractNumberInput.trim()) setClientContractNumber(c.id, contractNumberInput.trim()); setContractEditId(null); }}
+                              className="text-teal-600 hover:text-teal-800 cursor-pointer"
+                              title="Guardar"
+                            >✓</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setContractEditId(c.id); setContractNumberInput(c.quoteData?.contractNumber || ''); }}
+                            className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest font-mono block hover:underline cursor-pointer"
+                            title="Clic para editar el número de contrato"
+                          >
+                            {c.quoteData?.contractNumber || c.quoteData?.leadCode || c.id.slice(0, 12).toUpperCase()}
+                          </button>
+                        )}
                         <h4 className="text-sm font-black text-slate-900">{c.quoteData?.fullName || '—'}</h4>
                         {planName
                           ? <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase inline-block">{planName}</span>
                           : <span className="text-[9px] bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded font-medium italic inline-block">Sin plan registrado</span>}
+                        <select
+                          defaultValue=""
+                          onChange={(e) => { handlePlanChange(c.id, e.target.value); e.target.value = ''; }}
+                          className="mt-1 block text-[9px] px-1.5 py-0.5 border border-slate-200 rounded-lg bg-white text-slate-500 outline-none cursor-pointer"
+                          title="Cambiar el plan del cliente"
+                        >
+                          <option value="" disabled>Cambiar plan…</option>
+                          {Object.entries(PLAN_CATALOG).map(([id, p]) => (
+                            <option key={id} value={id}>{p.name} — ${p.basePrice}/mes</option>
+                          ))}
+                        </select>
                       </div>
 
                       {/* Contact */}

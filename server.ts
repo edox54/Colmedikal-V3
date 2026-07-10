@@ -379,14 +379,35 @@ async function startServer() {
   // because the WRITER (the anonymous customer's browser) is never the READER
   // (the admin's browser). This file is the cross-device fix.
   const LEAD_PLAN_FILE = path.join(PORTAL_DATA_DIR, 'lead-plan-overrides.json');
-  type LeadPlanEntry = { selectedPlanName: string; estimatedPrice?: number; updatedAt: number };
+  type LeadPlanEntry = { selectedPlanName: string; basePlanId?: string; estimatedPrice?: number; updatedAt: number };
   type LeadPlanStore = Record<string, LeadPlanEntry>;
+  // Canonical plan catalog — same 3 real plans as Cotizador.tsx's plansComparativo
+  // (duplicated, same pattern as elsewhere). Used so admins can set a plan by id
+  // and get a correct name+price without retyping them.
+  const PLAN_CATALOG: Record<string, { name: string; basePrice: number }> = {
+    inicio: { name: 'Plan Inicio 2K', basePrice: 8 },
+    proteccion: { name: 'Plan Protección 3K', basePrice: 12 },
+    plus: { name: 'Plan Plus 5K', basePrice: 22 },
+  };
   function loadLeadPlanOverrides(): LeadPlanStore {
     try { return JSON.parse(fs.readFileSync(LEAD_PLAN_FILE, 'utf8')); } catch { return {}; }
   }
   function saveLeadPlanOverrides(store: LeadPlanStore) {
     fs.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
     fs.writeFileSync(LEAD_PLAN_FILE, JSON.stringify(store));
+  }
+
+  // Admin-set contract number — replaces the quote code (COT-xxxxxx) as the
+  // client's primary identifier once they're an active client. Purely
+  // internal/admin-facing, not derived from anything the external API stores.
+  const CONTRACT_NUMBERS_FILE = path.join(PORTAL_DATA_DIR, 'client-contract-numbers.json');
+  type ContractNumberStore = Record<string, { contractNumber: string; updatedAt: number }>;
+  function loadContractNumbers(): ContractNumberStore {
+    try { return JSON.parse(fs.readFileSync(CONTRACT_NUMBERS_FILE, 'utf8')); } catch { return {}; }
+  }
+  function saveContractNumbers(store: ContractNumberStore) {
+    fs.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    fs.writeFileSync(CONTRACT_NUMBERS_FILE, JSON.stringify(store));
   }
 
   // Same non-persistence issue, but for deletion: DELETE /api/admin/leads/{id}
@@ -539,6 +560,7 @@ async function startServer() {
       const qd = parseQuoteData(lead);
       const paymentOverride = loadPaymentOverrides()[String(leadId)];
       const addressOverride = loadClientAddresses()[String(leadId)];
+      const planOverride = loadLeadPlanOverrides()[String(leadId)];
       const addressComplete = !!(addressOverride?.province && addressOverride?.city && addressOverride?.address1 && addressOverride?.postalCode);
       res.json({
         success: true,
@@ -557,12 +579,15 @@ async function startServer() {
           },
           addressComplete,
           leadCode: qd.leadCode || '',
-          selectedPlanName: qd.selectedPlanName || '',
-          basePlanId: qd.basePlanId || '',
+          // planOverride is authoritative here — it's what an admin's "Cambiar
+          // Plan" action and a customer's own plan pick both write, neither of
+          // which reliably persists into qd via the external API's PUT.
+          selectedPlanName: planOverride?.selectedPlanName || qd.selectedPlanName || '',
+          basePlanId: planOverride?.basePlanId || qd.basePlanId || '',
           type: qd.type || 'individual',
           childrenCount: qd.childrenCount || 0,
           childrenAges: qd.childrenAges || [],
-          estimatedPrice: Number(lead.estimated_price ?? lead.estimatedPrice ?? 0),
+          estimatedPrice: planOverride?.estimatedPrice ?? Number(lead.estimated_price ?? lead.estimatedPrice ?? 0),
           paymentStatus: paymentOverride?.paymentStatus || qd.paymentStatus || 'Pendiente',
           status: lead.status || 'Cierre Efectivo',
           clientSince: lead.timestamp || lead.created_at || '',
@@ -790,6 +815,7 @@ async function startServer() {
     try {
       const leadId = req.body?.leadId;
       const selectedPlanName = typeof req.body?.selectedPlanName === 'string' ? req.body.selectedPlanName.trim().slice(0, 200) : '';
+      const basePlanId = typeof req.body?.basePlanId === 'string' ? req.body.basePlanId.trim().slice(0, 50) : undefined;
       const estimatedPrice = Number(req.body?.estimatedPrice);
       if (!leadId || !selectedPlanName) return res.status(400).json({ success: false, message: 'Datos inválidos' });
 
@@ -802,12 +828,86 @@ async function startServer() {
       if (!owns) return res.status(403).json({ success: false, message: 'No autorizado' });
 
       const store = loadLeadPlanOverrides();
-      store[String(leadId)] = { selectedPlanName, estimatedPrice: Number.isFinite(estimatedPrice) ? estimatedPrice : undefined, updatedAt: Date.now() };
+      // Merge (not replace) so a customer's plan pick never clobbers an
+      // admin's own manual plan correction made via /api/admin/set-lead-plan.
+      store[String(leadId)] = { ...store[String(leadId)], selectedPlanName, basePlanId, estimatedPrice: Number.isFinite(estimatedPrice) ? estimatedPrice : undefined, updatedAt: Date.now() };
       saveLeadPlanOverrides(store);
 
       res.json({ success: true });
     } catch (e) {
       console.error('[leads-plan-override]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Admin-only: directly set/change a client's plan (upgrade/downgrade), independent
+  // of whatever the customer originally picked. Writes the same authoritative store
+  // /api/portal/me and the AdminPanel both read, so it takes effect everywhere at once.
+  app.post('/api/admin/set-lead-plan', express.json(), async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const callerToken = authHeader && authHeader.split(' ')[1];
+      if (!callerToken) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+
+      const leadId = req.body?.leadId;
+      const basePlanId = req.body?.basePlanId;
+      const plan = PLAN_CATALOG[basePlanId];
+      if (!leadId || !plan) return res.status(400).json({ success: false, message: 'Plan inválido' });
+      const customPrice = Number(req.body?.estimatedPrice);
+      const estimatedPrice = Number.isFinite(customPrice) && customPrice > 0 ? customPrice : plan.basePrice;
+
+      try {
+        await httpsJson(`https://api.colmedikal.com/api/admin/leads?limit=1`, {
+          headers: { Authorization: `Bearer ${callerToken}` },
+        });
+      } catch (e: any) {
+        return res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
+      }
+
+      const store = loadLeadPlanOverrides();
+      store[String(leadId)] = {
+        ...store[String(leadId)],
+        selectedPlanName: `${plan.name} — $${plan.basePrice}/mes`,
+        basePlanId,
+        estimatedPrice,
+        updatedAt: Date.now(),
+      };
+      saveLeadPlanOverrides(store);
+
+      res.json({ success: true });
+    } catch (e) {
+      console.error('[admin-set-lead-plan]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Admin-only: set the client's contract number (replaces the quote code as
+  // their primary identifier once active).
+  app.post('/api/admin/set-contract-number', express.json(), async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const callerToken = authHeader && authHeader.split(' ')[1];
+      if (!callerToken) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+
+      const leadId = req.body?.leadId;
+      const contractNumber = typeof req.body?.contractNumber === 'string' ? req.body.contractNumber.trim().slice(0, 100) : '';
+      if (!leadId || !contractNumber) return res.status(400).json({ success: false, message: 'Datos inválidos' });
+
+      try {
+        await httpsJson(`https://api.colmedikal.com/api/admin/leads?limit=1`, {
+          headers: { Authorization: `Bearer ${callerToken}` },
+        });
+      } catch (e: any) {
+        return res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
+      }
+
+      const store = loadContractNumbers();
+      store[String(leadId)] = { contractNumber, updatedAt: Date.now() };
+      saveContractNumbers(store);
+
+      res.json({ success: true });
+    } catch (e) {
+      console.error('[admin-set-contract-number]', e);
       res.status(500).json({ success: false, message: 'Error interno' });
     }
   });
@@ -828,9 +928,18 @@ async function startServer() {
         return res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
       }
 
-      const store = loadLeadPlanOverrides();
-      const data: Record<string, { selectedPlanName: string; estimatedPrice?: number }> = {};
-      for (const [leadId, v] of Object.entries(store)) data[leadId] = { selectedPlanName: v.selectedPlanName, estimatedPrice: v.estimatedPrice };
+      const planStore = loadLeadPlanOverrides();
+      const contractStore = loadContractNumbers();
+      const leadIds = new Set([...Object.keys(planStore), ...Object.keys(contractStore)]);
+      const data: Record<string, { selectedPlanName?: string; basePlanId?: string; estimatedPrice?: number; contractNumber?: string }> = {};
+      for (const leadId of leadIds) {
+        data[leadId] = {
+          selectedPlanName: planStore[leadId]?.selectedPlanName,
+          basePlanId: planStore[leadId]?.basePlanId,
+          estimatedPrice: planStore[leadId]?.estimatedPrice,
+          contractNumber: contractStore[leadId]?.contractNumber,
+        };
+      }
       res.json({ success: true, data });
     } catch (e) {
       console.error('[admin-lead-overrides]', e);
