@@ -291,6 +291,17 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
       } catch { /* keep previous values on failure */ }
 
+      // Server-authoritative deletions (see deletedLeadIds/deleteLead comments)
+      try {
+        const delRes = await fetch('/api/admin/deleted-leads', { headers: { Authorization: `Bearer ${authToken}` } });
+        const delJson = await delRes.json().catch(() => ({}));
+        if (delRes.ok && delJson.success && Array.isArray(delJson.data)) {
+          for (const leadId of delJson.data) {
+            if (!deletedLeadIds.current.includes(leadId)) deletedLeadIds.current.push(leadId);
+          }
+        }
+      } catch { /* keep previous values on failure */ }
+
       let fetchedDoctors: any[] = doctorsRes.data || [];
       if (fetchedDoctors.length === 0) {
         try {
@@ -929,6 +940,17 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       await apiCall(`/api/admin/leads/${strId}`, 'DELETE', undefined, token);
     } catch {
       // API may not support DELETE — override layer keeps it deleted locally
+    }
+    try {
+      // Authoritative: /api/leads/lookup and the AdminPanel (any browser/device)
+      // both check this instead of relying on the DELETE above actually sticking.
+      await fetch('/api/admin/delete-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ leadId: strId }),
+      });
+    } catch {
+      // Local browser override above still keeps this admin's own view correct
     }
   };
 

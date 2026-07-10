@@ -238,7 +238,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     normalizePlanName(l.quoteData?.selectedPlanName) || PLAN_ID_TO_NAME[l.quoteData?.basePlanId || ''] || '';
 
   const exportLeadsCSV = (clusters: [string, typeof leads][]) => {
-    const headers = ['Código','Nombre','Email','Teléfono','Cédula','Plan','Precio/mes','Estado','Asignado a','Fecha'];
+    const headers = ['Código','Nombre','Email','Teléfono','Cédula','Fecha de Nacimiento','Plan','Precio/mes','Estado','Asignado a','Fecha'];
     const rows = clusters.map(([, cluster]) => {
       const l = cluster[0];
       return [
@@ -247,6 +247,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         l.quoteData?.email || '',
         l.quoteData?.phone || '',
         l.quoteData?.docNumber || '',
+        l.quoteData?.birthDate || '',
         resolvePlanName(l),
         Number(l.estimatedPrice || 0).toFixed(2),
         l.status,
@@ -1545,6 +1546,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                           {primary.quoteData?.docType === 'pasaporte' ? 'Pasaporte' : 'Cedula'} • {primary.quoteData?.type || '—'}
                           {(primary.quoteData?.childrenCount ?? 0) > 0 ? ` • ${primary.quoteData?.childrenCount} dep.` : ''}
                         </span>
+                        {primary.quoteData?.birthDate && (
+                          <span className="block text-[9px] text-slate-400">Nac.: {primary.quoteData.birthDate}</span>
+                        )}
                       </div>
                     </div>
 
@@ -1880,6 +1884,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       <div>
                         <span className="block text-[9px] text-slate-400 font-bold uppercase">Cédula:</span>
                         <span className="font-semibold text-slate-800 font-mono text-[11px]">{c.quoteData?.docNumber || '—'}</span>
+                        {c.quoteData?.birthDate && (
+                          <span className="block text-[9px] text-slate-400">Nac.: {c.quoteData.birthDate}</span>
+                        )}
                       </div>
                       <div className="col-span-2">
                         <span className="block text-[9px] text-slate-400 font-bold uppercase">Dirección (ingresada por el cliente):</span>

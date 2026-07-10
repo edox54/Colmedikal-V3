@@ -283,9 +283,11 @@ async function startServer() {
       if (!nEmail && !nPhone && !nDoc) return res.json({ isDuplicate: false, codes: [] });
 
       const leads = await getLeads();
+      const deleted = loadDeletedLeads();
       const codes = new Set<string>();
       let matched = false;
       for (const l of leads) {
+        if (deleted[String(l.id)]) continue; // admin deleted this — don't resurrect it as a "duplicate"
         let qd: any = l.quote_data ?? l.quoteData;
         if (typeof qd === 'string') { try { qd = JSON.parse(qd); } catch { qd = {}; } }
         qd = qd || {};
@@ -377,6 +379,23 @@ async function startServer() {
   function saveLeadPlanOverrides(store: LeadPlanStore) {
     fs.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
     fs.writeFileSync(LEAD_PLAN_FILE, JSON.stringify(store));
+  }
+
+  // Same non-persistence issue, but for deletion: DELETE /api/admin/leads/{id}
+  // on the external API doesn't reliably persist either, and the admin's
+  // client-side "hide it locally" override only works in that one browser.
+  // The real record survives, so /api/leads/lookup (used by anonymous
+  // Cotizador submissions) kept matching it and reporting a false "ya tienes
+  // una cotización" — this store is what that endpoint now checks to exclude
+  // truly-deleted leads, and what the AdminPanel reads to hide them everywhere.
+  const DELETED_LEADS_FILE = path.join(PORTAL_DATA_DIR, 'deleted-lead-ids.json');
+  type DeletedLeadsStore = Record<string, number>; // leadId -> deletedAt
+  function loadDeletedLeads(): DeletedLeadsStore {
+    try { return JSON.parse(fs.readFileSync(DELETED_LEADS_FILE, 'utf8')); } catch { return {}; }
+  }
+  function saveDeletedLeads(store: DeletedLeadsStore) {
+    fs.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    fs.writeFileSync(DELETED_LEADS_FILE, JSON.stringify(store));
   }
 
   function hashPortalPassword(password: string, saltHex?: string): { hash: string; salt: string } {
@@ -807,6 +826,59 @@ async function startServer() {
       res.json({ success: true, data });
     } catch (e) {
       console.error('[admin-lead-overrides]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Admin: authoritative delete. Called alongside the existing external-API
+  // DELETE attempt (see deleteLead in ColmedikalContext) — this is what
+  // actually sticks, both for /api/leads/lookup's dedup check and for the
+  // AdminPanel across any browser/device.
+  app.post('/api/admin/delete-lead', express.json(), async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const callerToken = authHeader && authHeader.split(' ')[1];
+      if (!callerToken) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+
+      const leadId = req.body?.leadId;
+      if (!leadId) return res.status(400).json({ success: false, message: 'Datos inválidos' });
+
+      try {
+        await httpsJson(`https://api.colmedikal.com/api/admin/leads?limit=1`, {
+          headers: { Authorization: `Bearer ${callerToken}` },
+        });
+      } catch (e: any) {
+        return res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
+      }
+
+      const store = loadDeletedLeads();
+      store[String(leadId)] = Date.now();
+      saveDeletedLeads(store);
+
+      res.json({ success: true });
+    } catch (e) {
+      console.error('[admin-delete-lead]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  app.get('/api/admin/deleted-leads', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const callerToken = authHeader && authHeader.split(' ')[1];
+      if (!callerToken) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+
+      try {
+        await httpsJson(`https://api.colmedikal.com/api/admin/leads?limit=1`, {
+          headers: { Authorization: `Bearer ${callerToken}` },
+        });
+      } catch (e: any) {
+        return res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
+      }
+
+      res.json({ success: true, data: Object.keys(loadDeletedLeads()) });
+    } catch (e) {
+      console.error('[admin-deleted-leads]', e);
       res.status(500).json({ success: false, message: 'Error interno' });
     }
   });
