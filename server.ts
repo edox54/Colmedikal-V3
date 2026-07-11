@@ -315,7 +315,15 @@ async function startServer() {
       const nEmail = normId(req.body?.email), nPhone = normId(req.body?.phone), nDoc = normId(req.body?.docNumber);
       if (!nEmail && !nPhone && !nDoc) return res.json({ isDuplicate: false, codes: [] });
 
-      const leads = await getLeads();
+      // Force-fresh, not the 20s cache: this check runs right after a customer
+      // creates their initial lead and then, seconds later, picks a specific
+      // plan — a stale cache here would say "not a duplicate" for a lead that
+      // very much exists, and the frontend now trusts that answer enough to
+      // prune its own local match and create a second lead instead of merging
+      // (that's exactly how two records for the same person, seconds apart,
+      // showed up in the DB). Dedup correctness matters more here than the
+      // cache's minor savings.
+      const leads = await getLeads(true);
       const deleted = loadDeletedLeads();
       const codes = new Set<string>();
       let matched = false;
