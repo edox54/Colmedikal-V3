@@ -15,6 +15,10 @@ import { useColmedikal } from '../context/ColmedikalContext';
 
 interface AgendamientoCitasProps {
   setCurrentPage: (page: Page) => void;
+  // When rendered inside Mi Colmedikal (PortalAfiliados), hide the "Volver al
+  // Inicio" exits back to the marketing site — the portal is a clean, app-like
+  // experience with no path back out.
+  embedded?: boolean;
 }
 
 // Same province groupings used by the Directorio Médico filter — kept in sync
@@ -87,7 +91,7 @@ const NIVEL3_NAMES = new Set(['HOSPITAL DE ESPECIALIDADES COLMEDIKAL (DEMO)', 'C
 const docNivel = (d: Doctor): number => NIVEL3_NAMES.has(d.name) ? 3 : NIVEL2_NAMES.has(d.name) ? 2 : 1;
 const PLAN_NIVEL: Record<string, number> = { inicio: 1, proteccion: 1, plus: 1 };
 
-export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasProps) {
+export default function AgendamientoCitas({ setCurrentPage, embedded }: AgendamientoCitasProps) {
   const { addAppointment, seoSettings } = useColmedikal();
 
   // ==================== CLIENT AUTH GATE (same session as /mi-colmedikal) ====================
@@ -353,13 +357,15 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
           </p>
         </div>
 
-        <button
-          onClick={() => setCurrentPage('home')}
-          className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200 rounded-xl transition-all shadow-xs cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4 text-[#4597CA]" />
-          <span>Volver al Inicio</span>
-        </button>
+        {!embedded && (
+          <button
+            onClick={() => setCurrentPage('home')}
+            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200 rounded-xl transition-all shadow-xs cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#4597CA]" />
+            <span>Volver al Inicio</span>
+          </button>
+        )}
       </div>
 
       {profileLoading ? (
@@ -714,12 +720,14 @@ export default function AgendamientoCitas({ setCurrentPage }: AgendamientoCitasP
                 Solicitar Otra Cita
               </button>
 
-              <button
-                onClick={() => setCurrentPage('home')}
-                className="px-5 py-2.5 bg-[#0C4169] text-white hover:bg-slate-900 text-xs font-bold rounded-xl transition-all cursor-pointer"
-              >
-                Volver a Inicio
-              </button>
+              {!embedded && (
+                <button
+                  onClick={() => setCurrentPage('home')}
+                  className="px-5 py-2.5 bg-[#0C4169] text-white hover:bg-slate-900 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                >
+                  Volver a Inicio
+                </button>
+              )}
             </div>
           </div>
 

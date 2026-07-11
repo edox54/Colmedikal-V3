@@ -75,7 +75,9 @@ export default function App() {
           <Route path="/cotizador" element={<AdminLayout component={Cotizador} />} />
           <Route path="/mapa-red-medica" element={<HomeLayout component={MapaRedMedica} />} />
           <Route path="/gracias" element={<HomeLayout component={Gracias} />} />
-          <Route path="/mi-colmedikal" element={<HomeLayout component={PortalAfiliados} />} />
+          {/* Clean app-like layout — no Header/Footer/WhatsApp widget, so a
+              logged-in client isn't tempted back into the marketing site. */}
+          <Route path="/mi-colmedikal" element={<AdminLayout component={PortalAfiliados} />} />
           <Route path="/portal-afiliados" element={<Navigate to="/mi-colmedikal" replace />} />
           <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
           <Route path="/seo-panel" element={<SEOPanelLayout />} />

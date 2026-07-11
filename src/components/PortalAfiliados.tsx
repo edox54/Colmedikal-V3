@@ -1054,7 +1054,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 authenticated and nivel-filtered for this same client. */}
             {activeTab === 'agendamiento' && (
               <div className="-m-6 sm:-m-8 animate-in fade-in duration-200" id="portal-panel-agendamiento">
-                <AgendamientoCitas setCurrentPage={setCurrentPage} />
+                <AgendamientoCitas setCurrentPage={setCurrentPage} embedded />
               </div>
             )}
 
@@ -1140,12 +1140,6 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                           Ver detalle completo del plan →
                         </button>
                       )}
-                      <button
-                        onClick={() => setCurrentPage('faqs')}
-                        className="text-[10px] font-bold text-teal-700 hover:underline cursor-pointer"
-                      >
-                        Ver condiciones generales →
-                      </button>
                     </div>
                   </div>
                   <ul className="space-y-1.5 text-[11px] text-slate-700">
