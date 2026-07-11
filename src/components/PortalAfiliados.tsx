@@ -607,6 +607,9 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                   <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0"></span>
                   <span className="text-[10px] font-bold text-slate-500 font-mono">Cédula: {profile.docNumber}</span>
                 </div>
+                {profile.contractNumber && (
+                  <span className="block text-[10px] font-bold text-teal-700 font-mono">Contrato: {profile.contractNumber}</span>
+                )}
               </div>
             </div>
 
@@ -855,6 +858,9 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                       <span>Cél: {profile.docNumber}</span>
                       <span>Plan: {(profile.selectedPlanName || 'Por confirmar').replace(/^Plan\s+/i, '')}</span>
                     </div>
+                    {profile.contractNumber && (
+                      <div className="text-[10px] font-mono text-teal-300 px-3">N° Contrato: {profile.contractNumber}</div>
+                    )}
                   </div>
 
                   <div className="flex justify-between items-end z-10 relative border-t border-white/10 pt-3">
@@ -1074,6 +1080,15 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {profile.contractNumber && (
+                    <div className="bg-teal-50/60 p-4 rounded-2xl border border-teal-100 flex items-center gap-3 sm:col-span-2">
+                      <QrCode className="w-4.5 h-4.5 text-teal-600 shrink-0" />
+                      <div>
+                        <span className="block text-[10px] font-bold text-teal-700 uppercase">Número de Contrato</span>
+                        <span className="text-xs font-black text-teal-900 font-mono">{profile.contractNumber}</span>
+                      </div>
+                    </div>
+                  )}
                   <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-150 flex items-center gap-3">
                     <Mail className="w-4.5 h-4.5 text-teal-600 shrink-0" />
                     <div>

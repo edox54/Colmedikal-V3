@@ -602,6 +602,7 @@ async function startServer() {
       const paymentOverride = loadPaymentOverrides()[String(leadId)];
       const addressOverride = loadClientAddresses()[String(leadId)];
       const planOverride = loadLeadPlanOverrides()[String(leadId)];
+      const contractNumber = loadContractNumbers()[String(leadId)]?.contractNumber || '';
       const addressComplete = !!(addressOverride?.province && addressOverride?.city && addressOverride?.address1 && addressOverride?.postalCode);
       res.json({
         success: true,
@@ -609,6 +610,7 @@ async function startServer() {
           fullName: qd.fullName || '',
           docType: qd.docType || 'cedula',
           docNumber: qd.docNumber || '',
+          contractNumber,
           email: qd.email || '',
           phone: qd.phone || '',
           address: {
