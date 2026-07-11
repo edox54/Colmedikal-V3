@@ -282,6 +282,31 @@ async function startServer() {
     return leadsCache;
   };
 
+  // Direct single-lead lookup — bypasses getLeads()'s capped/cached bulk list
+  // entirely. Needed because a specific lead can exist and be visible in the
+  // admin's own browser session while falling outside whatever page/limit/
+  // ordering getLeads() happens to fetch (e.g. once total leads exceed the
+  // ?limit=2000 cap) — that showed up as portal-me/portal-dashboard 404ing
+  // with "Cliente no encontrado" for a real, existing client. Same REST base
+  // path already used elsewhere in this file for PUT/DELETE on a single lead.
+  const getLeadById = async (leadId: string): Promise<any | null> => {
+    const fetchWith = async (tok: string) =>
+      httpsJson(`https://api.colmedikal.com/api/admin/leads/${leadId}`, { headers: { Authorization: `Bearer ${tok}` } });
+    try {
+      let r: any;
+      try {
+        r = await fetchWith(await getApiToken());
+      } catch (e: any) {
+        if (e?.status === 401 || e?.status === 403) r = await fetchWith(await getApiToken(true));
+        else throw e;
+      }
+      const lead = r?.data ?? r;
+      return lead && typeof lead === 'object' && 'id' in lead ? lead : null;
+    } catch {
+      return null; // caller falls back to getLeads()'s scan
+    }
+  };
+
   app.post('/api/leads/lookup', express.json(), async (req, res) => {
     try {
       if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
@@ -557,8 +582,13 @@ async function startServer() {
   app.get('/api/portal/me', verifyPortalToken, async (req, res) => {
     try {
       const leadId = (req as any).leadId;
-      const leads = await getLeads();
-      const lead = leads.find(l => String(l.id) === String(leadId));
+      // Direct lookup first — sidesteps getLeads()'s capped/cached bulk list,
+      // which can miss a lead that genuinely exists (see getLeadById comment).
+      let lead = await getLeadById(String(leadId));
+      if (!lead) {
+        const leads = await getLeads();
+        lead = leads.find(l => String(l.id) === String(leadId));
+      }
       if (!lead) return res.status(404).json({ success: false, message: 'Cliente no encontrado' });
       const qd = parseQuoteData(lead);
       const paymentOverride = loadPaymentOverrides()[String(leadId)];
@@ -605,8 +635,11 @@ async function startServer() {
   app.get('/api/portal/dashboard', verifyPortalToken, async (req, res) => {
     try {
       const leadId = (req as any).leadId;
-      const leads = await getLeads();
-      const lead = leads.find(l => String(l.id) === String(leadId));
+      let lead = await getLeadById(String(leadId));
+      if (!lead) {
+        const leads = await getLeads();
+        lead = leads.find(l => String(l.id) === String(leadId));
+      }
       if (!lead) return res.status(404).json({ success: false, message: 'Cliente no encontrado' });
       const qd = parseQuoteData(lead);
       const email = normId(qd.email), phone = normId(qd.phone);
