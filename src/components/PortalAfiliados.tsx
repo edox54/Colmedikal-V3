@@ -136,6 +136,17 @@ const PLAN_DETAILS: Record<string, {
   },
 };
 
+// Parses "$5.000,00 USD Anual" style strings (Latin thousands/decimal
+// separators) into a plain number, for the reembolsos progress bar.
+// ponytail: string-parsing a display value instead of a real numeric cap
+// field — fine since it's just a visual approximation of "cuánto llevas
+// usado de tu cobertura", not a billing-accurate figure.
+const parseCoberturaAmount = (s?: string): number | null => {
+  if (!s) return null;
+  const n = Number(s.replace(/[^0-9,.-]/g, '').replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
 // Same province list as Cotizador.tsx (duplicated — same pattern as
 // specialties/cities elsewhere in this codebase).
 const PROVINCES = [
@@ -219,6 +230,12 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   const { addRefund } = useColmedikal();
 
   const [activeTab, setActiveTab] = useState<'dash' | 'carnet' | 'reembolsos' | 'triage' | 'agendamiento' | 'datos'>('dash');
+
+  // Top bar: avatar dropdown + notification bell. The "seen" count is a
+  // simple per-client localStorage marker — not a real read/unread system,
+  // just enough to show "something changed since your last visit".
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const [seenUpdatesCount, setSeenUpdatesCount] = useState(0);
 
   // Real cédula + password login against /api/portal/login (server.ts)
   const [portalToken, setPortalToken] = useState<string | null>(() => sessionStorage.getItem('colmedikal_portal_token'));
@@ -330,6 +347,43 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
     const fmt = (d: Date) => d.toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' });
     return { since: fmt(since), next: fmt(next) };
   }, [profile?.clientSince]);
+
+  // Time-of-day greeting
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Buenos días';
+    if (h < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+  }, []);
+
+  // Soonest upcoming appointment, for the "próxima cita" banner
+  const nextAppointment = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return portalData.appointments
+      .filter(a => a.aptDate >= today && a.status !== 'Cancelada')
+      .sort((a, b) => a.aptDate.localeCompare(b.aptDate) || a.aptTime.localeCompare(b.aptTime))[0];
+  }, [portalData.appointments]);
+
+  // Notification bell — resolved refunds/appointments since last visit. Just
+  // a "seen count" marker in localStorage, not a real read/unread system.
+  useEffect(() => {
+    if (!profile?.docNumber) return;
+    const stored = Number(localStorage.getItem(`colmedikal_portal_seen_${profile.docNumber}`) || 0);
+    setSeenUpdatesCount(stored);
+  }, [profile?.docNumber]);
+
+  const resolvedUpdatesCount = useMemo(() =>
+    portalData.refunds.filter(r => r.status === 'Reembolsado').length +
+    portalData.appointments.filter(a => a.status === 'Confirmada' || a.status === 'Completada').length,
+  [portalData]);
+
+  const hasUnseenUpdates = resolvedUpdatesCount > seenUpdatesCount;
+
+  const markNotificationsSeen = () => {
+    if (!profile?.docNumber) return;
+    localStorage.setItem(`colmedikal_portal_seen_${profile.docNumber}`, String(resolvedUpdatesCount));
+    setSeenUpdatesCount(resolvedUpdatesCount);
+  };
 
   // Form states for creating refund
   const [newRefund, setNewRefund] = useState({
@@ -475,8 +529,9 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   };
 
   return (
+    <div className="min-h-screen bg-[#F4F7F9]">
     <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-portal-view">
-      
+
       {!isLoggedIn ? (
         /* LOGIN PANEL — cédula + contraseña real contra /api/portal/login */
         <section className="max-w-md mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden" id="portal-login-screen">
@@ -591,27 +646,67 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
             </div>
           </div>
         )}
+
+        {/* TOP BAR — logo/title + notification bell + avatar dropdown (with
+            Cerrar sesión). Keeps the sidebar free of account chrome. */}
+        <div className="flex items-center justify-between mb-6 animate-in fade-in slide-in-from-top-1">
+          <div>
+            <span className="text-lg font-black font-display text-[#0C4169]">Mi Colmedikal</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <button
+                onClick={() => { markNotificationsSeen(); }}
+                className="relative p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                title="Notificaciones"
+              >
+                <Bell className="w-4.5 h-4.5 text-slate-500" />
+                {hasUnseenUpdates && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 border-2 border-white rounded-full"></span>
+                )}
+              </button>
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setAvatarMenuOpen(v => !v)}
+                className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl pl-1.5 pr-3 py-1.5 cursor-pointer transition-colors"
+              >
+                <div className="w-8 h-8 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center font-bold font-display text-xs shrink-0">
+                  {(profile.fullName || '?').trim().split(/\s+/).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
+                </div>
+                <span className="text-xs font-bold text-slate-800 truncate max-w-[100px]">{profile.fullName}</span>
+                <ChevronRight className={`w-3.5 h-3.5 text-slate-400 transition-transform ${avatarMenuOpen ? '-rotate-90' : 'rotate-90'}`} />
+              </button>
+              {avatarMenuOpen && (
+                <>
+                  <button className="fixed inset-0 z-10 cursor-default" onClick={() => setAvatarMenuOpen(false)} aria-label="Cerrar menú" />
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 p-2 animate-in fade-in zoom-in-95">
+                    <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                      <p className="text-xs font-bold text-slate-900 truncate">{profile.fullName}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">Cédula: {profile.docNumber}</p>
+                      {profile.contractNumber && (
+                        <p className="text-[10px] text-teal-700 font-mono font-bold">Contrato: {profile.contractNumber}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-650 hover:bg-red-50 rounded-xl cursor-pointer transition-colors"
+                      id="btn-logout"
+                    >
+                      <LogOut className="w-4 h-4 shrink-0" />
+                      <span>Cerrar Oficina Virtual</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start align-stretch" id="portal-affiliate-area">
 
           {/* A. SIDENAV TAB CONTROLLER */}
           <div className="lg:col-span-3 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-            
-            {/* Minimal Affiliate avatar info */}
-            <div className="flex gap-3.5 items-center pb-4 border-b border-slate-100">
-              <div className="w-11 h-11 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center font-bold font-display text-lg">
-                {(profile.fullName || '?').trim().split(/\s+/).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
-              </div>
-              <div className="space-y-0.5">
-                <h4 className="text-xs font-bold text-slate-900 truncate max-w-[150px]" title={profile.fullName}>{profile.fullName}</h4>
-                <div className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0"></span>
-                  <span className="text-[10px] font-bold text-slate-500 font-mono">Cédula: {profile.docNumber}</span>
-                </div>
-                {profile.contractNumber && (
-                  <span className="block text-[10px] font-bold text-teal-700 font-mono">Contrato: {profile.contractNumber}</span>
-                )}
-              </div>
-            </div>
 
             {/* Menu Nav Links */}
             <nav className="space-y-1.5">
@@ -706,18 +801,9 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                   <HeartPulse className="w-4.5 h-4.5 shrink-0" />
                   <span>Triage de Síntomas AI</span>
                 </div>
-                <span className="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider font-sans">Próximamente</span>
+                <span className="bg-sky-50 text-sky-700 border border-sky-100 text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider font-sans">Próximamente</span>
               </button>
             </nav>
-
-            <button
-              onClick={handleLogout}
-              className="w-full py-2.5 rounded-xl border border-red-200 text-red-650 font-bold hover:bg-red-50 transition-colors text-xs flex items-center justify-center gap-2 cursor-pointer mt-12"
-              id="btn-logout"
-            >
-              <LogOut className="w-4 h-4 shrink-0" />
-              <span>Cerrar Oficina Virtual</span>
-            </button>
 
           </div>
 
@@ -729,8 +815,8 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
               <div className="space-y-8 animate-in fade-in duration-200" id="portal-panel-dashboard">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-slate-100 pb-5">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">Bienvenido Afiliado</span>
-                    <h2 className="text-2xl font-bold font-display text-slate-900">{profile.fullName}</h2>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">{greeting}</span>
+                    <h2 className="text-2xl font-bold font-display text-slate-900">{profile.fullName.split(' ')[0]} 👋</h2>
                     <p className="text-xs text-slate-500 mt-1">
                       Plan: <strong className="text-slate-800">{(profile.selectedPlanName || 'Por confirmar con tu asesor').replace(/^Plan\s+/i, '')}</strong>
                     </p>
@@ -754,48 +840,104 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                   </div>
                 </div>
 
+                {/* Próxima cita destacada */}
+                {nextAppointment && (
+                  <div className="bg-gradient-to-r from-teal-600 to-[#0C4169] text-white p-5 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="w-11 h-11 bg-white/15 rounded-2xl flex items-center justify-center shrink-0">
+                      <Calendar className="w-5.5 h-5.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-teal-200 block">Tu próxima cita</span>
+                      <p className="text-sm font-bold truncate">
+                        {nextAppointment.specialty} — {nextAppointment.doctorName}
+                      </p>
+                      <p className="text-[11px] text-teal-100">
+                        {new Date(nextAppointment.aptDate + 'T00:00:00').toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {nextAppointment.aptTime ? ` · ${nextAppointment.aptTime}` : ''}
+                        {nextAppointment.clinic ? ` · ${nextAppointment.clinic}` : ''}
+                      </p>
+                    </div>
+                    <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0 ${
+                      nextAppointment.status === 'Confirmada' ? 'bg-emerald-400/20 text-emerald-100' : 'bg-amber-400/20 text-amber-100'
+                    }`}>
+                      {nextAppointment.status}
+                    </span>
+                  </div>
+                )}
+
                 {/* Dashboard Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   {/* Cliente desde */}
-                  <div className="p-4 p-5 bg-gradient-to-tr from-slate-50 to-teal-50/20 rounded-2xl border border-slate-150 space-y-2">
+                  <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-2 hover-lift">
+                    <div className="w-9 h-9 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center">
+                      <Clock className="w-4.5 h-4.5" />
+                    </div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cliente Desde</span>
                     <span className="block text-xl font-bold text-teal-700">{billingDates?.since || '—'}</span>
                     <p className="text-[10px] text-slate-500">Fecha de afiliación a Colmedikal.</p>
                   </div>
 
                   {/* Reembolsos pagados */}
-                  <div className="p-4 p-5 bg-gradient-to-tr from-slate-50 to-indigo-50/20 rounded-2xl border border-slate-150 space-y-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reembolsos Aprobados (90%)</span>
-                    <span className="block text-xl font-bold text-indigo-700">
-                      ${(portalData.refunds.reduce((s, r) => s + Number(r.amount || 0), 0) * 0.9).toFixed(2)} USD
-                    </span>
-                    <p className="text-[10px] text-slate-500">Sobre {portalData.refunds.length} solicitud(es) ingresada(s).</p>
-                  </div>
+                  {(() => {
+                    const totalRefunded = portalData.refunds.reduce((s, r) => s + Number(r.amount || 0), 0);
+                    const cap = parseCoberturaAmount(PLAN_DETAILS[profile.basePlanId]?.cobertura);
+                    const pct = cap ? Math.min(100, (totalRefunded / cap) * 100) : null;
+                    return (
+                      <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-2 hover-lift">
+                        <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                          <DollarSign className="w-4.5 h-4.5" />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reembolsos Aprobados (90%)</span>
+                        <span className="block text-xl font-bold text-indigo-700">
+                          ${(totalRefunded * 0.9).toFixed(2)} USD
+                        </span>
+                        {pct !== null ? (
+                          <>
+                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                            <p className="text-[10px] text-slate-500">${totalRefunded.toFixed(0)} de ${cap?.toFixed(0)} de tu cobertura anual.</p>
+                          </>
+                        ) : (
+                          <p className="text-[10px] text-slate-500">Sobre {portalData.refunds.length} solicitud(es) ingresada(s).</p>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Citas agendadas */}
-                  <div className="p-4 p-5 bg-gradient-to-tr from-slate-50 to-emerald-50/20 rounded-2xl border border-slate-150 space-y-2">
+                  <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-2 hover-lift">
+                    <div className="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                      <Calendar className="w-4.5 h-4.5" />
+                    </div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Citas Agendadas</span>
                     <span className="block text-xl font-bold text-emerald-700">{portalData.appointments.length} Registradas</span>
                     <p className="text-[10px] text-slate-500">Ver histórico en "Mis Datos y Plan".</p>
                   </div>
                 </div>
 
-                {/* Quick actions row */}
-                <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 space-y-3">
-                  <h4 className="text-xs font-bold text-indigo-950 font-sans flex items-center gap-2">
-                    <Bell className="w-4.5 h-4.5 text-indigo-600 animate-swing" />
-                    <span>¿Necesitas una Consulta Médica de Emergencia?</span>
-                  </h4>
-                  <p className="text-xs text-indigo-800 leading-relaxed">
-                    Agenda una cita directa con un médico de la red en minutos, o revisa el directorio para encontrar especialistas disponibles cerca de ti.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('agendamiento')}
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer inline-flex items-center gap-1.5"
-                  >
-                    <span>Agendar Cita Ahora</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                {/* Quick actions — bento grid */}
+                <div>
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Accesos Rápidos</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {[
+                      { icon: Calendar, label: 'Agendar Cita', tab: 'agendamiento' as const, iconBg: 'bg-teal-50 text-teal-600' },
+                      { icon: QrCode, label: 'Ver Carné', tab: 'carnet' as const, iconBg: 'bg-indigo-50 text-indigo-600' },
+                      { icon: DollarSign, label: 'Solicitar Reembolso', tab: 'reembolsos' as const, iconBg: 'bg-emerald-50 text-emerald-600' },
+                      { icon: User, label: 'Mis Datos y Plan', tab: 'datos' as const, iconBg: 'bg-sky-50 text-sky-600' },
+                    ].map(({ icon: Icon, label, tab, iconBg }) => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className="hover-lift bg-white p-5 rounded-2xl border border-slate-100 shadow-sm text-center space-y-2 cursor-pointer"
+                      >
+                        <div className={`w-11 h-11 mx-auto rounded-2xl flex items-center justify-center ${iconBg}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <span className="block text-[11px] font-bold text-slate-700 leading-tight">{label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* List of family members */}
@@ -1397,9 +1539,22 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
           </div>
 
         </div>
+
+        {/* Minimal footer — low visual weight, doesn't compete with the panel's actions */}
+        <div className="mt-8 pt-5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400">
+          <span>© {new Date().getFullYear()} Colmedikal</span>
+          <div className="flex items-center gap-4">
+            <a href="tel:022567191" className="hover:text-slate-600">Soporte</a>
+            {/* Opens in a new tab — legal links, but without pulling the
+                client out of their logged-in portal session/tab. */}
+            <a href="/faqs" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600">Términos y Condiciones</a>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600">Política de Privacidad</a>
+          </div>
+        </div>
         </>
       )}
 
+    </div>
     </div>
   );
 }

@@ -24,6 +24,46 @@
   box-shadow: 0 0 25px -5px rgba(20, 184, 166, 0.2);
 }
 
+/* Mount-in animations — `animate-in fade-in zoom-in-95 slide-in-from-*`
+   classes are used all over this codebase but there was no plugin backing
+   them (no tailwindcss-animate), so they were silent no-ops. This is a
+   minimal compatible implementation: each descriptor class only sets a
+   custom property so they compose (fade-in + zoom-in-95 together works);
+   duration is fixed at 300ms rather than reading the `duration-*` utility
+   (that utility sets transition-duration, not animation-duration). */
+@layer utilities {
+  .animate-in {
+    animation-name: pf-enter;
+    animation-duration: 300ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+  }
+  .fade-in { --pf-enter-opacity: 0; }
+  .zoom-in-95 { --pf-enter-scale: 0.95; }
+  .slide-in-from-bottom-1 { --pf-enter-translate-y: 0.25rem; }
+  .slide-in-from-bottom-2 { --pf-enter-translate-y: 0.5rem; }
+  .slide-in-from-bottom-3 { --pf-enter-translate-y: 0.75rem; }
+  .slide-in-from-bottom-4 { --pf-enter-translate-y: 1rem; }
+  .slide-in-from-top-1 { --pf-enter-translate-y: -0.25rem; }
+  .slide-in-from-top-4 { --pf-enter-translate-y: -1rem; }
+  .slide-in-from-left-4 { --pf-enter-translate-x: -1rem; }
+}
+@keyframes pf-enter {
+  from {
+    opacity: var(--pf-enter-opacity, 1);
+    transform: translate3d(var(--pf-enter-translate-x, 0), var(--pf-enter-translate-y, 0), 0) scale(var(--pf-enter-scale, 1));
+  }
+}
+
+/* Hover-lift micro-interaction for interactive cards */
+.hover-lift {
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.15);
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
