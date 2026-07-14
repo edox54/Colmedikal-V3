@@ -136,6 +136,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   // Lead filters
   const [leadDateFilter, setLeadDateFilter] = useState('');
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | 'Nuevo Plan' | 'Contactado' | 'Cierre Efectivo' | 'Perdido'>('all');
+  const [leadSourceFilter, setLeadSourceFilter] = useState('all');
   const [leadSearchFilter, setLeadSearchFilter] = useState('');
 
   // Clientes (leads with status 'Cierre Efectivo') filters + password modal
@@ -243,6 +244,17 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   const resolvePlanName = (l: { quoteData?: { selectedPlanName?: string; basePlanId?: string } }): string =>
     normalizePlanName(l.quoteData?.selectedPlanName) || PLAN_ID_TO_NAME[l.quoteData?.basePlanId || ''] || '';
 
+  // Origin badge styling — where this lead came from (see src/utils/attribution.ts)
+  const SOURCE_BADGE: Record<string, string> = {
+    'Directo': 'bg-slate-100 text-slate-500 border-slate-200',
+    'Orgánico': 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    'Redes sociales': 'bg-pink-50 text-pink-700 border-pink-100',
+    'Pago': 'bg-amber-50 text-amber-700 border-amber-100',
+    'Referido': 'bg-indigo-50 text-indigo-700 border-indigo-100',
+    'Campaña': 'bg-sky-50 text-sky-700 border-sky-100',
+    'Otro sitio': 'bg-slate-100 text-slate-500 border-slate-200',
+  };
+
   // Canonical catalog for the admin "Cambiar Plan" control — same 3 real
   // plans as Cotizador.tsx / server.ts's PLAN_CATALOG (duplicated, same
   // pattern used elsewhere in this codebase).
@@ -259,7 +271,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   };
 
   const exportLeadsCSV = (clusters: [string, typeof leads][]) => {
-    const headers = ['Código','Nombre','Email','Teléfono','Cédula','Fecha de Nacimiento','Plan','Precio/mes','Estado','Asignado a','Fecha'];
+    const headers = ['Código','Nombre','Email','Teléfono','Cédula','Fecha de Nacimiento','Plan','Precio/mes','Estado','Asignado a','Fecha','Origen','Detalle de origen'];
     const rows = clusters.map(([, cluster]) => {
       const l = cluster[0];
       return [
@@ -274,6 +286,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         l.status,
         l.assignedTo || '',
         new Date(l.timestamp).toLocaleString('es-EC'),
+        l.quoteData?.source?.channel || 'Directo',
+        l.quoteData?.source?.detail || '',
       ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
     });
     const csv = [headers.join(','), ...rows].join('\n');
@@ -1405,6 +1419,11 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
             cluster.some(l => l.status === leadStatusFilter)
           );
         }
+        if (leadSourceFilter !== 'all') {
+          filteredClusters = filteredClusters.filter(([, cluster]) =>
+            cluster.some(l => (l.quoteData?.source?.channel || 'Directo') === leadSourceFilter)
+          );
+        }
         if (leadSearchFilter) {
           const q = leadSearchFilter.toLowerCase();
           filteredClusters = filteredClusters.filter(([, cluster]) =>
@@ -1489,6 +1508,20 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
               <option value="Cierre Efectivo">Cierre Efectivo</option>
               <option value="Perdido">Perdido</option>
             </select>
+            <select
+              value={leadSourceFilter}
+              onChange={e => setLeadSourceFilter(e.target.value)}
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-teal-500"
+            >
+              <option value="all">Todos los orígenes</option>
+              <option value="Directo">Directo</option>
+              <option value="Orgánico">Orgánico</option>
+              <option value="Redes sociales">Redes sociales</option>
+              <option value="Pago">Pago</option>
+              <option value="Referido">Referido</option>
+              <option value="Campaña">Campaña</option>
+              <option value="Otro sitio">Otro sitio</option>
+            </select>
             <input
               type="text"
               value={leadSearchFilter}
@@ -1496,8 +1529,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
               placeholder="Buscar nombre, email, cedula..."
               className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-teal-500 flex-1 min-w-[180px]"
             />
-            {(leadDateFilter || leadStatusFilter !== 'all' || leadSearchFilter) && (
-              <button onClick={() => { setLeadDateFilter(''); setLeadStatusFilter('all'); setLeadSearchFilter(''); }} className="text-[10px] text-teal-600 font-bold hover:underline cursor-pointer">
+            {(leadDateFilter || leadStatusFilter !== 'all' || leadSourceFilter !== 'all' || leadSearchFilter) && (
+              <button onClick={() => { setLeadDateFilter(''); setLeadStatusFilter('all'); setLeadSourceFilter('all'); setLeadSearchFilter(''); }} className="text-[10px] text-teal-600 font-bold hover:underline cursor-pointer">
                 Limpiar filtros
               </button>
             )}
@@ -1570,6 +1603,18 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                       </span>
                       {primary.quoteData?.birthDate && (
                         <span className="block text-[9px] text-slate-400">Nac.: {primary.quoteData.birthDate}</span>
+                      )}
+                    </div>
+
+                    {/* Origin */}
+                    <div className="min-w-[110px]">
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase inline-block ${SOURCE_BADGE[primary.quoteData?.source?.channel || 'Directo']}`}>
+                        {primary.quoteData?.source?.channel || 'Directo'}
+                      </span>
+                      {primary.quoteData?.source?.detail && (
+                        <span className="block text-[9px] text-slate-400 mt-0.5 truncate max-w-[110px]" title={primary.quoteData.source.detail}>
+                          {primary.quoteData.source.detail}
+                        </span>
                       )}
                     </div>
 

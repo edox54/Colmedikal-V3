@@ -30,6 +30,7 @@ import PowerSEOPanel from './components/PowerSEOPanel';
 import MapaRedMedica from './components/MapaRedMedica';
 import Gracias from './components/Gracias';
 import PortalAfiliados from './components/PortalAfiliados';
+import { captureAttribution } from './utils/attribution';
 
 
 function ScrollToTop() {
@@ -54,6 +55,7 @@ function useSetCurrentPageMapper() {
 }
 
 export default function App() {
+  useEffect(() => { captureAttribution(); }, []);
   return (
     <ColmedikalProvider>
       <BrowserRouter>

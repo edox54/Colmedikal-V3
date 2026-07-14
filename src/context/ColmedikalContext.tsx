@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, LeadNote, QuoteState, AdminUser, ClientAddress } from '../types';
+import { getStoredAttribution } from '../utils/attribution';
 
 interface ColmedikalContextType {
   doctors: Doctor[];
@@ -649,6 +650,11 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ==================== LEADS ====================
   const addLead = async (quote: QuoteState, estimatedPrice: number) => {
+    // Attach where this visitor came from (captured on page load — see
+    // src/utils/attribution.ts). Only used when the quote doesn't already
+    // carry one, so this stays first-touch across the duplicate-merge path below.
+    const quoteWithSource: QuoteState = { ...quote, source: quote.source ?? getStoredAttribution() };
+
     // --- Duplicate detection: match on cédula, phone OR email ---
     // Local pass covers admin leads + this browser's own submissions.
     const normalize = (s?: string) => s?.toLowerCase().replace(/\s/g, '').trim() || '';
@@ -710,7 +716,10 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (existing) {
       // Preserve the ORIGINAL quote code so the reference stays stable across resubmissions
       const preservedCode = existing.quoteData?.leadCode || quote.leadCode;
-      const mergedQuote: QuoteState = { ...quote, leadCode: preservedCode };
+      // Preserve the ORIGINAL attribution too — whoever first brought this person
+      // in keeps the credit, even if they come back later via a direct visit.
+      const preservedSource = existing.quoteData?.source || quoteWithSource.source;
+      const mergedQuote: QuoteState = { ...quoteWithSource, leadCode: preservedCode, source: preservedSource };
       const updated: LeadQuote = {
         ...existing,
         timestamp: new Date().toISOString(),
@@ -788,7 +797,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const stub: LeadQuote = {
         id: 'remote-dup',
         timestamp: new Date().toISOString(),
-        quoteData: { ...quote, leadCode: serverCodes[0] || quote.leadCode },
+        quoteData: { ...quoteWithSource, leadCode: serverCodes[0] || quote.leadCode },
         estimatedPrice,
         status: 'Nuevo Plan',
       };
@@ -802,7 +811,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const newLead: LeadQuote = {
         id: localId,
         timestamp: new Date().toISOString(),
-        quoteData: quote,
+        quoteData: quoteWithSource,
         estimatedPrice,
         status: 'Nuevo Plan',
       };
@@ -813,7 +822,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
       try {
         const result = await apiCall('/api/leads', 'POST', {
-          quote_data: quote,
+          quote_data: quoteWithSource,
           estimated_price: estimatedPrice,
           status: 'Nuevo Plan',
         });
@@ -834,7 +843,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsLoading(true);
     try {
       const result = await apiCall('/api/admin/leads', 'POST', {
-        quote_data: quote,
+        quote_data: quoteWithSource,
         estimated_price: estimatedPrice,
         status: 'Nuevo Plan',
       }, token);

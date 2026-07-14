@@ -45,6 +45,17 @@ export interface ClientAddress {
   postalCode: string;
 }
 
+export interface LeadSource {
+  channel: 'Directo' | 'Orgánico' | 'Redes sociales' | 'Pago' | 'Referido' | 'Campaña' | 'Otro sitio';
+  detail?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  referrer?: string;
+  landingPage?: string;
+  capturedAt?: string;
+}
+
 export interface QuoteState {
   fullName: string;
   email: string;
@@ -68,6 +79,7 @@ export interface QuoteState {
   paymentStatus?: 'Pagado' | 'Pendiente' | 'Atrasado';
   portalPasswordHash?: string;
   portalPasswordSalt?: string;
+  source?: LeadSource;
 }
 
 export interface LeadNote {
