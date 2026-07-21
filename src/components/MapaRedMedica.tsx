@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { ArrowLeft, Search, MapPin, Stethoscope, Hospital, ChevronLeft, ChevronRight, Users, Building2 } from 'lucide-react';
+import { ArrowLeft, Search, MapPin, Stethoscope, Hospital, ChevronUp, ChevronDown, ChevronRight, Users, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Doctor } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
@@ -251,17 +251,21 @@ export default function MapaRedMedica({ embedded = false }: { embedded?: boolean
         className="absolute top-3 left-3 z-[1000] lg:hidden bg-white rounded-lg shadow-lg p-2 hover:bg-slate-50 transition-colors"
         aria-label={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
       >
-        {sidebarOpen ? <ChevronLeft className="w-5 h-5 text-slate-600" /> : <ChevronRight className="w-5 h-5 text-slate-600" />}
+        {sidebarOpen ? <ChevronUp className="w-5 h-5 text-slate-600" /> : <ChevronDown className="w-5 h-5 text-slate-600" />}
       </button>
 
-      <div className="flex h-full">
+      {/* flex-col below lg: list stacks above the map instead of the list
+          overlaying it edge-to-edge (which is unreadable on phones/tablets —
+          the map was squeezed into an unusable sliver). Side-by-side layout
+          above lg is unchanged. */}
+      <div className="flex flex-col lg:flex-row h-full">
         {/* Sidebar */}
         <div className={`
-          ${sidebarOpen ? 'w-80 lg:w-96' : 'w-0'}
-          transition-all duration-300 overflow-hidden bg-white border-r border-slate-200 z-[999]
-          absolute lg:relative h-full
+          ${sidebarOpen ? 'h-[45vh] lg:h-full w-full lg:w-80 xl:w-96' : 'h-0 lg:h-full w-full lg:w-0'}
+          transition-all duration-300 overflow-hidden bg-white border-b lg:border-b-0 lg:border-r border-slate-200 z-[999]
+          relative shrink-0
         `}>
-          <div className="w-80 lg:w-96 h-full flex flex-col overflow-hidden">
+          <div className="w-full h-full flex flex-col overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-teal-600 to-teal-700">
               <div className="flex items-center justify-between mb-3">

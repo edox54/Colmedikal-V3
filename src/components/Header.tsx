@@ -163,7 +163,7 @@ export default function Header() {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex space-x-4 xl:space-x-7 items-center h-full">
+            <nav className="hidden lg:flex space-x-2 xl:space-x-7 items-center h-full">
               {menuItems.map((item) => {
                 const isMega = item.hasMega;
                 const hasDropdown = !!item.items;
@@ -229,8 +229,10 @@ export default function Header() {
               })}
             </nav>
 
-            {/* Call to Action Buttons */}
-            <div className="hidden md:flex items-center gap-3">
+            {/* Call to Action Buttons — same breakpoint as the nav links (lg) so
+                768-1023px doesn't show these floating next to the hamburger
+                with no nav row; the mobile menu below already includes both. */}
+            <div className="hidden lg:flex items-center gap-2 xl:gap-3">
               {user && (
                 <div className="flex items-center gap-2 mr-2">
                   {isAdminUser && (
@@ -258,7 +260,7 @@ export default function Header() {
 
               <Link
                 to="/mi-colmedikal"
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium border transition-all duration-300 ${
+                className={`flex items-center gap-2 px-3 xl:px-4 py-2.5 rounded-full text-sm font-medium border transition-all duration-300 ${
                   location.pathname === '/mi-colmedikal'
                     ? 'bg-slate-900 text-white border-slate-900'
                     : 'bg-white text-[#0C4169] border-[#0C4169]/30 hover:border-[#0C4169] hover:bg-slate-50'
@@ -266,12 +268,12 @@ export default function Header() {
                 id="cta-nav-mi-colmedikal"
               >
                 <User className="w-4 h-4" />
-                <span>Mi Colmedikal</span>
+                <span className="hidden xl:inline">Mi Colmedikal</span>
               </Link>
 
               <Link
                 to="/cotizador"
-                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                className={`relative flex items-center gap-2 px-4 xl:px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                   location.pathname === '/cotizador'
                     ? 'bg-gradient-to-r from-[#0C4169] to-[#4597CA] text-white shadow-md shadow-[#0C4169]/20 scale-95'
                     : 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-[0_0_18px_4px_rgba(69,151,202,0.45)] hover:shadow-[0_0_26px_6px_rgba(69,151,202,0.65)] hover:scale-102 hover:-translate-y-0.5'
@@ -282,7 +284,7 @@ export default function Header() {
                   <span className="absolute inset-[-4px] rounded-full border border-[#4597CA]/50 animate-pulse pointer-events-none" />
                 )}
                 <Calculator className="w-4 h-4" />
-                <span>Cotizar Plan</span>
+                <span className="hidden xl:inline">Cotizar Plan</span>
               </Link>
             </div>
 

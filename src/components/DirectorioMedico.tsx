@@ -250,8 +250,11 @@ export default function DirectorioMedico() {
     return matchesSearch && matchesSpecialty && matchesCity && matchesDoctorSpecialty && matchesNivel;
   });
 
+  // md:pr-20 below keeps card content (e.g. right-aligned prices) clear of the
+  // floating WhatsApp/Cotizar/Contacto icons, which are fixed to the
+  // viewport's right edge from md up.
   return (
-    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="colmedikal-directorio-view">
+    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 md:pr-20 max-w-7xl mx-auto" id="colmedikal-directorio-view">
       
       {/* 1. HEADER */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
