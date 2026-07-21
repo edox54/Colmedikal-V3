@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Calculator,
@@ -1026,8 +1027,11 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
 
             <div className="space-y-8">
                 {/* Modal de detalles del plan — reachable from both the comparison grid
-                    and the exclusive checkout (when a plan was preselected from homepage) */}
-                {modalPlan && (
+                    and the exclusive checkout (when a plan was preselected from homepage).
+                    Portal'd to <body>: as a plain descendant, this "fixed" modal inherited
+                    a broken containing block from an ancestor on tall pages, rendering the
+                    popup thousands of pixels off-screen. */}
+                {modalPlan && createPortal(
                   <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
                     onClick={() => setModalPlan(null)}
@@ -1117,7 +1121,8 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
                         )}
                       </div>
                     </div>
-                  </div>
+                  </div>,
+                  document.body
                 )}
 
                 {selectedPlanToBuy ? (

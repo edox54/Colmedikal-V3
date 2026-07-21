@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 // import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 // import { auth } from '../firebase';
 import { 
@@ -2085,8 +2086,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
             )}
           </div>
 
-          {/* Set/Reset password modal */}
-          {modalClient && (
+          {/* Set/Reset password modal — portal'd to <body> so this "fixed" element
+              can't inherit a broken containing block from an ancestor on long pages. */}
+          {modalClient && createPortal(
             <div
               className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
               onClick={() => setPasswordModalLeadId(null)}
@@ -2162,7 +2164,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
                   </>
                 )}
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
         );
@@ -2707,8 +2710,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     </div>
   )}
 
-  {/* 4. HIGH FIDELITY LIVE DOCUMENT PREVIEW MODAL */}
-    {selectedDocument && (
+  {/* 4. HIGH FIDELITY LIVE DOCUMENT PREVIEW MODAL — portal'd to <body>, see
+      the password modal above for why. */}
+    {selectedDocument && createPortal(
       <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
         <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl max-w-4xl w-full flex flex-col md:flex-row h-auto md:h-[620px] divide-y md:divide-y-0 md:divide-x divide-slate-800 animate-in zoom-in-95 duration-200">
           
@@ -2852,7 +2856,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
             </div>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
     </>
   );

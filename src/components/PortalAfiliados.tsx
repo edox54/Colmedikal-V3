@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   User, 
   ShieldCheck, 
@@ -620,7 +621,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
         {/* Mandatory first-login address modal — blocks until Provincia/Ciudad/
             Dirección 1/Código Postal are completed; skipped automatically once
             addressComplete is true (no close button while incomplete). */}
-        {showAddressModal && (
+        {showAddressModal && createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200" id="mandatory-address-modal">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
               <div className="bg-[#0C4169] text-white px-6 py-4 rounded-t-3xl">
@@ -644,7 +645,8 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* TOP BAR — logo/title + notification bell + avatar dropdown (with
@@ -1340,8 +1342,9 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                   )}
                 </div>
 
-                {/* Plan detail modal — same layout as Cotizador's, read-only */}
-                {showPlanModal && PLAN_DETAILS[profile.basePlanId] && (
+                {/* Plan detail modal — same layout as Cotizador's, read-only.
+                    Portal'd to <body>, see the address modal above for why. */}
+                {showPlanModal && PLAN_DETAILS[profile.basePlanId] && createPortal(
                   <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
                     onClick={() => setShowPlanModal(false)}
@@ -1409,7 +1412,8 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
             )}

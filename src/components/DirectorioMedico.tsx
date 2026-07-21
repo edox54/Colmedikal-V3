@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Search, 
   MapPin, 
@@ -499,8 +500,12 @@ export default function DirectorioMedico() {
         )}
       </section>
 
-      {/* 4. MODAL DETAILED BOOKING ENGINE / FICHA INFORMATIVA */}
-      {selectedDoctor && (
+      {/* 4. MODAL DETAILED BOOKING ENGINE / FICHA INFORMATIVA
+          Rendered via a portal straight to <body> — as a normal descendant, this
+          "fixed" modal was inheriting a broken containing block from an ancestor
+          up the tree on long pages (position:fixed spanned the full page height
+          instead of the viewport), pushing it thousands of pixels off-screen. */}
+      {selectedDoctor && createPortal(
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             
@@ -737,7 +742,8 @@ export default function DirectorioMedico() {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
