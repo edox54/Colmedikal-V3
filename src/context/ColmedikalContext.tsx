@@ -14,6 +14,7 @@ interface ColmedikalContextType {
   token: string | null;
   isLoading: boolean;
   error: string | null;
+  publicSettingsLoaded: boolean;
   logout: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   addDoctor: (doctor: Doctor) => Promise<void>;
@@ -180,6 +181,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [publicSettingsLoaded, setPublicSettingsLoaded] = useState(false);
 
   // Initialize: Load data on mount
   useEffect(() => {
@@ -216,6 +218,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setSeoMetaOverrides(metaOverrides);
       setBlogPostsCMS(blogRes.data || []);
     } catch { /* silent */ }
+    finally { setPublicSettingsLoaded(true); }
   };
 
   // Login function
@@ -1188,6 +1191,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     token,
     isLoading,
     error,
+    publicSettingsLoaded,
     login,
     logout,
     addDoctor,

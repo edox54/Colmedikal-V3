@@ -31,6 +31,7 @@ import MapaRedMedica from './components/MapaRedMedica';
 import Gracias from './components/Gracias';
 import PortalAfiliados from './components/PortalAfiliados';
 import Maintenance from './components/Maintenance';
+import Logo from './components/Logo';
 import { captureAttribution } from './utils/attribution';
 import { useColmedikal } from './context/ColmedikalContext';
 
@@ -71,8 +72,16 @@ export default function App() {
   );
 }
 
+function BootSplash() {
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-brand-dark via-[#0f3155] to-slate-950">
+      <Logo className="h-10 sm:h-12 animate-pulse" isDarkBg />
+    </div>
+  );
+}
+
 function AppRoutes() {
-  const { seoSettings } = useColmedikal();
+  const { seoSettings, publicSettingsLoaded } = useColmedikal();
   // "maintenance_mode" is a plain key in the same settings bag the SEO panel
   // uses (see deactivated_doctors) — toggled from AdminPanel's "Sitio" tab.
   const isMaintenance = seoSettings.maintenance_mode === 'true';
@@ -82,7 +91,11 @@ function AppRoutes() {
       <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
       <Route path="/seo-panel" element={<SEOPanelLayout />} />
       <Route path="/power-seo" element={<PowerSEOLayout />} />
-      {isMaintenance ? (
+      {!publicSettingsLoaded ? (
+        // Hold on a neutral splash until we know maintenance_mode — otherwise
+        // the real site flashes for a moment before the setting arrives.
+        <Route path="*" element={<BootSplash />} />
+      ) : isMaintenance ? (
         <Route path="*" element={<Maintenance />} />
       ) : (
         <>
