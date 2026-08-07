@@ -85,7 +85,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     addAdmin,
     deleteAdmin,
     toggleAdminActiveStatus,
-    updateAdminRole
+    updateAdminRole,
+    seoSettings,
+    saveSEOSettings
   } = useColmedikal();
 
   const prevLeadsCountRef = useRef(leads.length);
@@ -132,7 +134,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     fileData?: string;
   } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'kpis' | 'refunds' | 'appointments' | 'auths' | 'leads' | 'clientes' | 'doctors' | 'admins'>('kpis');
+  const [activeTab, setActiveTab] = useState<'kpis' | 'refunds' | 'appointments' | 'auths' | 'leads' | 'clientes' | 'doctors' | 'admins' | 'sitio'>('kpis');
+  const [maintenanceSaving, setMaintenanceSaving] = useState(false);
 
   // Lead filters
   const [leadDateFilter, setLeadDateFilter] = useState('');
@@ -772,6 +775,19 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
             <Users className="w-4 h-4 shrink-0" />
             <span>Gestionar Accesos</span>
             <span className="text-[10px] text-slate-450 font-mono font-normal">({admins ? admins.length : 0})</span>
+          </button>
+        )}
+
+        {canManageAdmins && (
+          <button
+            onClick={() => setActiveTab('sitio')}
+            className={`px-4.5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'sitio' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-655 hover:bg-slate-200'
+            }`}
+            id="admin-tab-sitio"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>Sitio</span>
           </button>
         )}
 
@@ -2707,6 +2723,51 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
       </div>
 
+    </div>
+  )}
+
+  {/* 3.8 SITE-WIDE MAINTENANCE MODE TOGGLE — Super Admin only */}
+  {activeTab === 'sitio' && (
+    <div className="space-y-6 animate-in fade-in duration-205" id="admin-sitio-panel">
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm max-w-xl space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
+            <AlertCircle className="w-5 h-5 text-amber-650" />
+            <span>Modo "En Construcción"</span>
+          </h3>
+          <p className="text-xs text-slate-500 font-medium">
+            Al activarlo, el sitio público muestra una página de "En construcción" a todos los
+            visitantes. El panel de administración (esta página) sigue siendo accesible para
+            poder desactivarlo.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
+          <span className="text-sm font-semibold text-slate-800">
+            {seoSettings.maintenance_mode === 'true' ? 'Sitio en construcción (activo)' : 'Sitio publicado (normal)'}
+          </span>
+          <button
+            disabled={maintenanceSaving}
+            onClick={async () => {
+              setMaintenanceSaving(true);
+              try {
+                await saveSEOSettings({ maintenance_mode: seoSettings.maintenance_mode === 'true' ? 'false' : 'true' });
+              } finally {
+                setMaintenanceSaving(false);
+              }
+            }}
+            className={`relative w-12 h-7 rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+              seoSettings.maintenance_mode === 'true' ? 'bg-amber-500' : 'bg-slate-300'
+            }`}
+          >
+            <span
+              className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                seoSettings.maintenance_mode === 'true' ? 'translate-x-5' : ''
+              }`}
+            />
+          </button>
+        </div>
+      </div>
     </div>
   )}
 

@@ -30,7 +30,9 @@ import PowerSEOPanel from './components/PowerSEOPanel';
 import MapaRedMedica from './components/MapaRedMedica';
 import Gracias from './components/Gracias';
 import PortalAfiliados from './components/PortalAfiliados';
+import Maintenance from './components/Maintenance';
 import { captureAttribution } from './utils/attribution';
+import { useColmedikal } from './context/ColmedikalContext';
 
 
 function ScrollToTop() {
@@ -63,7 +65,27 @@ export default function App() {
         <SEOController />
         <TrackingManager />
         <CookieConsent />
-        <Routes>
+        <AppRoutes />
+      </BrowserRouter>
+    </ColmedikalProvider>
+  );
+}
+
+function AppRoutes() {
+  const { seoSettings } = useColmedikal();
+  // "maintenance_mode" is a plain key in the same settings bag the SEO panel
+  // uses (see deactivated_doctors) — toggled from AdminPanel's "Sitio" tab.
+  const isMaintenance = seoSettings.maintenance_mode === 'true';
+  return (
+    <Routes>
+      {/* Admin tools stay reachable during maintenance so it can be turned back off. */}
+      <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
+      <Route path="/seo-panel" element={<SEOPanelLayout />} />
+      <Route path="/power-seo" element={<PowerSEOLayout />} />
+      {isMaintenance ? (
+        <Route path="*" element={<Maintenance />} />
+      ) : (
+        <>
           <Route path="/" element={<HomeLayout component={Home} />} />
           <Route path="/servicios" element={<HomeLayout component={Services} />} />
           <Route path="/directorio" element={<HomeLayout component={DirectorioMedico} />} />
@@ -81,13 +103,10 @@ export default function App() {
               logged-in client isn't tempted back into the marketing site. */}
           <Route path="/mi-colmedikal" element={<AdminLayout component={PortalAfiliados} />} />
           <Route path="/portal-afiliados" element={<Navigate to="/mi-colmedikal" replace />} />
-          <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
-          <Route path="/seo-panel" element={<SEOPanelLayout />} />
-          <Route path="/power-seo" element={<PowerSEOLayout />} />
           <Route path="*" element={<HomeLayout component={NotFound} />} />
-        </Routes>
-      </BrowserRouter>
-    </ColmedikalProvider>
+        </>
+      )}
+    </Routes>
   );
 }
 
