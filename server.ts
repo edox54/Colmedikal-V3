@@ -193,7 +193,6 @@ async function startServer() {
     // Overrides are stored under keys like "meta_/directorio" => {title, description, keywords}.
     const API_BASE_URL = 'https://api.colmedikal.com';
     let overrideCache: Record<string, { title?: string; description?: string; keywords?: string }> = {};
-    let ga4IdCache = '';
     let overrideCacheAt = 0;
     let lastOvErr = 'none';
     const getOverrides = async () => {
@@ -208,7 +207,6 @@ async function startServer() {
           }
         }
         overrideCache = next;
-        ga4IdCache = typeof data.ga4_id === 'string' ? data.ga4_id : '';
         overrideCacheAt = Date.now();
         lastOvErr = `ok:${Object.keys(next).length}`;
       } catch (e: any) {
@@ -253,16 +251,7 @@ async function startServer() {
   <meta name="twitter:title" content="${esc(meta.title)}" />
   <meta name="twitter:description" content="${esc(meta.description)}" />`;
 
-      // GA4 must be present in the raw HTML (not client-injected) so GSC's
-      // "Google Analytics" ownership verification, which doesn't run JS, can find it.
-      // IDs match TrackingManager.tsx's (ga4-script/ga4-init) so it skips re-injecting client-side.
-      const gtagSnippet = ga4IdCache
-        ? `
-  <script id="ga4-script" async src="https://www.googletagmanager.com/gtag/js?id=${esc(ga4IdCache)}"></script>
-  <script id="ga4-init">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${esc(ga4IdCache)}');</script>`
-        : '';
-
-      html = html.replace('</head>', inject + gtagSnippet + '\n  </head>');
+      html = html.replace('</head>', inject + '\n  </head>');
 
       res.set('Content-Type', 'text/html; charset=UTF-8');
       res.send(html);
