@@ -1190,6 +1190,7 @@ async function startServer() {
     // Overrides are stored under keys like "meta_/directorio" => {title, description, keywords}.
     const API_BASE_URL = 'https://api.colmedikal.com';
     let overrideCache: Record<string, { title?: string; description?: string; keywords?: string }> = {};
+    let ga4IdCache = '';
     let overrideCacheAt = 0;
     let lastOvErr = 'none';
     const getOverrides = async () => {
@@ -1204,6 +1205,7 @@ async function startServer() {
           }
         }
         overrideCache = next;
+        ga4IdCache = /^[A-Za-z0-9_-]{1,40}$/.test(data.ga4_id || '') ? data.ga4_id : '';
         overrideCacheAt = Date.now();
         lastOvErr = `ok:${Object.keys(next).length}`;
       } catch (e: any) {
@@ -1412,7 +1414,20 @@ async function startServer() {
       }
 
       const ldBlocks = schemas.map(s => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n  ');
-      html = html.replace('</head>', `  ${ldBlocks}\n  </head>`);
+
+      // GA4 must be present in the raw HTML (not client-injected) so GSC's
+      // "Google Analytics" ownership verification, which doesn't run JS, can find it.
+      // Uses Google Consent Mode v2, defaulting to denied, so no data is sent until
+      // TrackingManager.tsx calls gtag('consent','update', ...) after the visitor
+      // accepts cookies. IDs match TrackingManager.tsx's so it won't re-inject them.
+      const gtagSnippet = ga4IdCache
+        ? `
+  <script id="ga4-consent-default">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('consent','default',{'ad_storage':'denied','ad_user_data':'denied','ad_personalization':'denied','analytics_storage':'denied','wait_for_update':500});</script>
+  <script id="ga4-script" async src="https://www.googletagmanager.com/gtag/js?id=${esc(ga4IdCache)}"></script>
+  <script id="ga4-init">gtag('js',new Date());gtag('config','${esc(ga4IdCache)}');</script>`
+        : '';
+
+      html = html.replace('</head>', `  ${ldBlocks}${gtagSnippet}\n  </head>`);
 
       res.set('Content-Type', 'text/html; charset=UTF-8');
       res.send(html);

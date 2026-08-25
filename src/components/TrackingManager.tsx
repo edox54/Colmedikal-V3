@@ -18,7 +18,6 @@ export default function TrackingManager() {
     // prevent script injection if the settings source is ever tampered with.
     const validId = (v?: string) =>
       (typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v)) ? v : '';
-    const ga4_id = validId(seoSettings.ga4_id);
     const gtm_id = validId(seoSettings.gtm_id);
     const fb_pixel_id = validId(seoSettings.fb_pixel_id);
     const google_ads_id = validId(seoSettings.google_ads_id);
@@ -33,16 +32,12 @@ export default function TrackingManager() {
       m.content = gsc_verification;
     }
 
-    // Statistics: Google Analytics 4
-    if (statistics && ga4_id && !document.getElementById('ga4-script')) {
-      const s1 = document.createElement('script');
-      s1.id = 'ga4-script'; s1.async = true;
-      s1.src = `https://www.googletagmanager.com/gtag/js?id=${ga4_id}`;
-      document.head.appendChild(s1);
-      const s2 = document.createElement('script');
-      s2.id = 'ga4-init';
-      s2.text = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga4_id}');`;
-      document.head.appendChild(s2);
+    // Statistics: Google Analytics 4 — the gtag.js script itself is injected
+    // server-side (server.ts) so GSC's static verification crawler can find it,
+    // defaulting to Consent Mode v2 "denied". Once the visitor accepts cookies,
+    // just flip consent to granted; no data was sent before this point.
+    if (statistics && typeof (window as any).gtag === 'function') {
+      (window as any).gtag('consent', 'update', { analytics_storage: 'granted' });
     }
 
     // Statistics or Marketing: Google Tag Manager
