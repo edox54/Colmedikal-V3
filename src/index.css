@@ -1,10 +1,65 @@
 @import "tailwindcss";
 
+/* Habilita `dark:` en cualquier elemento descendiente de un ancestro con
+   clase `.dark` — el toggle del admin la pone en el wrapper de
+   AdminPanel, no en <html>, así el modo oscuro queda aislado al admin y
+   nunca afecta el sitio público. */
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   --color-brand-light: #4597CA;
   --color-brand-dark: #0C4169;
   --font-sans: "Open Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Kumbh Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Escala brand-25..950 generada a partir de los dos tonos de marca de
+     Colmedikal (--color-brand-light/dark arriba) — mismo enfoque que usa
+     el admin de Prevaler con su propio color de marca, para tener una
+     paleta completa disponible en tarjetas/badges/sidebar del admin. */
+  --color-brand-25: #f6fafd;
+  --color-brand-50: #eaf4fb;
+  --color-brand-100: #d3e8f5;
+  --color-brand-200: #a7d1ec;
+  --color-brand-300: #78b6df;
+  --color-brand-400: #5aa4d3;
+  --color-brand-500: #4597ca;
+  --color-brand-600: #3579a8;
+  --color-brand-700: #285d86;
+  --color-brand-800: #17456e;
+  --color-brand-900: #0c4169;
+  --color-brand-950: #082c48;
+
+  /* Sombras "theme" al estilo TailAdmin — mismo look de tarjeta que usa el
+     admin de Prevaler (rounded-2xl + shadow-theme-*). */
+  --shadow-theme-xs: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  --shadow-theme-sm:
+    0px 1px 3px 0px rgba(16, 24, 40, 0.1),
+    0px 1px 2px 0px rgba(16, 24, 40, 0.06);
+  --shadow-theme-md:
+    0px 4px 8px -2px rgba(16, 24, 40, 0.1),
+    0px 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --shadow-theme-lg:
+    0px 12px 16px -4px rgba(16, 24, 40, 0.08),
+    0px 4px 6px -2px rgba(16, 24, 40, 0.03);
+  --shadow-theme-xl:
+    0px 20px 24px -4px rgba(16, 24, 40, 0.08),
+    0px 8px 8px -4px rgba(16, 24, 40, 0.03);
+}
+
+/* Clases del menú lateral del admin — mismo patrón que
+   menu-item/menu-item-active de Prevaler, prefijadas admin- para no
+   colisionar con nada del sitio público. */
+@utility admin-menu-item {
+  @apply relative flex items-center w-full gap-3 px-3 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer;
+}
+@utility admin-menu-item-active {
+  @apply bg-brand-50 text-brand-700 dark:bg-brand-500/[0.15] dark:text-brand-300;
+}
+@utility admin-menu-item-inactive {
+  @apply text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5;
+}
+@utility admin-card {
+  @apply bg-white dark:bg-white/[0.03] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-theme-sm;
 }
 
 @layer base {
