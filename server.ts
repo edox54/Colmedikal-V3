@@ -96,7 +96,7 @@ async function startServer() {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' data: https://fonts.gstatic.com",
         "img-src 'self' data: blob: https:",
-        "frame-src 'self' https://www.google.com https://maps.google.com https://www.openstreetmap.org",
+        "frame-src 'self' blob: https://www.google.com https://maps.google.com https://www.openstreetmap.org",
         "media-src 'self' blob: data:",
         "worker-src 'self' blob:",
         "frame-ancestors 'none'",
