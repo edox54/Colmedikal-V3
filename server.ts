@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 import helmet from 'helmet';
 import crypto from 'crypto';
 import { registerCrmRoutes, logActivity, recordPortalLogin, makeRequireAdmin } from './src/server/crm';
-import { registerClaimRoutes } from './src/server/claims';
+import { registerClaimRoutes, loadLegacyHidden } from './src/server/claims';
 import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
@@ -667,7 +667,8 @@ async function startServer() {
         getAdminList('appointments'),
       ]);
 
-      const mine = (r: any) => (email && normId(r.user_email) === email) || (phone && normId(r.user_phone) === phone);
+      const hidden = new Set(loadLegacyHidden());
+      const mine = (r: any) => !hidden.has(String(r.id)) && ((email && normId(r.user_email) === email) || (phone && normId(r.user_phone) === phone));
 
       res.json({
         success: true,

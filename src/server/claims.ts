@@ -28,6 +28,10 @@ const SIGNATURES: { mime: string; ext: string; test: (b: Buffer) => boolean }[] 
 ];
 
 let FILE = '';
+let HIDDEN_FILE = '';
+/** IDs of legacy (external-API) refunds/authorizations deleted by an admin. The
+ *  external API has no DELETE for them, so this list hides them everywhere. */
+export function loadLegacyHidden(): string[] { try { return JSON.parse(fs.readFileSync(HIDDEN_FILE, 'utf8')); } catch { return []; } }
 let FILES_DIR = '';
 const load = (): Claim[] => { try { return JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { return []; } };
 const save = (list: Claim[]) => { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(list)); };
@@ -67,6 +71,7 @@ export function registerClaimRoutes(app: Express, deps: {
 }) {
   FILE = path.join(deps.dataDir, 'claims.json');
   FILES_DIR = path.join(deps.dataDir, 'claims-files');
+  HIDDEN_FILE = path.join(deps.dataDir, 'legacy-requests-deleted.json');
   const { verifyPortalToken, requireAdmin } = deps;
 
   const mine = (req: Request, res: Response): { list: Claim[]; claim: Claim } | null => {
@@ -190,6 +195,16 @@ export function registerClaimRoutes(app: Express, deps: {
   });
 
   // ---------- admin ----------
+  app.get('/api/admin/legacy-hidden', requireAdmin, (_req, res) => res.json({ success: true, data: loadLegacyHidden() }));
+  app.post('/api/admin/legacy-hidden', requireAdmin, express.json(), (req, res) => {
+    const id = str(req.body?.id, 60);
+    if (!/^[\w-]{1,60}$/.test(id)) return res.status(400).json({ success: false, message: 'ID inválido' });
+    const list = loadLegacyHidden();
+    if (!list.includes(id)) { list.push(id); fs.mkdirSync(path.dirname(HIDDEN_FILE), { recursive: true }); fs.writeFileSync(HIDDEN_FILE, JSON.stringify(list)); }
+    console.log(`[legacy-hidden] ${id} eliminado por ${str(req.body?.by, 80) || 'admin'}`);
+    res.json({ success: true });
+  });
+
   app.get('/api/admin/claims', requireAdmin, (_req, res) => {
     res.json({ success: true, data: load().filter(c => c.status !== 'Borrador').sort((a, b) => (b.submittedAt || b.createdAt).localeCompare(a.submittedAt || a.createdAt)) });
   });

@@ -64,6 +64,7 @@ interface ColmedikalContextType {
   // Self-service reembolsos / preautorizaciones (server store — src/server/claims.ts)
   claims: Claim[];
   refreshClaims: () => Promise<void>;
+  deleteLegacyRequest: (id: string) => Promise<void>;
   decideClaim: (id: string, d: { status: ClaimStatus; comment?: string; approvedAmount?: number }) => Promise<void>;
 }
 
@@ -249,6 +250,11 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const refreshClaims = async () => {
     const t = token || sessionStorage.getItem('colmedikal_token');
     if (t) await loadClaims(t);
+  };
+  const deleteLegacyRequest = async (id: string) => {
+    await crmFetch('/api/admin/legacy-hidden', { id });
+    setRefunds(prev => prev.filter(r => String(r.id) !== id));
+    setAuthorizations(prev => prev.filter(a => String(a.id) !== id));
   };
   const decideClaim = async (id: string, d: { status: ClaimStatus; comment?: string; approvedAmount?: number }) => {
     await crmFetch(`/api/admin/claims/${encodeURIComponent(id)}`, d);
@@ -464,8 +470,14 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
         setDoctors(fetchedDoctors);
       }
+      // Legacy requests an admin deleted (external API can't delete them)
+      let hiddenLegacy = new Set<string>();
+      try {
+        const h = await fetch('/api/admin/legacy-hidden', { headers: { Authorization: `Bearer ${authToken}` } }).then(r => r.json());
+        if (h?.success) hiddenLegacy = new Set((h.data || []).map(String));
+      } catch { /* show everything if the list can't be read */ }
       if (refundsRes) {
-        setRefunds((refundsRes.data || []).map((r: any) => ({
+        setRefunds((refundsRes.data || []).filter((r: any) => !hiddenLegacy.has(String(r.id))).map((r: any) => ({
           id: r.id,
           familyMember: r.family_member || '',
           specialty: r.specialty || '',
@@ -499,7 +511,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         })));
       }
       if (authorizationsRes) {
-        setAuthorizations((authorizationsRes.data || []).map((a: any) => ({
+        setAuthorizations((authorizationsRes.data || []).filter((a: any) => !hiddenLegacy.has(String(a.id))).map((a: any) => ({
           id: a.id,
           patient: a.patient || '',
           procedure: a.procedure || '',
@@ -1378,6 +1390,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     claims,
     refreshClaims,
     decideClaim,
+    deleteLegacyRequest,
   };
 
   return (

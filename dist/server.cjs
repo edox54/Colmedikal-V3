@@ -755,6 +755,14 @@ var SIGNATURES = [
   { mime: "image/heic", ext: "heic", test: (b) => b.subarray(4, 12).toString().startsWith("ftyphei") || b.subarray(4, 12).toString().startsWith("ftypmif1") }
 ];
 var FILE2 = "";
+var HIDDEN_FILE = "";
+function loadLegacyHidden() {
+  try {
+    return JSON.parse(import_fs2.default.readFileSync(HIDDEN_FILE, "utf8"));
+  } catch {
+    return [];
+  }
+}
 var FILES_DIR = "";
 var load2 = () => {
   try {
@@ -795,6 +803,7 @@ var forClient = (c) => ({ ...c, history: c.history.map((h) => ({ ...h, by: h.by 
 function registerClaimRoutes(app, deps) {
   FILE2 = import_path2.default.join(deps.dataDir, "claims.json");
   FILES_DIR = import_path2.default.join(deps.dataDir, "claims-files");
+  HIDDEN_FILE = import_path2.default.join(deps.dataDir, "legacy-requests-deleted.json");
   const { verifyPortalToken, requireAdmin } = deps;
   const mine = (req, res) => {
     const list = load2();
@@ -916,6 +925,19 @@ function registerClaimRoutes(app, deps) {
     save2(list);
     notifyTeam(claim).catch((e) => console.error("[claims-mail-team]", e?.message || e));
     res.json({ success: true, data: forClient(claim) });
+  });
+  app.get("/api/admin/legacy-hidden", requireAdmin, (_req, res) => res.json({ success: true, data: loadLegacyHidden() }));
+  app.post("/api/admin/legacy-hidden", requireAdmin, import_express2.default.json(), (req, res) => {
+    const id = str2(req.body?.id, 60);
+    if (!/^[\w-]{1,60}$/.test(id)) return res.status(400).json({ success: false, message: "ID inv\xE1lido" });
+    const list = loadLegacyHidden();
+    if (!list.includes(id)) {
+      list.push(id);
+      import_fs2.default.mkdirSync(import_path2.default.dirname(HIDDEN_FILE), { recursive: true });
+      import_fs2.default.writeFileSync(HIDDEN_FILE, JSON.stringify(list));
+    }
+    console.log(`[legacy-hidden] ${id} eliminado por ${str2(req.body?.by, 80) || "admin"}`);
+    res.json({ success: true });
   });
   app.get("/api/admin/claims", requireAdmin, (_req, res) => {
     res.json({ success: true, data: load2().filter((c) => c.status !== "Borrador").sort((a, b) => (b.submittedAt || b.createdAt).localeCompare(a.submittedAt || a.createdAt)) });
@@ -1511,7 +1533,8 @@ async function startServer() {
         getAdminList("authorizations"),
         getAdminList("appointments")
       ]);
-      const mine = (r) => email && normId(r.user_email) === email || phone && normId(r.user_phone) === phone;
+      const hidden = new Set(loadLegacyHidden());
+      const mine = (r) => !hidden.has(String(r.id)) && (email && normId(r.user_email) === email || phone && normId(r.user_phone) === phone);
       res.json({
         success: true,
         data: {
