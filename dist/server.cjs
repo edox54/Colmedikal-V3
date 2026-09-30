@@ -1614,8 +1614,10 @@ async function startServer() {
       }
       const credsStore = loadPortalCreds();
       let matchedLeadId = null;
-      for (const [leadId, cred] of Object.entries(credsStore)) {
-        if (cred.docNumber === docNumber && verifyPortalPassword(password, cred.hash, cred.salt)) {
+      const deletedLeads = loadDeletedLeads();
+      const credEntries = Object.entries(credsStore).filter(([leadId, cred]) => cred.docNumber === docNumber && !deletedLeads[leadId]).sort(([, x], [, y]) => (y.updatedAt || 0) - (x.updatedAt || 0));
+      for (const [leadId, cred] of credEntries) {
+        if (verifyPortalPassword(password, cred.hash, cred.salt)) {
           matchedLeadId = leadId;
           break;
         }

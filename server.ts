@@ -576,8 +576,13 @@ async function startServer() {
       // Primary: local credentials store (authoritative — see comment above).
       const credsStore = loadPortalCreds();
       let matchedLeadId: string | null = null;
-      for (const [leadId, cred] of Object.entries(credsStore)) {
-        if (cred.docNumber === docNumber && verifyPortalPassword(password, cred.hash, cred.salt)) {
+      // Skip entries of leads the admin deleted, newest first (a cédula can have several — duplicate leads).
+      const deletedLeads = loadDeletedLeads();
+      const credEntries = Object.entries(credsStore)
+        .filter(([leadId, cred]) => cred.docNumber === docNumber && !deletedLeads[leadId])
+        .sort(([, x], [, y]) => (y.updatedAt || 0) - (x.updatedAt || 0));
+      for (const [leadId, cred] of credEntries) {
+        if (verifyPortalPassword(password, cred.hash, cred.salt)) {
           matchedLeadId = leadId;
           break;
         }
