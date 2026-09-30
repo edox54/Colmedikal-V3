@@ -1074,7 +1074,8 @@ function registerPortalPasswordRoutes(app, deps) {
         return res.status(429).json({ success: false, message: "Demasiadas solicitudes. Intenta de nuevo en unos minutos." });
       }
       const store = deps.loadPortalCreds();
-      let leadId = Object.entries(store).find(([, c]) => normId(c.docNumber) === doc)?.[0];
+      const ids = Object.entries(store).filter(([, c]) => normId(c.docNumber) === doc).sort(([, x], [, y]) => (y.updatedAt || 0) - (x.updatedAt || 0)).map(([id]) => id);
+      let leadId = ids[0];
       if (!leadId) {
         const legacy = await deps.findLegacyAccount?.(doc).catch(() => null);
         if (!legacy) {
@@ -1089,7 +1090,14 @@ function registerPortalPasswordRoutes(app, deps) {
         console.error("[portal-forgot] mailer not configured (SMTP_* env missing)");
         return res.json(generic);
       }
-      const contact = await deps.getContact(leadId).catch(() => null);
+      let contact = null;
+      for (const id of ids.length ? ids : [leadId]) {
+        contact = await deps.getContact(id).catch(() => null);
+        if (contact?.email) {
+          leadId = id;
+          break;
+        }
+      }
       if (!contact?.email) {
         console.warn("[portal-forgot] no email on lead", leadId);
         return res.json(generic);
