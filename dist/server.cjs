@@ -1077,14 +1077,23 @@ function registerPortalPasswordRoutes(app, deps) {
       let leadId = Object.entries(store).find(([, c]) => normId(c.docNumber) === doc)?.[0];
       if (!leadId) {
         const legacy = await deps.findLegacyAccount?.(doc).catch(() => null);
-        if (!legacy) return res.json(generic);
+        if (!legacy) {
+          console.warn("[portal-forgot] no account for doc", doc.slice(-4));
+          return res.json(generic);
+        }
         leadId = legacy.leadId;
         store[leadId] = { docNumber: doc, hash: legacy.hash, salt: legacy.salt, updatedAt: Date.now() };
         deps.savePortalCreds(store);
       }
-      if (!mailer) return res.json(generic);
+      if (!mailer) {
+        console.error("[portal-forgot] mailer not configured (SMTP_* env missing)");
+        return res.json(generic);
+      }
       const contact = await deps.getContact(leadId).catch(() => null);
-      if (!contact?.email) return res.json(generic);
+      if (!contact?.email) {
+        console.warn("[portal-forgot] no email on lead", leadId);
+        return res.json(generic);
+      }
       const token = import_crypto3.default.randomBytes(32).toString("base64url");
       const tokens = loadTokens();
       for (const [k, v] of Object.entries(tokens)) if (v.leadId === leadId) delete tokens[k];
@@ -1097,6 +1106,7 @@ function registerPortalPasswordRoutes(app, deps) {
 <p style="font-size:12px;color:#64748b;line-height:1.6">El enlace vence en 30 minutos y sirve una sola vez. Si no solicitaste este cambio, ignora este correo: tu contrase\xF1a actual sigue funcionando.</p>
 <p style="font-size:11px;color:#94a3b8;word-break:break-all">Si el bot\xF3n no funciona, copia este enlace en tu navegador:<br>${esc(link)}</p>`;
       await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+      console.log("[portal-forgot] reset link sent, lead", leadId);
       logActivity(leadId, "sistema", "El cliente solicit\xF3 restablecer su contrase\xF1a del portal", "Cliente");
       res.json(generic);
     } catch (e) {
