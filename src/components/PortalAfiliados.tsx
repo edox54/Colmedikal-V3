@@ -239,7 +239,8 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   // simple per-client localStorage marker — not a real read/unread system,
   // just enough to show "something changed since your last visit".
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const [seenUpdatesCount, setSeenUpdatesCount] = useState(0);
+  const [seenKeys, setSeenKeys] = useState<string[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   // Real cédula + password login against /api/portal/login (server.ts)
   const [portalToken, setPortalToken] = useState<string | null>(() => sessionStorage.getItem('colmedikal_portal_token'));
@@ -331,6 +332,9 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
     setPortalToken(null);
     setProfile(null);
     setPortalData({ refunds: [], authorizations: [], appointments: [] });
+    setClaims([]);
+    setAvatarMenuOpen(false);
+    setNotifOpen(false);
     setActiveTab('dash');
   };
 
@@ -376,27 +380,56 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
       .sort((a, b) => a.aptDate.localeCompare(b.aptDate) || a.aptTime.localeCompare(b.aptTime))[0];
   }, [portalData.appointments]);
 
-  // Notification bell — resolved refunds/appointments since last visit. Just
-  // a "seen count" marker in localStorage, not a real read/unread system.
+  // Notifications: every status change on the client's requests/appointments.
+  // Read state = set of "id:status" keys in localStorage (per cédula), so a
+  // new status on the same request shows up again as unread.
+  const seenStorageKey = profile?.docNumber ? `colmedikal_portal_seen_keys_${profile.docNumber}` : '';
   useEffect(() => {
-    if (!profile?.docNumber) return;
-    const stored = Number(localStorage.getItem(`colmedikal_portal_seen_${profile.docNumber}`) || 0);
-    setSeenUpdatesCount(stored);
-  }, [profile?.docNumber]);
+    if (!seenStorageKey) return;
+    try { setSeenKeys(JSON.parse(localStorage.getItem(seenStorageKey) || '[]')); } catch { setSeenKeys([]); }
+  }, [seenStorageKey]);
 
-  const resolvedUpdatesCount = useMemo(() =>
-    portalData.refunds.filter(r => r.status === 'Reembolsado').length +
-    claims.filter(c => ['Documentos pendientes', 'Aprobada', 'Pagada', 'Rechazada'].includes(c.status)).length +
-    portalData.appointments.filter(a => a.status === 'Confirmada' || a.status === 'Completada').length,
-  [portalData, claims]);
-
-  const hasUnseenUpdates = resolvedUpdatesCount > seenUpdatesCount;
+  type PortalNotification = { key: string; title: string; text: string; at: string; tab: typeof activeTab; tone: 'ok' | 'warn' | 'bad' | 'info' };
+  const notifications = useMemo<PortalNotification[]>(() => {
+    const out: PortalNotification[] = [];
+    const TONE: Record<string, PortalNotification['tone']> = { Aprobada: 'ok', Pagada: 'ok', 'Documentos pendientes': 'warn', Rechazada: 'bad', 'En revisión': 'info' };
+    const COPY: Record<string, string> = { 'En revisión': 'Tu solicitud está en revisión por auditoría médica.', 'Documentos pendientes': 'Necesitamos documentos adicionales. Súbelos desde tu solicitud.', Aprobada: 'Tu solicitud fue aprobada.', Pagada: 'El valor aprobado fue pagado.', Rechazada: 'Tu solicitud no fue aprobada.' };
+    for (const c of claims) {
+      if (!TONE[c.status]) continue;
+      out.push({
+        key: `${c.id}:${c.status}`,
+        title: `${c.type === 'reembolso' ? 'Reembolso' : 'Preautorización'} ${c.id}: ${c.status}`,
+        text: c.adminComment && (c.status === 'Documentos pendientes' || c.status === 'Rechazada') ? c.adminComment : `${COPY[c.status]}${c.approvedAmount != null && (c.status === 'Aprobada' || c.status === 'Pagada') ? ` Monto: $${c.approvedAmount.toFixed(2)}.` : ''}`,
+        at: c.updatedAt, tab: c.type === 'reembolso' ? 'reembolsos' : 'preautorizaciones', tone: TONE[c.status],
+      });
+    }
+    for (const a of portalData.appointments) {
+      if (!['Confirmada', 'Completada', 'Cancelada'].includes(a.status)) continue;
+      out.push({ key: `apt-${a.id}:${a.status}`, title: `Cita ${a.status.toLowerCase()}`, text: `${a.specialty}${a.doctorName ? ` · ${a.doctorName}` : ''} — ${a.aptDate} ${a.aptTime}`, at: a.aptDate, tab: 'agendamiento', tone: a.status === 'Cancelada' ? 'bad' : 'ok' });
+    }
+    for (const r of portalData.refunds) {
+      if (!['Aprobado', 'Reembolsado', 'Rechazado'].includes(r.status)) continue;
+      out.push({ key: `ref-${r.id}:${r.status}`, title: `Reembolso ${r.status.toLowerCase()}`, text: `Factura ${r.invoiceNumber} · $${Number(r.amount || 0).toFixed(2)}`, at: r.refundDate, tab: 'reembolsos', tone: r.status === 'Rechazado' ? 'bad' : 'ok' });
+    }
+    return out.sort((x, y) => String(y.at).localeCompare(String(x.at)));
+  }, [claims, portalData]);
+  const unseenCount = notifications.filter(n => !seenKeys.includes(n.key)).length;
+  const hasUnseenUpdates = unseenCount > 0;
 
   const markNotificationsSeen = () => {
-    if (!profile?.docNumber) return;
-    localStorage.setItem(`colmedikal_portal_seen_${profile.docNumber}`, String(resolvedUpdatesCount));
-    setSeenUpdatesCount(resolvedUpdatesCount);
+    if (!seenStorageKey) return;
+    const keys = notifications.map(n => n.key);
+    try { localStorage.setItem(seenStorageKey, JSON.stringify(keys)); } catch { /* private mode */ }
+    setSeenKeys(keys);
   };
+
+  // Keep requests / appointments fresh while the portal is open, so status
+  // changes made by Colmedikal show up without reloading.
+  useEffect(() => {
+    if (!portalToken) return;
+    const t = setInterval(() => { refreshPortalDashboard(); listClaims().then(setClaims).catch(() => {}); }, 60_000);
+    return () => clearInterval(t);
+  }, [portalToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Plan detail modal — same content/layout as Cotizador's, without the
   // "Contratar" CTA since this client is already contracted.
@@ -610,26 +643,62 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
         {/* TOP BAR — logo/title + notification bell + avatar dropdown (with
             Cerrar sesión). Keeps the sidebar free of account chrome. */}
-        <div className="flex items-center justify-between mb-6 animate-in fade-in slide-in-from-top-1">
+        {/* relative z-30: the animated cards below create their own stacking
+            contexts and were painting over (and eating clicks on) the dropdowns */}
+        <div className="relative z-30 flex items-center justify-between mb-6">
           <div>
             <span className="text-lg font-black font-display text-[#0C4169]">Mi Colmedikal</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
               <button
-                onClick={() => { markNotificationsSeen(); }}
+                onClick={() => { setNotifOpen(v => !v); setAvatarMenuOpen(false); }}
                 className="relative p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl cursor-pointer transition-colors"
                 title="Notificaciones"
+                aria-label={`Notificaciones${unseenCount ? ` (${unseenCount} nuevas)` : ''}`}
+                aria-expanded={notifOpen}
               >
                 <Bell className="w-4.5 h-4.5 text-slate-500" />
                 {hasUnseenUpdates && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 border-2 border-white rounded-full"></span>
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-rose-500 border-2 border-white rounded-full text-[9px] font-black text-white flex items-center justify-center">{unseenCount > 9 ? '9+' : unseenCount}</span>
                 )}
               </button>
+              {notifOpen && (
+                <>
+                  <button className="fixed inset-0 z-10 cursor-default" onClick={() => { setNotifOpen(false); markNotificationsSeen(); }} aria-label="Cerrar notificaciones" />
+                  <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-2xl shadow-xl z-20 overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                      <p className="text-xs font-black text-[#0C4169]">Notificaciones</p>
+                      {hasUnseenUpdates && <button onClick={markNotificationsSeen} className="text-[10px] font-bold text-teal-700 hover:underline cursor-pointer">Marcar como leídas</button>}
+                    </div>
+                    {notifications.length === 0 ? (
+                      <p className="px-4 py-8 text-center text-xs text-slate-400">No tienes notificaciones por ahora.</p>
+                    ) : (
+                      <ul className="max-h-96 overflow-y-auto divide-y divide-slate-100">
+                        {notifications.slice(0, 30).map(n => {
+                          const unread = !seenKeys.includes(n.key);
+                          return (
+                            <li key={n.key}>
+                              <button onClick={() => { setActiveTab(n.tab); setNotifOpen(false); markNotificationsSeen(); }} className={`w-full text-left px-4 py-3 hover:bg-slate-50 cursor-pointer flex gap-2.5 ${unread ? 'bg-teal-50/40' : ''}`}>
+                                <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${n.tone === 'ok' ? 'bg-emerald-500' : n.tone === 'warn' ? 'bg-amber-500' : n.tone === 'bad' ? 'bg-rose-500' : 'bg-sky-500'}`} />
+                                <span className="min-w-0">
+                                  <span className={`block text-xs ${unread ? 'font-black text-slate-900' : 'font-bold text-slate-700'}`}>{n.title}</span>
+                                  <span className="block text-[11px] text-slate-500 line-clamp-2">{n.text}</span>
+                                  {n.at && <span className="block text-[10px] text-slate-400 mt-0.5">{new Date(n.at.length === 10 ? `${n.at}T12:00:00` : n.at).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
             <div className="relative">
               <button
-                onClick={() => setAvatarMenuOpen(v => !v)}
+                onClick={() => { setAvatarMenuOpen(v => !v); setNotifOpen(false); }}
                 className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl pl-1.5 pr-3 py-1.5 cursor-pointer transition-colors"
               >
                 <div className="w-8 h-8 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center font-bold font-display text-xs shrink-0">
