@@ -898,6 +898,24 @@ async function startServer() {
   let leadsRefresh: Promise<any[]> | null = null;
   const refreshLeadsShared = () =>
     (leadsRefresh ||= getLeads(true).finally(() => { leadsRefresh = null; }));
+  const leadMailData = (lead: any): LeadMailData => {
+    const qd = parseQuoteData(lead);
+    const ov = loadLeadPlanOverrides()[String(lead.id)];
+    return {
+      code: String(qd.leadCode || lead.id),
+      fullName: String(qd.fullName || ''),
+      email: String(qd.email || ''),
+      phone: String(qd.phone || ''),
+      docNumber: qd.docNumber,
+      birthDate: qd.birthDate,
+      province: qd.province,
+      members: 1 + (Number(qd.childrenCount) || 0),
+      plan: ov?.selectedPlanName || qd.selectedPlanName || '',
+      price: Number(ov?.estimatedPrice ?? lead.estimated_price ?? lead.estimatedPrice) || 0,
+      source: qd.source,
+      createdAt: lead.created_at || lead.timestamp,
+    };
+  };
   app.post('/api/leads/notify', express.json(), async (req, res) => {
     try {
       if (!mailer) return res.json({ success: false, configured: false });
@@ -919,10 +937,8 @@ async function startServer() {
         return res.status(404).json({ success: false, message: 'No encontrado' });
       }
 
-      const qd = parseQuoteData(lead);
-      const ov = loadLeadPlanOverrides()[String(lead.id)];
-      const plan: string = ov?.selectedPlanName || qd.selectedPlanName || '';
-      const price = Number(ov?.estimatedPrice ?? lead.estimated_price ?? lead.estimatedPrice) || 0;
+      const d = leadMailData(lead);
+      const { plan } = d;
 
       let sent: Record<string, number> = {};
       try { sent = JSON.parse(fs.readFileSync(LEAD_MAIL_FILE, 'utf8')); } catch { /* first run */ }
@@ -933,20 +949,6 @@ async function startServer() {
       fs.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
       fs.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
 
-      const d: LeadMailData = {
-        code,
-        fullName: String(qd.fullName || ''),
-        email: String(qd.email || ''),
-        phone: String(qd.phone || ''),
-        docNumber: qd.docNumber,
-        birthDate: qd.birthDate,
-        province: qd.province,
-        members: 1 + (Number(qd.childrenCount) || 0),
-        plan,
-        price,
-        source: qd.source,
-        createdAt: lead.created_at || lead.timestamp,
-      };
       const client = clientMail(d);
       const team = teamMail(d, isNew);
       const results = await Promise.allSettled([
@@ -967,6 +969,34 @@ async function startServer() {
     } catch (e) {
       console.error('[lead-notify]', e);
       res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Admin-only: (re)send the quote email to the customer on demand from the
+  // AdminPanel — no dedup, the admin decides. Token validated against the
+  // external API, same as /api/admin/set-lead-plan.
+  app.post('/api/admin/send-quote-email', express.json(), async (req, res) => {
+    try {
+      const callerToken = req.headers.authorization?.split(' ')[1];
+      if (!callerToken) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+      try {
+        await httpsJson('https://api.colmedikal.com/api/admin/leads?limit=1', { headers: { Authorization: `Bearer ${callerToken}` } });
+      } catch (e: any) {
+        return res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
+      }
+      if (!mailer) return res.status(503).json({ success: false, message: 'Correo no configurado en el servidor (SMTP)' });
+
+      const leadId = String(req.body?.leadId || '');
+      const lead = (leadId && await getLeadById(leadId)) || (await getLeads(true)).find(l => String(l.id) === leadId);
+      if (!lead) return res.status(404).json({ success: false, message: 'Lead no encontrado' });
+      const d = leadMailData(lead);
+      if (!/\S+@\S+\.\S+/.test(d.email)) return res.status(400).json({ success: false, message: 'El lead no tiene un correo válido' });
+
+      await mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...clientMail(d) });
+      res.json({ success: true, to: d.email });
+    } catch (e: any) {
+      console.error('[admin-send-quote-email]', e?.message || e);
+      res.status(502).json({ success: false, message: 'No se pudo enviar el correo' });
     }
   });
 

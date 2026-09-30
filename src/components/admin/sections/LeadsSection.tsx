@@ -38,12 +38,32 @@ import {
   EyeOff,
   ChevronRight,
 } from 'lucide-react';
+import { useState } from 'react';
 import { AdminSharedProps } from '../adminTypes';
 
 type Props = Pick<AdminSharedProps, 'leads' | 'admins' | 'updateLeadStatus' | 'addLeadNote' | 'assignLead' | 'setLeadFollowUp' | 'setLeadLostReason' | 'deleteLead' | 'refreshData' | 'leadDateFilter' | 'setLeadDateFilter' | 'leadStatusFilter' | 'setLeadStatusFilter' | 'leadSourceFilter' | 'setLeadSourceFilter' | 'leadSearchFilter' | 'setLeadSearchFilter' | 'openNoteLeadId' | 'setOpenNoteLeadId' | 'noteText' | 'setNoteText' | 'canDeleteLeads' | 'resolvePlanName' | 'SOURCE_BADGE' | 'PLAN_CATALOG' | 'handlePlanChange' | 'exportLeadsCSV'>;
 
 export default function LeadsSection(props: Props) {
   const { leads, admins, updateLeadStatus, addLeadNote, assignLead, setLeadFollowUp, setLeadLostReason, deleteLead, refreshData, leadDateFilter, setLeadDateFilter, leadStatusFilter, setLeadStatusFilter, leadSourceFilter, setLeadSourceFilter, leadSearchFilter, setLeadSearchFilter, openNoteLeadId, setOpenNoteLeadId, noteText, setNoteText, canDeleteLeads, resolvePlanName, SOURCE_BADGE, PLAN_CATALOG, handlePlanChange, exportLeadsCSV } = props;
+        // Per-lead state of the "Enviar cotización" button (see /api/admin/send-quote-email)
+        const [mailState, setMailState] = useState<Record<string, 'sending' | 'ok' | 'error'>>({});
+        const sendQuoteEmail = async (id: string, email?: string) => {
+          if (!confirm(`¿Enviar la cotización por correo a ${email || 'este cliente'}?`)) return;
+          setMailState(m => ({ ...m, [id]: 'sending' }));
+          try {
+            const r = await fetch('/api/admin/send-quote-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('colmedikal_token') || ''}` },
+              body: JSON.stringify({ leadId: id }),
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || !j.success) throw new Error(j.message || `HTTP ${r.status}`);
+            setMailState(m => ({ ...m, [id]: 'ok' }));
+          } catch (e) {
+            setMailState(m => ({ ...m, [id]: 'error' }));
+            alert(`No se pudo enviar: ${e instanceof Error ? e.message : e}`);
+          }
+        };
         const today = new Date().toISOString().split('T')[0];
         const nuevos = leads.filter(l => l.status === 'Nuevo Plan');
         const contactados = leads.filter(l => l.status === 'Contactado');
@@ -358,6 +378,16 @@ export default function LeadsSection(props: Props) {
                           ← Contactado
                         </button>
                       )}
+                      {/* Send quote email to the customer */}
+                      <button
+                        onClick={() => sendQuoteEmail(primary.id, primary.quoteData?.email)}
+                        disabled={mailState[primary.id] === 'sending' || !primary.quoteData?.email}
+                        className={`px-2.5 py-1 font-bold text-[10px] rounded-lg cursor-pointer flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${mailState[primary.id] === 'ok' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : mailState[primary.id] === 'error' ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 hover:bg-sky-100'}`}
+                        title={primary.quoteData?.email ? `Enviar cotización a ${primary.quoteData.email}` : 'El lead no tiene correo'}
+                      >
+                        <Mail className="w-3 h-3" />
+                        {mailState[primary.id] === 'sending' ? 'Enviando…' : mailState[primary.id] === 'ok' ? 'Enviada ✓' : 'Enviar cotización'}
+                      </button>
                       {/* Lost */}
                       {primary.status !== 'Cierre Efectivo' && primary.status !== 'Perdido' && (
                         <select
