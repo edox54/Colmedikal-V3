@@ -893,6 +893,11 @@ async function startServer() {
   // addresses. One send per (code, plan): repeat clicks don't spam, while a
   // later plan pick sends an updated quote.
   const LEAD_MAIL_FILE = path.join(PORTAL_DATA_DIR, 'lead-mail-sent.json');
+  // ponytail: concurrent misses share one in-flight refresh, so a flood of bogus
+  //           codes costs at most one API fetch at a time. Add per-IP rate limit if abused.
+  let leadsRefresh: Promise<any[]> | null = null;
+  const refreshLeadsShared = () =>
+    (leadsRefresh ||= getLeads(true).finally(() => { leadsRefresh = null; }));
   app.post('/api/leads/notify', express.json(), async (req, res) => {
     try {
       if (!mailer) return res.json({ success: false, configured: false });
@@ -901,11 +906,18 @@ async function startServer() {
 
       const deleted = loadDeletedLeads();
       const find = (list: any[]) => list.find(l => !deleted[String(l.id)] && parseQuoteData(l).leadCode === code);
+      // The lead was created a moment ago — usually AFTER the cache was last
+      // refreshed by /api/leads/lookup — so on a miss always refresh, then retry
+      // once more in case the API is slow to expose the new row.
       let lead = find(await getLeads());
-      // The lead was usually created a moment ago; refresh once, but no more than
-      // every 3s so bogus codes can't turn this into a DB-hammering endpoint.
-      if (!lead && Date.now() - leadsCacheAt > 3000) lead = find(await getLeads(true));
-      if (!lead) return res.status(404).json({ success: false, message: 'No encontrado' });
+      for (let i = 0; !lead && i < 2; i++) {
+        if (i) await new Promise(r => setTimeout(r, 2000));
+        lead = find(await refreshLeadsShared());
+      }
+      if (!lead) {
+        console.error(`[lead-notify] ${code}: lead no encontrado en la API`);
+        return res.status(404).json({ success: false, message: 'No encontrado' });
+      }
 
       const qd = parseQuoteData(lead);
       const ov = loadLeadPlanOverrides()[String(lead.id)];
