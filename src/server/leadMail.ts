@@ -54,7 +54,7 @@ export function quotePdfAttachment(d: LeadMailData): { filename: string; content
 }
 const WHATSAPP_URL = 'https://wa.me/593987028756';
 
-const esc = (s: unknown) =>
+export const esc = (s: unknown) =>
   String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const money = (n: number) => `$${n.toFixed(2)}`;
 
@@ -76,13 +76,13 @@ export interface LeadMailData {
   createdAt?: string;
 }
 
-const rows = (pairs: [string, unknown][]) =>
+export const rows = (pairs: [string, unknown][]) =>
   pairs
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .map(([k, v]) => `<tr><td style="padding:8px 12px;color:#64748b;font-size:13px;border-bottom:1px solid #e2e8f0">${esc(k)}</td><td style="padding:8px 12px;color:#0f172a;font-size:13px;font-weight:600;border-bottom:1px solid #e2e8f0">${esc(v)}</td></tr>`)
     .join('');
 
-const layout = (title: string, body: string) => `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+export const layout = (title: string, body: string) => `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:24px 12px"><tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:12px;overflow:hidden">
 <tr><td style="background:#fff;padding:18px 24px;border-top:4px solid #0C4169;border-bottom:1px solid #e2e8f0"><img src="${LOGO_URL}" alt="Colmedikal — Medicina Prepagada S.A." width="180" style="display:block;width:180px;height:auto;border:0"></td></tr>

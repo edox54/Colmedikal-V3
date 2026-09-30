@@ -24,14 +24,14 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 
 // server.ts
 var import_config = require("dotenv/config");
-var import_express2 = __toESM(require("express"), 1);
-var import_path2 = __toESM(require("path"), 1);
-var import_fs2 = __toESM(require("fs"), 1);
+var import_express3 = __toESM(require("express"), 1);
+var import_path3 = __toESM(require("path"), 1);
+var import_fs3 = __toESM(require("fs"), 1);
 var import_https = __toESM(require("https"), 1);
 var import_vite = require("vite");
 var import_jsonwebtoken = __toESM(require("jsonwebtoken"), 1);
 var import_helmet = __toESM(require("helmet"), 1);
-var import_crypto2 = __toESM(require("crypto"), 1);
+var import_crypto3 = __toESM(require("crypto"), 1);
 
 // src/server/crm.ts
 var import_fs = __toESM(require("fs"), 1);
@@ -81,23 +81,26 @@ function recordPortalLogin(leadId) {
     console.error("[portal-login-record]", err);
   }
 }
-function registerCrmRoutes(app, deps) {
-  FILE = import_path.default.join(deps.dataDir, "lead-crm.json");
-  LOGINS_FILE = import_path.default.join(deps.dataDir, "portal-logins.json");
+function makeRequireAdmin(httpsJson) {
   const okTokens = /* @__PURE__ */ new Map();
-  const requireAdmin = async (req, res, next) => {
+  return async (req, res, next) => {
     const tok = req.headers.authorization?.split(" ")[1];
     if (!tok) return res.status(401).json({ success: false, message: "Token de administrador requerido" });
     const key = import_crypto.default.createHash("sha256").update(tok).digest("hex");
     if ((okTokens.get(key) || 0) > Date.now()) return next();
     try {
-      await deps.httpsJson("https://api.colmedikal.com/api/admin/leads?limit=1", { headers: { Authorization: `Bearer ${tok}` } });
+      await httpsJson("https://api.colmedikal.com/api/admin/leads?limit=1", { headers: { Authorization: `Bearer ${tok}` } });
       okTokens.set(key, Date.now() + 5 * 6e4);
       next();
     } catch (e) {
       res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: "No autorizado" });
     }
   };
+}
+function registerCrmRoutes(app, deps) {
+  FILE = import_path.default.join(deps.dataDir, "lead-crm.json");
+  LOGINS_FILE = import_path.default.join(deps.dataDir, "portal-logins.json");
+  const requireAdmin = makeRequireAdmin(deps.httpsJson);
   app.get("/api/admin/crm", requireAdmin, (_req, res) => {
     let logins = {};
     try {
@@ -172,6 +175,166 @@ function registerCrmRoutes(app, deps) {
     save(s);
     res.json({ success: true });
   });
+}
+
+// src/server/claims.ts
+var import_fs2 = __toESM(require("fs"), 1);
+var import_path2 = __toESM(require("path"), 1);
+var import_crypto2 = __toESM(require("crypto"), 1);
+var import_express2 = __toESM(require("express"), 1);
+
+// src/data/claims.ts
+var CLAIM_STATUSES = {
+  reembolso: ["Recibida", "En revisi\xF3n", "Documentos pendientes", "Aprobada", "Pagada", "Rechazada"],
+  preautorizacion: ["Recibida", "En revisi\xF3n", "Documentos pendientes", "Aprobada", "Rechazada"]
+};
+var CLIENT_EDITABLE = ["Borrador", "Recibida", "En revisi\xF3n", "Documentos pendientes"];
+var PARENTESCO = ["Titular", "C\xF3nyuge", "Hijo/a", "Padre/Madre", "Otro"];
+var CAUSA_REEMBOLSO = ["Enfermedad", "Accidente", "Cong\xE9nita", "Embarazo", "Otros"];
+var CAUSA_PREAUT = ["Enfermedad", "Accidente", "Cong\xE9nita", "Embarazo", "Otros"];
+var REEMBOLSO_SECTIONS = [
+  {
+    id: "general",
+    title: "Datos de la solicitud",
+    fields: [
+      { key: "tipoAtencion", label: "Tipo de atenci\xF3n", type: "select", options: ["Ambulatoria", "Hospitalaria"], required: true, half: true },
+      { key: "ciudad", label: "Ciudad", required: true, half: true },
+      { key: "broker", label: "Br\xF3ker / Asesor", half: true }
+    ]
+  },
+  {
+    id: "afiliado",
+    title: "1. Informaci\xF3n del afiliado",
+    fields: [
+      { key: "titular", label: "Titular", required: true, half: true },
+      { key: "cedula", label: "C\xE9dula", required: true, half: true },
+      { key: "direccion", label: "Direcci\xF3n", half: true },
+      { key: "correo", label: "Correo", type: "email", required: true, half: true },
+      { key: "telefonoOficina", label: "Tel\xE9fono oficina", type: "tel", half: true },
+      { key: "celular", label: "Celular", type: "tel", required: true, half: true },
+      { key: "paciente", label: "Paciente", required: true, half: true },
+      { key: "parentesco", label: "Parentesco", type: "select", options: PARENTESCO, required: true, half: true },
+      { key: "edad", label: "Edad del paciente", type: "number", half: true }
+    ]
+  },
+  {
+    id: "profesional",
+    title: "2. Datos del profesional",
+    hint: "Exclusivo del m\xE9dico. Puedes copiarlos del formulario firmado por tu m\xE9dico; si no los tienes, basta con subir el formulario firmado.",
+    fields: [
+      { key: "medico", label: "Nombre del m\xE9dico", doctor: true, half: true },
+      { key: "especialidad", label: "Especialidad", doctor: true, half: true },
+      { key: "telefonoMedico", label: "Tel\xE9fono del m\xE9dico", type: "tel", doctor: true, half: true },
+      { key: "inicioEnfermedad", label: "Inicio de enfermedad", type: "date", doctor: true, half: true },
+      { key: "motivo", label: "Motivo de consulta", type: "textarea", doctor: true },
+      { key: "tratamiento", label: "Tratamiento y/o procedimientos recibidos", type: "textarea", doctor: true },
+      { key: "examenes", label: "Ex\xE1menes practicados", type: "textarea", doctor: true },
+      { key: "causa", label: "La enfermedad actual es causa de", type: "select", options: CAUSA_REEMBOLSO, doctor: true, half: true },
+      { key: "causaOtros", label: "Especifique", doctor: true, half: true, showIf: { key: "causa", equals: "Otros" } },
+      { key: "fum", label: "F.U.M. (fecha de \xFAltima menstruaci\xF3n)", type: "date", doctor: true, half: true, showIf: { key: "causa", equals: "Embarazo" } },
+      { key: "diagnostico", label: "Diagn\xF3stico definitivo", type: "textarea", doctor: true },
+      { key: "cie10", label: "CIE-10", doctor: true, half: true },
+      { key: "procedimiento", label: "Procedimiento realizado", doctor: true, half: true },
+      { key: "codigoAccess", label: "C\xF3digo de registro en Access", doctor: true, half: true }
+    ]
+  }
+];
+var PREAUT_SECTIONS = [
+  {
+    id: "afiliado",
+    title: "Datos generales del afiliado",
+    fields: [
+      { key: "ciudad", label: "Ciudad", required: true, half: true },
+      { key: "fechaAtencion", label: "Fecha de atenci\xF3n", type: "date", half: true },
+      { key: "titular", label: "Nombre del titular", required: true, half: true },
+      { key: "referencia", label: "N.\xBA de solicitud / referencia", half: true },
+      { key: "paciente", label: "Nombre del paciente", required: true, half: true },
+      { key: "contrato", label: "Nombre / N.\xBA del contrato", half: true },
+      { key: "cedula", label: "C\xE9dula del titular", required: true, half: true },
+      { key: "celular", label: "N.\xBA de celular", type: "tel", required: true, half: true },
+      { key: "parentesco", label: "Parentesco", type: "select", options: PARENTESCO, required: true, half: true },
+      { key: "edad", label: "Edad del paciente", type: "number", half: true },
+      { key: "correo", label: "E-mail", type: "email", required: true, half: true }
+    ]
+  },
+  {
+    id: "medico",
+    title: "Antecedentes m\xE9dico-quir\xFArgicos",
+    hint: "Exclusivo del m\xE9dico. Los datos marcados con * son necesarios para programar la preautorizaci\xF3n.",
+    fields: [
+      { key: "hospital", label: "Hospital / cl\xEDnica de atenci\xF3n", required: true, half: true },
+      { key: "fechaIngreso", label: "Fecha probable de ingreso", type: "date", required: true, half: true },
+      { key: "medico", label: "Nombre del m\xE9dico", required: true, half: true },
+      { key: "especialidad", label: "Especialidad", doctor: true, half: true },
+      { key: "telefonoMedico", label: "Tel\xE9fono del m\xE9dico", type: "tel", doctor: true, half: true },
+      { key: "inicioEnfermedad", label: "Inicio de la enfermedad", type: "date", doctor: true, half: true },
+      { key: "motivo", label: "Motivo de la consulta", type: "textarea", doctor: true },
+      { key: "evolucion", label: "Evoluci\xF3n de la enfermedad", type: "textarea", doctor: true },
+      { key: "tratamiento", label: "Tratamiento y/o procedimiento recibido (cu\xE1nto tiempo)", type: "textarea", doctor: true },
+      { key: "diagnostico", label: "Diagn\xF3stico definitivo", type: "textarea", required: true },
+      { key: "cie10", label: "C\xF3digo CIE-10", doctor: true, half: true },
+      { key: "fechaDiagnostico", label: "Fecha de diagn\xF3stico", type: "date", doctor: true, half: true },
+      { key: "causa", label: "La enfermedad actual es", type: "select", options: CAUSA_PREAUT, doctor: true, half: true },
+      { key: "fum", label: "F.U.M.", type: "date", doctor: true, half: true, showIf: { key: "causa", equals: "Embarazo" } },
+      { key: "descripcionAccidente", label: "En caso de accidente: c\xF3mo sucedi\xF3, fecha, lugar y hora", type: "textarea", doctor: true, showIf: { key: "causa", equals: "Accidente" } }
+    ]
+  },
+  {
+    id: "presupuesto",
+    title: "Presupuesto",
+    hint: "Valores en USD seg\xFAn la proforma del m\xE9dico / cl\xEDnica.",
+    fields: [
+      { key: "honorariosCirujano", label: "Honorarios de cirujano", type: "money", half: true },
+      { key: "codigoCirujano", label: "C\xF3digo quir\xFArgico", half: true },
+      { key: "honorariosAyudante", label: "Honorarios de ayudante", type: "money", half: true },
+      { key: "codigoAyudante", label: "C\xF3digo quir\xFArgico", half: true },
+      { key: "honorariosAnestesiologo", label: "Honorarios de anestesi\xF3logo", type: "money", half: true },
+      { key: "codigoAnestesiologo", label: "C\xF3digo quir\xFArgico", half: true },
+      { key: "otrosMedicos", label: "Otros m\xE9dicos", type: "money", half: true },
+      { key: "codigoOtros", label: "C\xF3digo quir\xFArgico", half: true },
+      { key: "costoClinica", label: "Costo cl\xEDnica", type: "money", half: true }
+    ]
+  }
+];
+var BUDGET_KEYS = ["honorariosCirujano", "honorariosAyudante", "honorariosAnestesiologo", "otrosMedicos", "costoClinica"];
+var SECTIONS = { reembolso: REEMBOLSO_SECTIONS, preautorizacion: PREAUT_SECTIONS };
+var FILE_KINDS = {
+  reembolso: [
+    { kind: "formulario", label: "Formulario de reembolso firmado por el m\xE9dico", required: true, hint: "Descarga el formulario, ll\xE9valo a tu m\xE9dico y sube una foto o escaneo." },
+    { kind: "factura", label: "Facturas (SRI)", required: true },
+    { kind: "receta", label: "Recetas / prescripciones" },
+    { kind: "examenes", label: "Resultados de ex\xE1menes" },
+    { kind: "otro", label: "Otros documentos" }
+  ],
+  preautorizacion: [
+    { kind: "formulario", label: "Formulario de preautorizaci\xF3n firmado y sellado por el m\xE9dico", required: true, hint: "Descarga el formulario, ll\xE9valo a tu m\xE9dico y sube una foto o escaneo." },
+    { kind: "informe", label: "Informe m\xE9dico / justificaci\xF3n cl\xEDnica", required: true },
+    { kind: "laboratorio", label: "Resultados de laboratorio" },
+    { kind: "imagenes", label: "Im\xE1genes: Rayos X / TC / RM / Ecograf\xEDa" },
+    { kind: "historia", label: "Historia cl\xEDnica completa" },
+    { kind: "presupuesto", label: "Proforma / presupuesto de la cl\xEDnica" },
+    { kind: "otro", label: "Otros documentos" }
+  ]
+};
+var CLAIM_LABEL = { reembolso: "Reembolso de gastos m\xE9dicos", preautorizacion: "Preautorizaci\xF3n quir\xFArgica y hospitalaria" };
+function claimTotal(type, form, invoices) {
+  const n = (v) => {
+    const x = Number(String(v ?? "").replace(",", "."));
+    return Number.isFinite(x) && x > 0 ? x : 0;
+  };
+  const t = type === "reembolso" ? invoices.reduce((a, i) => a + n(i.valor), 0) : BUDGET_KEYS.reduce((a, k) => a + n(form[k]), 0);
+  return Math.round(t * 100) / 100;
+}
+function missingForSubmit(c) {
+  const out = [];
+  for (const s of SECTIONS[c.type]) for (const f of s.fields) {
+    const visible = !f.showIf || c.form[f.showIf.key] === f.showIf.equals;
+    if (f.required && visible && !String(c.form[f.key] ?? "").trim()) out.push(f.label);
+  }
+  if (c.type === "reembolso" && !c.invoices.some((i) => i.numero && Number(i.valor) > 0)) out.push("Al menos una factura con n\xFAmero y valor");
+  for (const k of FILE_KINDS[c.type]) if (k.required && !c.files.some((f) => f.kind === k.kind)) out.push(`Documento: ${k.label}`);
+  if (!c.declarationAccepted) out.push("Aceptar la autorizaci\xF3n y declaraci\xF3n");
+  return out;
 }
 
 // src/server/leadMail.ts
@@ -581,6 +744,252 @@ function teamMail(d, isNew) {
   return { subject: `${title}: ${d.fullName} \xB7 ${d.code}`, html: layout(title, body) };
 }
 
+// src/server/claims.ts
+var MAX_FILE = 10 * 1024 * 1024;
+var MAX_FILES = 30;
+var SIGNATURES = [
+  { mime: "application/pdf", ext: "pdf", test: (b) => b.subarray(0, 5).toString() === "%PDF-" },
+  { mime: "image/jpeg", ext: "jpg", test: (b) => b[0] === 255 && b[1] === 216 && b[2] === 255 },
+  { mime: "image/png", ext: "png", test: (b) => b.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) },
+  { mime: "image/webp", ext: "webp", test: (b) => b.subarray(0, 4).toString() === "RIFF" && b.subarray(8, 12).toString() === "WEBP" },
+  { mime: "image/heic", ext: "heic", test: (b) => b.subarray(4, 12).toString().startsWith("ftyphei") || b.subarray(4, 12).toString().startsWith("ftypmif1") }
+];
+var FILE2 = "";
+var FILES_DIR = "";
+var load2 = () => {
+  try {
+    return JSON.parse(import_fs2.default.readFileSync(FILE2, "utf8"));
+  } catch {
+    return [];
+  }
+};
+var save2 = (list) => {
+  import_fs2.default.mkdirSync(import_path2.default.dirname(FILE2), { recursive: true });
+  import_fs2.default.writeFileSync(FILE2, JSON.stringify(list));
+};
+var str2 = (v, max = 2e3) => typeof v === "string" ? v.trim().slice(0, max) : typeof v === "number" ? String(v) : "";
+var now = () => (/* @__PURE__ */ new Date()).toISOString();
+function nextId(list, type) {
+  const prefix = type === "reembolso" ? "RB" : "PA";
+  const n = list.filter((c) => c.type === type).reduce((m, c) => Math.max(m, Number(c.id.split("-")[1]) || 0), 0) + 1;
+  return `${prefix}-${String(n).padStart(6, "0")}`;
+}
+function cleanForm(type, raw) {
+  const out = {};
+  for (const s of SECTIONS[type]) for (const f of s.fields) {
+    const v = str2(raw?.[f.key], f.type === "textarea" ? 3e3 : 300);
+    if (v) out[f.key] = v;
+  }
+  return out;
+}
+function cleanInvoices(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 30).map((r) => ({
+    fecha: str2(r?.fecha, 10),
+    numero: str2(r?.numero, 60),
+    emisor: str2(r?.emisor, 160),
+    valor: Math.max(0, Math.round((Number(String(r?.valor ?? "").replace(",", ".")) || 0) * 100) / 100)
+  })).filter((r) => r.numero || r.emisor || r.valor);
+}
+var forClient = (c) => ({ ...c, history: c.history.map((h) => ({ ...h, by: h.by === "Cliente" ? "T\xFA" : "Colmedikal" })) });
+function registerClaimRoutes(app, deps) {
+  FILE2 = import_path2.default.join(deps.dataDir, "claims.json");
+  FILES_DIR = import_path2.default.join(deps.dataDir, "claims-files");
+  const { verifyPortalToken, requireAdmin } = deps;
+  const mine = (req, res) => {
+    const list = load2();
+    const claim = list.find((c) => c.id === req.params.id && c.leadId === String(req.leadId));
+    if (!claim) {
+      res.status(404).json({ success: false, message: "Solicitud no encontrada" });
+      return null;
+    }
+    return { list, claim };
+  };
+  const sendFile = (res, claim, fileId) => {
+    const f = claim.files.find((x) => x.id === fileId);
+    const p = f && import_path2.default.join(FILES_DIR, claim.id, f.id);
+    if (!f || !p || !import_fs2.default.existsSync(p)) return res.status(404).json({ success: false, message: "Archivo no encontrado" });
+    res.setHeader("Content-Type", f.mime);
+    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(f.name)}"`);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    import_fs2.default.createReadStream(p).pipe(res);
+  };
+  app.get("/api/portal/claims", verifyPortalToken, (req, res) => {
+    const leadId = String(req.leadId);
+    res.json({ success: true, data: load2().filter((c) => c.leadId === leadId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(forClient) });
+  });
+  app.post("/api/portal/claims", verifyPortalToken, import_express2.default.json({ limit: "200kb" }), (req, res) => {
+    const type = req.body?.type;
+    if (type !== "reembolso" && type !== "preautorizacion") return res.status(400).json({ success: false, message: "Tipo inv\xE1lido" });
+    const leadId = String(req.leadId);
+    const list = load2();
+    let claim = req.body?.id ? list.find((c) => c.id === req.body.id && c.leadId === leadId) : void 0;
+    if (req.body?.id && !claim) return res.status(404).json({ success: false, message: "Solicitud no encontrada" });
+    if (claim && claim.status !== "Borrador") return res.status(409).json({ success: false, message: "La solicitud ya fue enviada" });
+    if (!claim) {
+      if (list.filter((c) => c.leadId === leadId && c.status === "Borrador").length >= 5) return res.status(429).json({ success: false, message: "Tienes demasiados borradores; env\xEDa o descarta alguno." });
+      claim = { id: nextId(list, type), type, leadId, status: "Borrador", createdAt: now(), updatedAt: now(), form: {}, invoices: [], declarationAccepted: false, files: [], history: [{ at: now(), by: "Cliente", action: "Borrador creado" }], totalRequested: 0 };
+      list.push(claim);
+    }
+    claim.form = cleanForm(type, req.body?.form);
+    claim.invoices = type === "reembolso" ? cleanInvoices(req.body?.invoices) : [];
+    claim.declarationAccepted = req.body?.declarationAccepted === true;
+    claim.totalRequested = claimTotal(type, claim.form, claim.invoices);
+    claim.updatedAt = now();
+    save2(list);
+    res.json({ success: true, data: forClient(claim) });
+  });
+  app.post("/api/portal/claims/:id/files", verifyPortalToken, import_express2.default.raw({ type: "*/*", limit: MAX_FILE }), (req, res) => {
+    const m = mine(req, res);
+    if (!m) return;
+    const { list, claim } = m;
+    if (!CLIENT_EDITABLE.includes(claim.status)) return res.status(409).json({ success: false, message: "Esta solicitud ya no admite documentos" });
+    if (claim.files.length >= MAX_FILES) return res.status(400).json({ success: false, message: `M\xE1ximo ${MAX_FILES} documentos por solicitud` });
+    const kind = str2(req.header("x-file-kind"), 30);
+    if (!FILE_KINDS[claim.type].some((k) => k.kind === kind)) return res.status(400).json({ success: false, message: "Tipo de documento inv\xE1lido" });
+    const buf = req.body;
+    if (!Buffer.isBuffer(buf) || !buf.length) return res.status(400).json({ success: false, message: "Archivo vac\xEDo" });
+    const sig = SIGNATURES.find((s) => s.test(buf));
+    if (!sig) return res.status(415).json({ success: false, message: "Formato no permitido. Sube PDF, JPG, PNG, WEBP o HEIC." });
+    let name = "documento";
+    try {
+      name = decodeURIComponent(str2(req.header("x-file-name"), 400)) || name;
+    } catch {
+    }
+    name = name.replace(/[\\/\0<>:"|?*\u0000-\u001f]/g, "_").slice(0, 120);
+    const id = import_crypto2.default.randomUUID();
+    import_fs2.default.mkdirSync(import_path2.default.join(FILES_DIR, claim.id), { recursive: true });
+    import_fs2.default.writeFileSync(import_path2.default.join(FILES_DIR, claim.id, id), buf);
+    const file = { id, kind, name, mime: sig.mime, size: buf.length, uploadedAt: now(), by: "cliente" };
+    claim.files.push(file);
+    if (claim.status !== "Borrador") claim.history.push({ at: now(), by: "Cliente", action: `Documento agregado: ${name}` });
+    claim.updatedAt = now();
+    save2(list);
+    res.json({ success: true, data: file });
+  });
+  app.delete("/api/portal/claims/:id/files/:fileId", verifyPortalToken, (req, res) => {
+    const m = mine(req, res);
+    if (!m) return;
+    const { list, claim } = m;
+    if (claim.status !== "Borrador") return res.status(409).json({ success: false, message: "No se pueden quitar documentos de una solicitud enviada" });
+    claim.files = claim.files.filter((f) => f.id !== req.params.fileId);
+    try {
+      import_fs2.default.unlinkSync(import_path2.default.join(FILES_DIR, claim.id, import_path2.default.basename(req.params.fileId)));
+    } catch {
+    }
+    save2(list);
+    res.json({ success: true });
+  });
+  app.get("/api/portal/claims/:id/files/:fileId", verifyPortalToken, (req, res) => {
+    const m = mine(req, res);
+    if (!m) return;
+    sendFile(res, m.claim, req.params.fileId);
+  });
+  app.delete("/api/portal/claims/:id", verifyPortalToken, (req, res) => {
+    const m = mine(req, res);
+    if (!m) return;
+    if (m.claim.status !== "Borrador") return res.status(409).json({ success: false, message: "Solo se pueden descartar borradores" });
+    save2(m.list.filter((c) => c !== m.claim));
+    import_fs2.default.rmSync(import_path2.default.join(FILES_DIR, m.claim.id), { recursive: true, force: true });
+    res.json({ success: true });
+  });
+  app.post("/api/portal/claims/:id/submit", verifyPortalToken, import_express2.default.json(), (req, res) => {
+    const m = mine(req, res);
+    if (!m) return;
+    const { list, claim } = m;
+    const comment = str2(req.body?.comment, 1e3);
+    if (claim.status === "Documentos pendientes") {
+      claim.status = "En revisi\xF3n";
+      claim.history.push({ at: now(), by: "Cliente", action: "Documentos enviados para revisi\xF3n", status: "En revisi\xF3n", comment: comment || void 0 });
+    } else if (claim.status === "Borrador") {
+      const missing = missingForSubmit(claim);
+      if (missing.length) return res.status(400).json({ success: false, message: "Faltan datos o documentos", missing });
+      claim.status = "Recibida";
+      claim.submittedAt = now();
+      claim.history.push({ at: now(), by: "Cliente", action: "Solicitud enviada", status: "Recibida", comment: comment || void 0 });
+      logActivity(claim.leadId, "sistema", `${CLAIM_LABEL[claim.type]} ${claim.id} enviada ($${claim.totalRequested.toFixed(2)})`, "Cliente");
+    } else {
+      return res.status(409).json({ success: false, message: "Esta solicitud no est\xE1 pendiente de env\xEDo" });
+    }
+    claim.updatedAt = now();
+    save2(list);
+    notifyTeam(claim).catch((e) => console.error("[claims-mail-team]", e?.message || e));
+    res.json({ success: true, data: forClient(claim) });
+  });
+  app.get("/api/admin/claims", requireAdmin, (_req, res) => {
+    res.json({ success: true, data: load2().filter((c) => c.status !== "Borrador").sort((a, b) => (b.submittedAt || b.createdAt).localeCompare(a.submittedAt || a.createdAt)) });
+  });
+  app.get("/api/admin/claims/:id/files/:fileId", requireAdmin, (req, res) => {
+    const claim = load2().find((c) => c.id === req.params.id);
+    if (!claim) return res.status(404).json({ success: false, message: "Solicitud no encontrada" });
+    sendFile(res, claim, req.params.fileId);
+  });
+  app.post("/api/admin/claims/:id", requireAdmin, import_express2.default.json(), (req, res) => {
+    const list = load2();
+    const claim = list.find((c) => c.id === req.params.id);
+    if (!claim || claim.status === "Borrador") return res.status(404).json({ success: false, message: "Solicitud no encontrada" });
+    const status = req.body?.status;
+    const comment = str2(req.body?.comment, 2e3);
+    const by = str2(req.body?.by, 80) || "Admin";
+    if (!CLAIM_STATUSES[claim.type].includes(status)) return res.status(400).json({ success: false, message: "Estado inv\xE1lido" });
+    if ((status === "Rechazada" || status === "Documentos pendientes") && !comment) return res.status(400).json({ success: false, message: "Indica el motivo para el cliente" });
+    if (status === "Pagada" && claim.status !== "Aprobada") return res.status(400).json({ success: false, message: "Solo se puede marcar como pagada una solicitud aprobada" });
+    if (status === "Aprobada") {
+      const amt = Number(req.body?.approvedAmount);
+      if (!Number.isFinite(amt) || amt < 0) return res.status(400).json({ success: false, message: "Indica el monto aprobado" });
+      claim.approvedAmount = Math.round(amt * 100) / 100;
+    }
+    const prev = claim.status;
+    claim.status = status;
+    if (comment) claim.adminComment = comment;
+    claim.history.push({ at: now(), by, action: prev === status ? "Comentario agregado" : `${prev} \u2192 ${status}`, status, comment: comment || void 0 });
+    claim.updatedAt = now();
+    save2(list);
+    logActivity(claim.leadId, "sistema", `${CLAIM_LABEL[claim.type]} ${claim.id}: ${status}${status === "Aprobada" ? ` ($${claim.approvedAmount?.toFixed(2)})` : ""}`, by);
+    if (prev !== status || comment) notifyClient(claim, comment).catch((e) => console.error("[claims-mail-client]", e?.message || e));
+    res.json({ success: true, data: claim });
+  });
+}
+async function notifyTeam(c) {
+  if (!mailer || !LEAD_NOTIFY_TO.length) return;
+  const title = c.history.length && c.status === "En revisi\xF3n" ? `Documentos recibidos \xB7 ${c.id}` : `Nueva solicitud de ${c.type === "reembolso" ? "reembolso" : "preautorizaci\xF3n"} \xB7 ${c.id}`;
+  const body = `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">${rows([
+    ["Solicitud", `${c.id} \u2014 ${CLAIM_LABEL[c.type]}`],
+    ["Titular", c.form.titular],
+    ["Paciente", `${c.form.paciente || ""} (${c.form.parentesco || ""})`],
+    ["C\xE9dula", c.form.cedula],
+    ["Celular", c.form.celular],
+    ["Correo", c.form.correo],
+    [c.type === "reembolso" ? "Total facturas" : "Presupuesto", `$${c.totalRequested.toFixed(2)}`],
+    ...c.type === "preautorizacion" ? [["Hospital", c.form.hospital], ["Fecha probable de ingreso", c.form.fechaIngreso]] : [],
+    ["Documentos", c.files.length]
+  ])}</table><p style="text-align:center"><a href="https://colmedikal.com/admin" style="background:#0C4169;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Revisar en el panel</a></p>`;
+  await mailer.sendMail({ from: MAIL_FROM, to: LEAD_NOTIFY_TO, replyTo: c.form.correo || void 0, subject: title, html: layout(title, body) });
+}
+var STATUS_COPY = {
+  "En revisi\xF3n": "Nuestro equipo de auditor\xEDa m\xE9dica est\xE1 revisando tu solicitud.",
+  "Documentos pendientes": "Necesitamos documentos o informaci\xF3n adicional para continuar. Ingresa a Mi Colmedikal y s\xFAbelos desde tu solicitud.",
+  Aprobada: "Tu solicitud fue aprobada.",
+  Pagada: "El valor aprobado de tu reembolso fue pagado.",
+  Rechazada: "Tu solicitud no pudo ser aprobada."
+};
+async function notifyClient(c, comment) {
+  const to = c.form.correo;
+  if (!mailer || !to || !/\S+@\S+\.\S+/.test(to)) return;
+  const title = `${c.type === "reembolso" ? "Reembolso" : "Preautorizaci\xF3n"} ${c.id}: ${c.status}`;
+  const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc((c.form.titular || "").split(" ")[0])}, ${esc(STATUS_COPY[c.status] || "hay una actualizaci\xF3n en tu solicitud.")}</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0 16px">${rows([
+    ["Solicitud", c.id],
+    ["Paciente", c.form.paciente],
+    ["Estado", c.status],
+    ...c.status === "Aprobada" || c.status === "Pagada" ? [["Monto aprobado", `$${(c.approvedAmount ?? 0).toFixed(2)}`]] : []
+  ])}</table>
+${comment ? `<p style="font-size:14px;color:#334155;line-height:1.6;background:#f8fafc;border-left:3px solid #0d9488;padding:10px 12px"><b>Comentario de Colmedikal:</b><br>${esc(comment).replace(/\n/g, "<br>")}</p>` : ""}
+<p style="text-align:center;margin:24px 0"><a href="https://colmedikal.com/mi-colmedikal" style="background:#0d9488;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Ver mi solicitud</a></p>`;
+  await mailer.sendMail({ from: MAIL_FROM, to, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+}
+
 // server.ts
 function httpsGetJson(url, timeoutMs = 4e3) {
   return new Promise((resolve, reject) => {
@@ -627,7 +1036,7 @@ function verifyToken(req, res, next) {
   }
 }
 async function startServer() {
-  const app = (0, import_express2.default)();
+  const app = (0, import_express3.default)();
   const PORT = Number(process.env.PORT) || 3e3;
   app.use((req, res, next) => {
     if (req.hostname === "www.colmedikal.com") {
@@ -658,7 +1067,7 @@ async function startServer() {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     next();
   });
-  app.post("/api/auth/login", import_express2.default.json(), async (req, res) => {
+  app.post("/api/auth/login", import_express3.default.json(), async (req, res) => {
     try {
       const { password } = req.body;
       if (!password || typeof password !== "string") {
@@ -669,7 +1078,7 @@ async function startServer() {
       let isValid = false;
       if (passwordBuffer.length === correctBuffer.length) {
         try {
-          isValid = import_crypto2.default.timingSafeEqual(passwordBuffer, correctBuffer);
+          isValid = import_crypto3.default.timingSafeEqual(passwordBuffer, correctBuffer);
         } catch {
           isValid = false;
         }
@@ -700,7 +1109,7 @@ async function startServer() {
   app.get("/api/version", (req, res) => {
     try {
       const { execSync } = require("child_process");
-      const metaRaw = import_fs2.default.readFileSync(import_path2.default.join(process.cwd(), "metadata.json"), "utf-8");
+      const metaRaw = import_fs3.default.readFileSync(import_path3.default.join(process.cwd(), "metadata.json"), "utf-8");
       const meta = JSON.parse(metaRaw);
       const deployVersion = meta.deployVersion || "1.0";
       const gitCommit = execSync("git rev-parse --short HEAD", { encoding: "utf-8", cwd: process.cwd() }).trim();
@@ -718,7 +1127,7 @@ async function startServer() {
       });
     }
   });
-  app.post("/api/forms/submit", import_express2.default.json(), async (req, res) => {
+  app.post("/api/forms/submit", import_express3.default.json(), async (req, res) => {
     try {
       const { type, data } = req.body;
       if (!type || !["contact", "quote", "reimbursement"].includes(type)) {
@@ -809,7 +1218,7 @@ async function startServer() {
       return null;
     }
   };
-  app.post("/api/leads/lookup", import_express2.default.json(), async (req, res) => {
+  app.post("/api/leads/lookup", import_express3.default.json(), async (req, res) => {
     try {
       if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
         return res.json({ isDuplicate: false, codes: [], configured: false });
@@ -846,44 +1255,44 @@ async function startServer() {
   const PORTAL_HASH_ITERATIONS = 21e4;
   const PORTAL_HASH_KEYLEN = 32;
   const PORTAL_HASH_DIGEST = "sha256";
-  const PORTAL_DATA_DIR = import_path2.default.join(process.cwd(), "data");
-  const PORTAL_CREDS_FILE = import_path2.default.join(PORTAL_DATA_DIR, "portal-credentials.json");
-  const PAYMENT_OVERRIDES_FILE = import_path2.default.join(PORTAL_DATA_DIR, "payment-status-overrides.json");
+  const PORTAL_DATA_DIR = import_path3.default.join(process.cwd(), "data");
+  const PORTAL_CREDS_FILE = import_path3.default.join(PORTAL_DATA_DIR, "portal-credentials.json");
+  const PAYMENT_OVERRIDES_FILE = import_path3.default.join(PORTAL_DATA_DIR, "payment-status-overrides.json");
   function loadPaymentOverrides() {
     try {
-      return JSON.parse(import_fs2.default.readFileSync(PAYMENT_OVERRIDES_FILE, "utf8"));
+      return JSON.parse(import_fs3.default.readFileSync(PAYMENT_OVERRIDES_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function savePaymentOverrides(store) {
-    import_fs2.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs2.default.writeFileSync(PAYMENT_OVERRIDES_FILE, JSON.stringify(store));
+    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs3.default.writeFileSync(PAYMENT_OVERRIDES_FILE, JSON.stringify(store));
   }
   function loadPortalCreds() {
     try {
-      return JSON.parse(import_fs2.default.readFileSync(PORTAL_CREDS_FILE, "utf8"));
+      return JSON.parse(import_fs3.default.readFileSync(PORTAL_CREDS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function savePortalCreds(store) {
-    import_fs2.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs2.default.writeFileSync(PORTAL_CREDS_FILE, JSON.stringify(store));
+    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs3.default.writeFileSync(PORTAL_CREDS_FILE, JSON.stringify(store));
   }
-  const CLIENT_ADDRESS_FILE = import_path2.default.join(PORTAL_DATA_DIR, "client-address-overrides.json");
+  const CLIENT_ADDRESS_FILE = import_path3.default.join(PORTAL_DATA_DIR, "client-address-overrides.json");
   function loadClientAddresses() {
     try {
-      return JSON.parse(import_fs2.default.readFileSync(CLIENT_ADDRESS_FILE, "utf8"));
+      return JSON.parse(import_fs3.default.readFileSync(CLIENT_ADDRESS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveClientAddresses(store) {
-    import_fs2.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs2.default.writeFileSync(CLIENT_ADDRESS_FILE, JSON.stringify(store));
+    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs3.default.writeFileSync(CLIENT_ADDRESS_FILE, JSON.stringify(store));
   }
-  const LEAD_PLAN_FILE = import_path2.default.join(PORTAL_DATA_DIR, "lead-plan-overrides.json");
+  const LEAD_PLAN_FILE = import_path3.default.join(PORTAL_DATA_DIR, "lead-plan-overrides.json");
   const PLAN_CATALOG = {
     inicio: { name: "Plan Inicio 2K", basePrice: 8 },
     proteccion: { name: "Plan Protecci\xF3n 3K", basePrice: 12 },
@@ -891,50 +1300,50 @@ async function startServer() {
   };
   function loadLeadPlanOverrides() {
     try {
-      return JSON.parse(import_fs2.default.readFileSync(LEAD_PLAN_FILE, "utf8"));
+      return JSON.parse(import_fs3.default.readFileSync(LEAD_PLAN_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveLeadPlanOverrides(store) {
-    import_fs2.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs2.default.writeFileSync(LEAD_PLAN_FILE, JSON.stringify(store));
+    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs3.default.writeFileSync(LEAD_PLAN_FILE, JSON.stringify(store));
   }
-  const CONTRACT_NUMBERS_FILE = import_path2.default.join(PORTAL_DATA_DIR, "client-contract-numbers.json");
+  const CONTRACT_NUMBERS_FILE = import_path3.default.join(PORTAL_DATA_DIR, "client-contract-numbers.json");
   function loadContractNumbers() {
     try {
-      return JSON.parse(import_fs2.default.readFileSync(CONTRACT_NUMBERS_FILE, "utf8"));
+      return JSON.parse(import_fs3.default.readFileSync(CONTRACT_NUMBERS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveContractNumbers(store) {
-    import_fs2.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs2.default.writeFileSync(CONTRACT_NUMBERS_FILE, JSON.stringify(store));
+    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs3.default.writeFileSync(CONTRACT_NUMBERS_FILE, JSON.stringify(store));
   }
-  const DELETED_LEADS_FILE = import_path2.default.join(PORTAL_DATA_DIR, "deleted-lead-ids.json");
+  const DELETED_LEADS_FILE = import_path3.default.join(PORTAL_DATA_DIR, "deleted-lead-ids.json");
   function loadDeletedLeads() {
     try {
-      return JSON.parse(import_fs2.default.readFileSync(DELETED_LEADS_FILE, "utf8"));
+      return JSON.parse(import_fs3.default.readFileSync(DELETED_LEADS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveDeletedLeads(store) {
-    import_fs2.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs2.default.writeFileSync(DELETED_LEADS_FILE, JSON.stringify(store));
+    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs3.default.writeFileSync(DELETED_LEADS_FILE, JSON.stringify(store));
   }
   function hashPortalPassword(password, saltHex) {
-    const salt = saltHex || import_crypto2.default.randomBytes(16).toString("hex");
-    const hash = import_crypto2.default.pbkdf2Sync(password, salt, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST).toString("hex");
+    const salt = saltHex || import_crypto3.default.randomBytes(16).toString("hex");
+    const hash = import_crypto3.default.pbkdf2Sync(password, salt, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST).toString("hex");
     return { hash, salt };
   }
   function verifyPortalPassword(password, storedHashHex, saltHex) {
     try {
-      const candidate = import_crypto2.default.pbkdf2Sync(password, saltHex, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST);
+      const candidate = import_crypto3.default.pbkdf2Sync(password, saltHex, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST);
       const stored = Buffer.from(storedHashHex, "hex");
       if (candidate.length !== stored.length) return false;
-      return import_crypto2.default.timingSafeEqual(candidate, stored);
+      return import_crypto3.default.timingSafeEqual(candidate, stored);
     } catch {
       return false;
     }
@@ -989,7 +1398,8 @@ async function startServer() {
     return qd || {};
   };
   registerCrmRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, loadPortalCreds });
-  app.post("/api/portal/login", import_express2.default.json(), async (req, res) => {
+  registerClaimRoutes(app, { dataDir: PORTAL_DATA_DIR, verifyPortalToken, requireAdmin: makeRequireAdmin(httpsJson) });
+  app.post("/api/portal/login", import_express3.default.json(), async (req, res) => {
     try {
       if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
         return res.status(503).json({ success: false, message: "Portal no disponible por el momento" });
@@ -999,9 +1409,9 @@ async function startServer() {
       if (!docNumber || !password) {
         return res.status(400).json({ success: false, message: "C\xE9dula y contrase\xF1a son requeridas" });
       }
-      const now = Date.now();
+      const now2 = Date.now();
       const attempt = loginAttempts.get(docNumber);
-      if (attempt && attempt.lockUntil > now) {
+      if (attempt && attempt.lockUntil > now2) {
         return res.status(429).json({ success: false, message: "Demasiados intentos. Intenta de nuevo en unos minutos." });
       }
       const credsStore = loadPortalCreds();
@@ -1020,7 +1430,7 @@ async function startServer() {
       }
       if (!matchedLeadId) {
         const next = { count: (attempt?.count || 0) + 1, lockUntil: 0 };
-        if (next.count >= LOGIN_MAX_ATTEMPTS) next.lockUntil = now + LOGIN_LOCKOUT_MS;
+        if (next.count >= LOGIN_MAX_ATTEMPTS) next.lockUntil = now2 + LOGIN_LOCKOUT_MS;
         loginAttempts.set(docNumber, next);
         return res.status(401).json({ success: false, message: "C\xE9dula o contrase\xF1a incorrecta" });
       }
@@ -1144,7 +1554,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/portal/set-password", import_express2.default.json(), async (req, res) => {
+  app.post("/api/portal/set-password", import_express3.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -1189,7 +1599,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/set-payment-status", import_express2.default.json(), async (req, res) => {
+  app.post("/api/admin/set-payment-status", import_express3.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -1215,15 +1625,15 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/portal/address", verifyPortalToken, import_express2.default.json(), async (req, res) => {
+  app.post("/api/portal/address", verifyPortalToken, import_express3.default.json(), async (req, res) => {
     try {
       const leadId = req.leadId;
-      const str2 = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
-      const province = str2(req.body?.province, 100);
-      const city = str2(req.body?.city, 100);
-      const address1 = str2(req.body?.address1, 200);
-      const address2 = str2(req.body?.address2, 200);
-      const postalCode = str2(req.body?.postalCode, 20);
+      const str3 = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
+      const province = str3(req.body?.province, 100);
+      const city = str3(req.body?.city, 100);
+      const address1 = str3(req.body?.address1, 200);
+      const address2 = str3(req.body?.address2, 200);
+      const postalCode = str3(req.body?.postalCode, 20);
       if (!province || !city || !address1 || !postalCode) {
         return res.status(400).json({ success: false, message: "Provincia, ciudad, Direcci\xF3n 1 y c\xF3digo postal son obligatorios" });
       }
@@ -1259,7 +1669,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/leads/plan-override", import_express2.default.json(), async (req, res) => {
+  app.post("/api/leads/plan-override", import_express3.default.json(), async (req, res) => {
     try {
       const leadId = req.body?.leadId;
       const selectedPlanName = typeof req.body?.selectedPlanName === "string" ? req.body.selectedPlanName.trim().slice(0, 200) : "";
@@ -1282,7 +1692,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  const LEAD_MAIL_FILE = import_path2.default.join(PORTAL_DATA_DIR, "lead-mail-sent.json");
+  const LEAD_MAIL_FILE = import_path3.default.join(PORTAL_DATA_DIR, "lead-mail-sent.json");
   let leadsRefresh = null;
   const refreshLeadsShared = () => leadsRefresh ||= getLeads(true).finally(() => {
     leadsRefresh = null;
@@ -1317,7 +1727,7 @@ async function startServer() {
       createdAt: lead.created_at || lead.timestamp
     };
   };
-  app.post("/api/leads/notify", import_express2.default.json(), async (req, res) => {
+  app.post("/api/leads/notify", import_express3.default.json(), async (req, res) => {
     try {
       if (!mailer) return res.json({ success: false, configured: false });
       const code = typeof req.body?.leadCode === "string" ? req.body.leadCode.trim() : "";
@@ -1337,15 +1747,15 @@ async function startServer() {
       const { plan } = d;
       let sent = {};
       try {
-        sent = JSON.parse(import_fs2.default.readFileSync(LEAD_MAIL_FILE, "utf8"));
+        sent = JSON.parse(import_fs3.default.readFileSync(LEAD_MAIL_FILE, "utf8"));
       } catch {
       }
       const key = `${code}|${plan}`;
       if (sent[key]) return res.json({ success: true, skipped: true });
       const isNew = !Object.keys(sent).some((k) => k.startsWith(code + "|"));
       sent[key] = Date.now();
-      import_fs2.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-      import_fs2.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
+      import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+      import_fs3.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
       const client = clientMail(d);
       const team = teamMail(d, isNew);
       const results = await Promise.allSettled([
@@ -1357,7 +1767,7 @@ async function startServer() {
       });
       if (results.every((r) => r.status === "rejected")) {
         delete sent[key];
-        import_fs2.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
+        import_fs3.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
         return res.status(502).json({ success: false, message: "No se pudo enviar" });
       }
       if (results[0].status === "fulfilled") logActivity(String(lead.id), "email", `Cotizaci\xF3n enviada autom\xE1ticamente a ${d.email}${plan ? ` (${plan})` : ""}`);
@@ -1367,7 +1777,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/send-quote-email", import_express2.default.json(), async (req, res) => {
+  app.post("/api/admin/send-quote-email", import_express3.default.json(), async (req, res) => {
     try {
       const callerToken = req.headers.authorization?.split(" ")[1];
       if (!callerToken) return res.status(401).json({ success: false, message: "Token de administrador requerido" });
@@ -1390,7 +1800,7 @@ async function startServer() {
       res.status(502).json({ success: false, message: "No se pudo enviar el correo" });
     }
   });
-  app.post("/api/admin/set-lead-plan", import_express2.default.json(), async (req, res) => {
+  app.post("/api/admin/set-lead-plan", import_express3.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -1423,7 +1833,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/set-contract-number", import_express2.default.json(), async (req, res) => {
+  app.post("/api/admin/set-contract-number", import_express3.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -1477,7 +1887,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/delete-lead", import_express2.default.json(), async (req, res) => {
+  app.post("/api/admin/delete-lead", import_express3.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -1525,7 +1935,7 @@ async function startServer() {
     if (!provided) return res.status(401).json({ success: false, message: "API key requerida" });
     const a = Buffer.from(provided);
     const b = Buffer.from(PARTNER_API_KEY);
-    if (a.length !== b.length || !import_crypto2.default.timingSafeEqual(a, b)) {
+    if (a.length !== b.length || !import_crypto3.default.timingSafeEqual(a, b)) {
       return res.status(403).json({ success: false, message: "API key inv\xE1lida" });
     }
     next();
@@ -1553,8 +1963,8 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  const distPath = import_path2.default.join(process.cwd(), "dist");
-  const hasDist = import_fs2.default.existsSync(import_path2.default.join(distPath, "index.html"));
+  const distPath = import_path3.default.join(process.cwd(), "dist");
+  const hasDist = import_fs3.default.existsSync(import_path3.default.join(distPath, "index.html"));
   const isProd = process.env.NODE_ENV === "production" || hasDist;
   if (!isProd) {
     const vite = await (0, import_vite.createServer)({
@@ -1563,7 +1973,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(import_express2.default.static(distPath, { index: false }));
+    app.use(import_express3.default.static(distPath, { index: false }));
     const routes = {
       "/": {
         title: "Colmedikal | Medicina Prepagada en Ecuador \u2014 Planes Familia e Individual",
@@ -1664,21 +2074,21 @@ async function startServer() {
     };
     app.get("/sitemap.xml", async (_req, res) => {
       const BASE = "https://colmedikal.com";
-      const now = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-      const staticUrls = Object.keys(routes).filter((r) => r !== "/blog-detalle" && r !== "/cotizador").map((r) => `  <url><loc>${BASE}${r === "/" ? "" : r}</loc><lastmod>${now}</lastmod><changefreq>${r === "/" ? "daily" : "weekly"}</changefreq><priority>${r === "/" ? "1.0" : "0.8"}</priority></url>`);
+      const now2 = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+      const staticUrls = Object.keys(routes).filter((r) => r !== "/blog-detalle" && r !== "/cotizador").map((r) => `  <url><loc>${BASE}${r === "/" ? "" : r}</loc><lastmod>${now2}</lastmod><changefreq>${r === "/" ? "daily" : "weekly"}</changefreq><priority>${r === "/" ? "1.0" : "0.8"}</priority></url>`);
       let blogUrls = [];
       try {
         const blogJson = await httpsGetJson("https://api.colmedikal.com/api/public/blog");
         const posts = blogJson?.data || [];
         blogUrls = posts.map((p) => {
           const slug = p.slug || p.id;
-          return `  <url><loc>${BASE}/blog/${slug}</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`;
+          return `  <url><loc>${BASE}/blog/${slug}</loc><lastmod>${now2}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`;
         });
       } catch {
       }
       const extraUrls = [
-        `  <url><loc>${BASE}/mapa-red-medica</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
-        `  <url><loc>${BASE}/privacy</loc><lastmod>${now}</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>`
+        `  <url><loc>${BASE}/mapa-red-medica</loc><lastmod>${now2}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
+        `  <url><loc>${BASE}/privacy</loc><lastmod>${now2}</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>`
       ];
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -1728,7 +2138,7 @@ ${[...staticUrls, ...extraUrls, ...blogUrls].join("\n")}
         keywords: ov.keywords || base.keywords,
         og_image: base.og_image
       };
-      let html = import_fs2.default.readFileSync(import_path2.default.join(distPath, "index.html"), "utf8");
+      let html = import_fs3.default.readFileSync(import_path3.default.join(distPath, "index.html"), "utf8");
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc2(meta.title)}</title>`);
       const ogType = pathname.startsWith("/blog/") && pathname !== "/blog" ? "article" : "website";
       const inject = `

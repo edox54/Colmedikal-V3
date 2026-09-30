@@ -187,7 +187,8 @@ export interface AdminSharedProps extends AdminCtx {
   adminComment: string;
   setAdminComment: (v: string) => void;
 
-  pendingRefunds: AdminCtx['refunds'];
+  /** Open reembolsos: legacy API items + self-service claims (only .length is used for counts). */
+  pendingRefunds: unknown[];
   totalRefundAmountPending: number;
   totalLeadsUncontacted: number;
   pendingAuthsCount: number;

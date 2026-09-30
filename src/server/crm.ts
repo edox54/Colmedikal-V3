@@ -54,6 +54,26 @@ export function recordPortalLogin(leadId: string) {
   } catch (err) { console.error('[portal-login-record]', err); }
 }
 
+// Admin auth = the external API accepts the caller's token (same check as the
+// other /api/admin/* routes). Validated tokens are cached 5 min so frequent
+// polling doesn't hit the API on every request.
+export function makeRequireAdmin(httpsJson: (url: string, opts?: any) => Promise<any>) {
+  const okTokens = new Map<string, number>();
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const tok = req.headers.authorization?.split(' ')[1];
+    if (!tok) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+    const key = crypto.createHash('sha256').update(tok).digest('hex');
+    if ((okTokens.get(key) || 0) > Date.now()) return next();
+    try {
+      await httpsJson('https://api.colmedikal.com/api/admin/leads?limit=1', { headers: { Authorization: `Bearer ${tok}` } });
+      okTokens.set(key, Date.now() + 5 * 60_000);
+      next();
+    } catch (e: any) {
+      res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
+    }
+  };
+}
+
 export function registerCrmRoutes(app: Express, deps: {
   dataDir: string;
   httpsJson: (url: string, opts?: any) => Promise<any>;
@@ -62,23 +82,7 @@ export function registerCrmRoutes(app: Express, deps: {
   FILE = path.join(deps.dataDir, 'lead-crm.json');
   LOGINS_FILE = path.join(deps.dataDir, 'portal-logins.json');
 
-  // Admin auth = the external API accepts the caller's token (same check as the
-  // other /api/admin/* routes). Validated tokens are cached 5 min so the
-  // pipeline's frequent polling doesn't hit the API on every request.
-  const okTokens = new Map<string, number>();
-  const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
-    const tok = req.headers.authorization?.split(' ')[1];
-    if (!tok) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
-    const key = crypto.createHash('sha256').update(tok).digest('hex');
-    if ((okTokens.get(key) || 0) > Date.now()) return next();
-    try {
-      await deps.httpsJson('https://api.colmedikal.com/api/admin/leads?limit=1', { headers: { Authorization: `Bearer ${tok}` } });
-      okTokens.set(key, Date.now() + 5 * 60_000);
-      next();
-    } catch (e: any) {
-      res.status(e?.status === 401 || e?.status === 403 ? 403 : 502).json({ success: false, message: 'No autorizado' });
-    }
-  };
+  const requireAdmin = makeRequireAdmin(deps.httpsJson);
 
   // Whole store + portal access info. ponytail: full dump each poll; fine for
   // hundreds of leads — paginate if the file grows past a few MB.

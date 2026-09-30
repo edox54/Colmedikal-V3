@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import type { Claim, ClaimStatus } from '../data/claims';
 import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, LeadNote, QuoteState, AdminUser, ClientAddress, CrmState, CrmEntry, CrmActivity } from '../types';
 import { getStoredAttribution } from '../utils/attribution';
 
@@ -60,6 +61,10 @@ interface ColmedikalContextType {
   refreshCrm: () => Promise<void>;
   addLeadActivity: (leadId: string, a: { type: CrmActivity['type']; body: string; dueAt?: string }) => Promise<void>;
   updateLeadActivity: (leadId: string, activityId: string, change: { done?: boolean; delete?: boolean }) => Promise<void>;
+  // Self-service reembolsos / preautorizaciones (server store — src/server/claims.ts)
+  claims: Claim[];
+  refreshClaims: () => Promise<void>;
+  decideClaim: (id: string, d: { status: ClaimStatus; comment?: string; approvedAmount?: number }) => Promise<void>;
 }
 
 const ColmedikalContext = createContext<ColmedikalContextType | undefined>(undefined);
@@ -232,6 +237,22 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       setCrm({ data, portal: j.portal || {} });
     } catch { /* keep previous values on failure */ }
+  };
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const loadClaims = async (authToken: string) => {
+    try {
+      const r = await fetch('/api/admin/claims', { headers: { Authorization: `Bearer ${authToken}` } });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.success) setClaims(j.data || []);
+    } catch { /* keep previous values on failure */ }
+  };
+  const refreshClaims = async () => {
+    const t = token || sessionStorage.getItem('colmedikal_token');
+    if (t) await loadClaims(t);
+  };
+  const decideClaim = async (id: string, d: { status: ClaimStatus; comment?: string; approvedAmount?: number }) => {
+    await crmFetch(`/api/admin/claims/${encodeURIComponent(id)}`, d);
+    await refreshClaims();
   };
   const refreshCrm = async () => {
     const t = token || sessionStorage.getItem('colmedikal_token');
@@ -430,6 +451,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       // Shared CRM store — overrides the browser-local refs with the team's truth
       await loadCrm(authToken);
+      await loadClaims(authToken);
 
       if (doctorsRes) {
         let fetchedDoctors: any[] = doctorsRes.data || [];
@@ -1353,6 +1375,9 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     refreshCrm,
     addLeadActivity,
     updateLeadActivity,
+    claims,
+    refreshClaims,
+    decideClaim,
   };
 
   return (

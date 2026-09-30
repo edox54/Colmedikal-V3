@@ -7,7 +7,8 @@ import { createServer as createViteServer } from 'vite';
 import jwt from 'jsonwebtoken';
 import helmet from 'helmet';
 import crypto from 'crypto';
-import { registerCrmRoutes, logActivity, recordPortalLogin } from './src/server/crm';
+import { registerCrmRoutes, logActivity, recordPortalLogin, makeRequireAdmin } from './src/server/crm';
+import { registerClaimRoutes } from './src/server/claims';
 import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
@@ -534,6 +535,7 @@ async function startServer() {
   };
 
   registerCrmRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, loadPortalCreds });
+  registerClaimRoutes(app, { dataDir: PORTAL_DATA_DIR, verifyPortalToken, requireAdmin: makeRequireAdmin(httpsJson) });
 
   app.post('/api/portal/login', express.json(), async (req, res) => {
     try {

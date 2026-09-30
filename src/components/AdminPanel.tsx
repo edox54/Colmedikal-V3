@@ -58,11 +58,11 @@ import DocumentPreviewModal from './admin/DocumentPreviewModal';
 import { AdminThemeProvider, useAdminTheme } from './admin/AdminThemeContext';
 import { AdminSharedProps, ActiveTab } from './admin/adminTypes';
 import KpisSection from './admin/sections/KpisSection';
-import RefundsSection from './admin/sections/RefundsSection';
 import AppointmentsSection from './admin/sections/AppointmentsSection';
-import AuthsSection from './admin/sections/AuthsSection';
 import LeadsSection from './admin/sections/LeadsSection';
 import CrmProvider from './admin/crm/CrmProvider';
+import ClaimsSection from './admin/sections/ClaimsSection';
+import type { Claim } from '../data/claims';
 import ClientesSection from './admin/sections/ClientesSection';
 import DoctorsSection from './admin/sections/DoctorsSection';
 import AdminsSection from './admin/sections/AdminsSection';
@@ -105,7 +105,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     updateAdminRole,
     seoSettings,
     saveSEOSettings,
-    token
+    token,
+    claims
   } = useColmedikal();
 
   const prevLeadsCountRef = useRef(leads.length);
@@ -536,10 +537,14 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   };
 
   // KPI Calculations
-  const pendingRefunds = refunds.filter(r => r.status === 'Procesando');
-  const totalRefundAmountPending = pendingRefunds.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  // Open requests = legacy API items + self-service claims (src/server/claims.ts)
+  const openClaim = (c: Claim) => c.status === 'Recibida' || c.status === 'En revisión' || c.status === 'Documentos pendientes';
+  const openRefundClaims = (claims as Claim[]).filter(c => c.type === 'reembolso' && openClaim(c));
+  const legacyPendingRefunds = refunds.filter(r => r.status === 'Procesando');
+  const pendingRefunds: unknown[] = [...legacyPendingRefunds, ...openRefundClaims];
+  const totalRefundAmountPending = legacyPendingRefunds.reduce((sum, r) => sum + Number(r.amount || 0), 0) + openRefundClaims.reduce((sum, c) => sum + c.totalRequested, 0);
   const totalLeadsUncontacted = leads.filter(l => l.status === 'Nuevo Plan').length;
-  const pendingAuthsCount = authorizations.filter(a => a.status === 'Pendiente' || a.status === 'Auditoría').length;
+  const pendingAuthsCount = authorizations.filter(a => a.status === 'Pendiente' || a.status === 'Auditoría').length + (claims as Claim[]).filter(c => c.type === 'preautorizacion' && openClaim(c)).length;
   const activeAppointmentsCount = appointments.filter(a => a.status === 'Confirmada' || a.status === 'Pendiente').length;
 
   // Duplicate lead detection
@@ -609,9 +614,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
 const TAB_META: Record<ActiveTab, { title: string; subtitle: string }> = {
   kpis: { title: 'Colmedikal Corporativo', subtitle: 'Consola General — Módulo Administrativo Interno de Auditoría Médica y Gestión de Planes' },
-  refunds: { title: 'Auditoría de Reembolsos', subtitle: 'Verificación y liquidación de facturas presentadas por afiliados' },
+  refunds: { title: 'Reembolsos', subtitle: 'Solicitudes de reembolso con facturas y documentos enviados desde Mi Colmedikal' },
   appointments: { title: 'Citas Médicas', subtitle: 'Agenda de consultas solicitadas desde el portal de pacientes' },
-  auths: { title: 'Autorizaciones', subtitle: 'Auditoría clínica de procedimientos complejos' },
+  auths: { title: 'Preautorizaciones', subtitle: 'Solicitudes de preautorización quirúrgica y hospitalaria' },
   leads: { title: 'Cotizaciones Recibidas', subtitle: 'CRM de prospectos generados por el cotizador del sitio' },
   clientes: { title: 'Clientes', subtitle: 'Afiliados con cierre efectivo — plan, contrato y acceso al portal' },
   doctors: { title: 'Directorio Médico', subtitle: 'Especialistas y clínicas habilitadas en la red Colmedikal' },
@@ -661,9 +666,9 @@ function AuthenticatedAdminShell({ data }: { data: AdminSharedProps }) {
 
           <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
             {activeTab === 'kpis' && <KpisSection {...data} />}
-            {activeTab === 'refunds' && <RefundsSection {...data} />}
+            {activeTab === 'refunds' && <ClaimsSection type="reembolso" {...data} />}
             {activeTab === 'appointments' && <AppointmentsSection {...data} />}
-            {activeTab === 'auths' && <AuthsSection {...data} />}
+            {activeTab === 'auths' && <ClaimsSection type="preautorizacion" {...data} />}
             {activeTab === 'leads' && <LeadsSection {...data} />}
             {activeTab === 'clientes' && <ClientesSection {...data} />}
             {activeTab === 'doctors' && <DoctorsSection {...data} />}

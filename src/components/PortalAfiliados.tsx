@@ -21,12 +21,16 @@ import {
   Calendar,
   MapPin,
   Mail,
+  FileCheck,
   Phone,
   Check,
   X
 } from 'lucide-react';
 import { Page } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
+import ClaimsPanel from './portal/ClaimsPanel';
+import { listClaims } from './portal/claimsApi';
+import type { Claim } from '../data/claims';
 import AgendamientoCitas from './AgendamientoCitas';
 
 interface PortalAfiliadosProps {
@@ -228,9 +232,8 @@ function AddressFormFields({ value, onChange }: { value: AddressFormState; onCha
 }
 
 export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps) {
-  const { addRefund } = useColmedikal();
 
-  const [activeTab, setActiveTab] = useState<'dash' | 'carnet' | 'reembolsos' | 'triage' | 'agendamiento' | 'datos'>('dash');
+  const [activeTab, setActiveTab] = useState<'dash' | 'carnet' | 'reembolsos' | 'preautorizaciones' | 'triage' | 'agendamiento' | 'datos'>('dash');
 
   // Top bar: avatar dropdown + notification bell. The "seen" count is a
   // simple per-client localStorage marker — not a real read/unread system,
@@ -251,6 +254,14 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   const [portalData, setPortalData] = useState<{ refunds: any[]; authorizations: any[]; appointments: any[] }>({ refunds: [], authorizations: [], appointments: [] });
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState('');
+
+  // Self-service reembolsos / preautorizaciones (server store — see src/server/claims.ts)
+  const [claims, setClaims] = useState<Claim[]>([]);
+  useEffect(() => {
+    if (!portalToken) return;
+    listClaims().then(setClaims).catch(() => { /* panel shows its own error */ });
+  }, [portalToken]);
+
 
   const refreshPortalDashboard = async () => {
     if (!portalToken) return;
@@ -375,8 +386,9 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
   const resolvedUpdatesCount = useMemo(() =>
     portalData.refunds.filter(r => r.status === 'Reembolsado').length +
+    claims.filter(c => ['Documentos pendientes', 'Aprobada', 'Pagada', 'Rechazada'].includes(c.status)).length +
     portalData.appointments.filter(a => a.status === 'Confirmada' || a.status === 'Completada').length,
-  [portalData]);
+  [portalData, claims]);
 
   const hasUnseenUpdates = resolvedUpdatesCount > seenUpdatesCount;
 
@@ -385,23 +397,6 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
     localStorage.setItem(`colmedikal_portal_seen_${profile.docNumber}`, String(resolvedUpdatesCount));
     setSeenUpdatesCount(resolvedUpdatesCount);
   };
-
-  // Form states for creating refund
-  const [newRefund, setNewRefund] = useState({
-    familyMember: '',
-    specialty: 'Pediatría',
-    amount: '',
-    invoiceNumber: '',
-    fileName: ''
-  });
-  const [refundIsSubmitting, setRefundIsSubmitting] = useState(false);
-  const [refundAlert, setRefundAlert] = useState('');
-
-  // Keep the refund form defaulting to the real titular's name
-  useEffect(() => {
-    if (!profile?.fullName) return;
-    setNewRefund(prev => ({ ...prev, familyMember: profile.fullName }));
-  }, [profile?.fullName]);
 
   // Plan detail modal — same content/layout as Cotizador's, without the
   // "Contratar" CTA since this client is already contracted.
@@ -457,42 +452,6 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   const [symptoms, setSymptoms] = useState('');
   const [triageLoading, setTriageLoading] = useState(false);
   const [triageResult, setTriageResult] = useState<any>(null);
-
-  const submitRefundRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRefund.amount || !newRefund.invoiceNumber) {
-      setRefundAlert('Por favor ingrese el monto y el número de factura.');
-      return;
-    }
-
-    setRefundIsSubmitting(true);
-    setRefundAlert('');
-
-    setTimeout(async () => {
-      await addRefund({
-        familyMember: newRefund.familyMember,
-        specialty: newRefund.specialty,
-        amount: Number(newRefund.amount),
-        status: 'Procesando',
-        invoiceNumber: newRefund.invoiceNumber,
-        userEmail: profile?.email,
-        userPhone: profile?.phone,
-      });
-      await refreshPortalDashboard();
-
-      setRefundIsSubmitting(false);
-      setNewRefund({
-        familyMember: profile?.fullName || '',
-        specialty: 'Pediatría',
-        amount: '',
-        invoiceNumber: '',
-        fileName: ''
-      });
-      setRefundAlert('¡Solicitud de reembolso ingresada con éxito! Pendiente de aprobación por auditoría médica (Ver estado abajo).');
-    }, 1500);
-  };
-
-
 
   const handleTriageQuery = (symptomKey: string) => {
     setTriageLoading(true);
@@ -787,9 +746,25 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
               >
                 <div className="flex items-center gap-2.5">
                   <DollarSign className="w-4.5 h-4.5 shrink-0" />
-                  <span>Solicitar Reembolso</span>
+                  <span>Reembolsos</span>
                 </div>
-                <span className="bg-teal-50 text-teal-700 text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold font-sans">90%</span>
+                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+              </button>
+
+              <button
+                onClick={() => setActiveTab('preautorizaciones')}
+                className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all text-left ${
+                  activeTab === 'preautorizaciones'
+                    ? 'bg-gradient-to-r from-[#4597CA] to-[#0C4169] text-white shadow-sm'
+                    : 'text-slate-655 hover:bg-slate-50'
+                }`}
+                id="portal-tab-preautorizaciones"
+              >
+                <div className="flex items-center gap-2.5">
+                  <FileCheck className="w-4.5 h-4.5 shrink-0" />
+                  <span>Preautorización Hospitalaria</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
               </button>
 
               <button
@@ -881,7 +856,12 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
                   {/* Reembolsos pagados */}
                   {(() => {
-                    const totalRefunded = portalData.refunds.reduce((s, r) => s + Number(r.amount || 0), 0);
+                    // Only what was actually approved/paid (the old card summed every
+                    // request, pending or rejected, and showed 90% of that).
+                    const totalRefunded =
+                      claims.filter(c => c.type === 'reembolso' && (c.status === 'Aprobada' || c.status === 'Pagada')).reduce((s, c) => s + (c.approvedAmount || 0), 0) +
+                      portalData.refunds.filter(r => r.status === 'Aprobado' || r.status === 'Reembolsado').reduce((s, r) => s + Number(r.amount || 0), 0);
+                    const refundCount = claims.filter(c => c.type === 'reembolso' && c.status !== 'Borrador').length + portalData.refunds.length;
                     const cap = parseCoberturaAmount(PLAN_DETAILS[profile.basePlanId]?.cobertura);
                     const pct = cap ? Math.min(100, (totalRefunded / cap) * 100) : null;
                     return (
@@ -889,9 +869,9 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                         <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
                           <DollarSign className="w-4.5 h-4.5" />
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reembolsos Aprobados (90%)</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reembolsos Aprobados</span>
                         <span className="block text-xl font-bold text-indigo-700">
-                          ${(totalRefunded * 0.9).toFixed(2)} USD
+                          ${totalRefunded.toFixed(2)} USD
                         </span>
                         {pct !== null ? (
                           <>
@@ -901,7 +881,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                             <p className="text-[10px] text-slate-500">${totalRefunded.toFixed(0)} de ${cap?.toFixed(0)} de tu cobertura anual.</p>
                           </>
                         ) : (
-                          <p className="text-[10px] text-slate-500">Sobre {portalData.refunds.length} solicitud(es) ingresada(s).</p>
+                          <p className="text-[10px] text-slate-500">Sobre {refundCount} solicitud(es) ingresada(s).</p>
                         )}
                       </div>
                     );
@@ -1042,160 +1022,14 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
 
             {/* B3: SOLICITAR REEMBOLSOS */}
             {activeTab === 'reembolsos' && (
-              <div className="space-y-8 animate-in fade-in duration-200" id="portal-panel-reembolsos">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
-                    <DollarSign className="w-6 h-6 text-teal-600" />
-                    <span>Ingreso Digital de Reembolsos</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Carga los datos de tu factura comercial autorizada por el SRI y tus prescripciones para reembolsar honorarios médicos en menos de 48 horas.
-                  </p>
-                </div>
+              <div className="animate-in fade-in duration-200" id="portal-panel-reembolsos">
+                <ClaimsPanel type="reembolso" profile={profile} onChanged={setClaims} />
+              </div>
+            )}
 
-                {refundAlert && (
-                  <div className="p-4 bg-emerald-50 border border-emerald-150 text-emerald-800 text-xs rounded-xl flex items-center gap-2.5">
-                    <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <span>{refundAlert}</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                  
-                  {/* Refund Intake form */}
-                  <form onSubmit={submitRefundRequest} className="lg:col-span-5 space-y-4 bg-slate-50/50 p-5 rounded-2xl border border-slate-200">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Nueva Solicitud</span>
-
-                    {/* Member select */}
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-slate-700">Paciente Atendido:</label>
-                      <select 
-                        value={newRefund.familyMember}
-                        onChange={(e) => setNewRefund({...newRefund, familyMember: e.target.value})}
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                      >
-                        <option value={profile.fullName}>{profile.fullName} (Titular)</option>
-                        {familyMembers.map((f, i) => (
-                          <option key={i} value={f.name}>{f.name} ({f.relationship})</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Speciality */}
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-slate-700">Especialidad:</label>
-                      <select 
-                        value={newRefund.specialty}
-                        onChange={(e) => setNewRefund({...newRefund, specialty: e.target.value})}
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                      >
-                        <option value="Pediatría">Pediatría y Neonatología</option>
-                        <option value="Cardiología">Cardiología</option>
-                        <option value="Ginecología">Ginecología</option>
-                        <option value="Osteopatía">Osteopatía / Traumatología</option>
-                        <option value="Odontología">Odontología</option>
-                        <option value="Dermatología">Dermatología</option>
-                      </select>
-                    </div>
-
-                    {/* Invoice Info */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="block text-[11px] font-semibold text-slate-700">N° Factura (SRI):</label>
-                        <input 
-                          type="text"
-                          required
-                          placeholder="Ej. 001-002-145"
-                          value={newRefund.invoiceNumber}
-                          onChange={(e) => setNewRefund({...newRefund, invoiceNumber: e.target.value})}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="block text-[11px] font-semibold text-slate-700">Valor Total Facturado:</label>
-                        <input 
-                          type="number"
-                          required
-                          min="1"
-                          max="2000"
-                          placeholder="Monto $' USD"
-                          value={newRefund.amount}
-                          onChange={(e) => setNewRefund({...newRefund, amount: e.target.value})}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono text-center"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Drag & drop mock receipt */}
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-slate-700">Cargar PDF Factura o Receta:</label>
-                      
-                      <div 
-                        onClick={() => setNewRefund({...newRefund, fileName: 'factura_medica_sri.pdf'})}
-                        className="bg-white border-2 border-dashed border-slate-300 hover:border-teal-500 rounded-xl p-4 text-center cursor-pointer transition-colors"
-                      >
-                        <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                        <span className="text-[10px] text-slate-500 block truncate font-medium">
-                          {newRefund.fileName || 'Haz clic para seleccionar o soltar archivo'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={refundIsSubmitting}
-                      className="w-full py-3 bg-teal-500 hover:bg-teal-600 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-1"
-                    >
-                      {refundIsSubmitting ? (
-                        <>
-                          <Clock className="w-4 h-4 animate-spin" />
-                          <span>Auditoriando Facturas...</span>
-                        </>
-                      ) : (
-                        <span>Ingresar Reembolso Electrónico</span>
-                      )}
-                    </button>
-                  </form>
-
-                  {/* Refunds list ledger */}
-                  <div className="lg:col-span-7 space-y-4">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Historial de Honorarios Ingresados</span>
-                    
-                    <div className="space-y-3.5">
-                      {portalData.refunds.map((ref) => (
-                        <div key={ref.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <span className="inline-block bg-slate-100 text-slate-700 text-[9px] font-mono font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                                {ref.id}
-                              </span>
-                              <h4 className="text-xs font-bold text-slate-900 mt-1">{ref.familyMember}</h4>
-                              <p className="text-[10px] text-slate-500">{ref.specialty} - Factura: {ref.invoiceNumber}</p>
-                            </div>
-
-                            <div className="text-right space-y-1">
-                              <span className="text-sm font-bold text-slate-900 font-mono">${Number(ref.amount || 0).toFixed(2)}</span>
-                              <span className={`block text-[9px] font-bold px-2 py-0.2 rounded-full uppercase tracking-wider font-sans border text-center ${
-                                ref.status === 'Reembolsado' 
-                                  ? 'text-emerald-700 bg-emerald-50 border-emerald-100' 
-                                  : 'text-indigo-700 bg-indigo-50 border-indigo-100'
-                              }`}>
-                                {ref.status}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="text-[10px] text-slate-400 border-t border-slate-50 pt-2 flex justify-between">
-                            <span>Ingresado el: {ref.refundDate}</span>
-                            <span>Valor Aprobado (90%): <strong>${(Number(ref.amount || 0) * 0.9).toFixed(2)}</strong></span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
+            {activeTab === 'preautorizaciones' && (
+              <div className="animate-in fade-in duration-200" id="portal-panel-preautorizaciones">
+                <ClaimsPanel type="preautorizacion" profile={profile} onChanged={setClaims} />
               </div>
             )}
 

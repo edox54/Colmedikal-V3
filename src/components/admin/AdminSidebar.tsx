@@ -57,9 +57,9 @@ export default function AdminSidebar({
 }: Props) {
   const items: (NavItem | null)[] = [
     canSeeTab('kpis') ? { tab: 'kpis', label: 'Consola General', icon: <LayoutGrid className="w-4.5 h-4.5" />, id: 'admin-tab-kpis' } : null,
-    canSeeTab('refunds') ? { tab: 'refunds', label: 'Auditar Reembolsos', icon: <DollarSign className="w-4.5 h-4.5" />, badge: pendingRefundsCount, badgeColor: 'bg-rose-500 text-white', id: 'admin-tab-refunds' } : null,
+    canSeeTab('refunds') ? { tab: 'refunds', label: 'Reembolsos', icon: <DollarSign className="w-4.5 h-4.5" />, badge: pendingRefundsCount, badgeColor: 'bg-rose-500 text-white', id: 'admin-tab-refunds' } : null,
     canSeeTab('appointments') ? { tab: 'appointments', label: 'Citas Médicas', icon: <Calendar className="w-4.5 h-4.5" />, badge: activeAppointmentsCount, badgeColor: 'bg-teal-500 text-slate-950', id: 'admin-tab-appointments' } : null,
-    canSeeTab('auths') ? { tab: 'auths', label: 'Autorizaciones', icon: <FileCheck className="w-4.5 h-4.5" />, badge: pendingAuthsCount, badgeColor: 'bg-indigo-500 text-white', id: 'admin-tab-auths' } : null,
+    canSeeTab('auths') ? { tab: 'auths', label: 'Preautorizaciones', icon: <FileCheck className="w-4.5 h-4.5" />, badge: pendingAuthsCount, badgeColor: 'bg-indigo-500 text-white', id: 'admin-tab-auths' } : null,
     canSeeTab('leads') ? { tab: 'leads', label: 'Cotizaciones Recibidas', icon: <Bell className="w-4.5 h-4.5" />, badge: totalLeadsUncontacted, badgeColor: 'bg-emerald-500 text-slate-950', id: 'admin-tab-leads' } : null,
     canSeeTab('clientes') ? { tab: 'clientes', label: 'Clientes', icon: <UserCheck className="w-4.5 h-4.5" />, count: clientesCount, id: 'admin-tab-clientes' } : null,
     canSeeTab('doctors') ? { tab: 'doctors', label: 'Directorio Médico', icon: <Stethoscope className="w-4.5 h-4.5" />, count: doctorsCount, id: 'admin-tab-doctors' } : null,
