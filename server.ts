@@ -7,6 +7,7 @@ import { createServer as createViteServer } from 'vite';
 import jwt from 'jsonwebtoken';
 import helmet from 'helmet';
 import crypto from 'crypto';
+import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, clientMail, teamMail, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
 // WASM-based llhttp parser, which fails under CloudLinux LVE memory limits).
@@ -882,6 +883,77 @@ async function startServer() {
       res.json({ success: true });
     } catch (e) {
       console.error('[leads-plan-override]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Public: email the quote to the customer + alert the team (LEAD_NOTIFY_TO).
+  // Takes ONLY a lead code — recipient and content always come from the DB
+  // record, never the request body, so it can't be used to mail arbitrary
+  // addresses. One send per (code, plan): repeat clicks don't spam, while a
+  // later plan pick sends an updated quote.
+  const LEAD_MAIL_FILE = path.join(PORTAL_DATA_DIR, 'lead-mail-sent.json');
+  app.post('/api/leads/notify', express.json(), async (req, res) => {
+    try {
+      if (!mailer) return res.json({ success: false, configured: false });
+      const code = typeof req.body?.leadCode === 'string' ? req.body.leadCode.trim() : '';
+      if (!/^COT-\d{6}$/.test(code)) return res.status(400).json({ success: false, message: 'Código inválido' });
+
+      const deleted = loadDeletedLeads();
+      const find = (list: any[]) => list.find(l => !deleted[String(l.id)] && parseQuoteData(l).leadCode === code);
+      let lead = find(await getLeads());
+      // The lead was usually created a moment ago; refresh once, but no more than
+      // every 3s so bogus codes can't turn this into a DB-hammering endpoint.
+      if (!lead && Date.now() - leadsCacheAt > 3000) lead = find(await getLeads(true));
+      if (!lead) return res.status(404).json({ success: false, message: 'No encontrado' });
+
+      const qd = parseQuoteData(lead);
+      const ov = loadLeadPlanOverrides()[String(lead.id)];
+      const plan: string = ov?.selectedPlanName || qd.selectedPlanName || '';
+      const price = Number(ov?.estimatedPrice ?? lead.estimated_price ?? lead.estimatedPrice) || 0;
+
+      let sent: Record<string, number> = {};
+      try { sent = JSON.parse(fs.readFileSync(LEAD_MAIL_FILE, 'utf8')); } catch { /* first run */ }
+      const key = `${code}|${plan}`;
+      if (sent[key]) return res.json({ success: true, skipped: true });
+      const isNew = !Object.keys(sent).some(k => k.startsWith(code + '|'));
+      sent[key] = Date.now(); // mark before sending so a double click can't send twice
+      fs.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+      fs.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
+
+      const d: LeadMailData = {
+        code,
+        fullName: String(qd.fullName || ''),
+        email: String(qd.email || ''),
+        phone: String(qd.phone || ''),
+        docNumber: qd.docNumber,
+        birthDate: qd.birthDate,
+        province: qd.province,
+        members: 1 + (Number(qd.childrenCount) || 0),
+        plan,
+        price,
+        source: qd.source,
+        createdAt: lead.created_at || lead.timestamp,
+      };
+      const client = clientMail(d);
+      const team = teamMail(d, isNew);
+      const results = await Promise.allSettled([
+        /\S+@\S+\.\S+/.test(d.email)
+          ? mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...client })
+          : Promise.reject(new Error('lead sin email válido')),
+        LEAD_NOTIFY_TO.length
+          ? mailer.sendMail({ from: MAIL_FROM, to: LEAD_NOTIFY_TO, replyTo: d.email || undefined, ...team })
+          : Promise.reject(new Error('LEAD_NOTIFY_TO vacío')),
+      ]);
+      results.forEach((r, i) => { if (r.status === 'rejected') console.error(`[lead-notify] ${i ? 'team' : 'client'} ${code}:`, r.reason?.message || r.reason); });
+      if (results.every(r => r.status === 'rejected')) {
+        delete sent[key]; // nothing went out — allow a retry
+        fs.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
+        return res.status(502).json({ success: false, message: 'No se pudo enviar' });
+      }
+      res.json({ success: true, client: results[0].status === 'fulfilled', team: results[1].status === 'fulfilled' });
+    } catch (e) {
+      console.error('[lead-notify]', e);
       res.status(500).json({ success: false, message: 'Error interno' });
     }
   });

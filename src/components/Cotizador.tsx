@@ -75,6 +75,9 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
   const navigate = useNavigate();
   const location = useLocation();
   const { addLead } = useColmedikal();
+  // Server emails the quote to the customer + alerts the team (see /api/leads/notify in server.ts)
+  const notifyLead = (code: string) =>
+    fetch('/api/leads/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leadCode: code }) }).catch(() => {});
 
   // Plan pre-seleccionado desde homepage (via navigate state) o prop
   const preselectedPlanId: string | undefined = (location.state as any)?.planId ?? propPlanId;
@@ -354,13 +357,10 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
       }, estimatedPrice);
 
       // On a duplicate, keep the ORIGINAL reference code and surface the prior code(s)
-      if (result?.isDuplicate) {
-        setDuplicateCodes(result.previousCodes || []);
-        setLeadCode(result.previousCodes?.[0] || result.quoteData?.leadCode || code);
-      } else {
-        setDuplicateCodes([]);
-        setLeadCode(code);
-      }
+      const finalCode = result?.isDuplicate ? (result.previousCodes?.[0] || result.quoteData?.leadCode || code) : code;
+      setDuplicateCodes(result?.isDuplicate ? result.previousCodes || [] : []);
+      setLeadCode(finalCode);
+      notifyLead(finalCode);
 
       // A plan chosen before arriving here must lead exclusively to that plan's
       // checkout — never back into the 3-plan comparison, to avoid confusion
@@ -1111,7 +1111,7 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
                               setSelectedPlanToBuy(modalPlan);
                               setCheckoutStep(1);
                               const specificPrice = calculateDynamicPrice(modalPlan.basePrice);
-                              addLead({ fullName: `${firstName} ${lastName}`, email, phone, docType, docNumber, birthDate, type: dependants.length > 0 ? 'familiar' : 'individual', primaryAge: calculateAge(birthDate) ?? 35, childrenCount: dependants.length, childrenAges: dependants.map((d: any) => d.ageRange === '0-17' ? 10 : 25), basePlanId: modalPlan.id, leadCode, selectedPlanName: `${modalPlan.name} — $${modalPlan.basePrice}/mes`, province }, specificPrice);
+                              addLead({ fullName: `${firstName} ${lastName}`, email, phone, docType, docNumber, birthDate, type: dependants.length > 0 ? 'familiar' : 'individual', primaryAge: calculateAge(birthDate) ?? 35, childrenCount: dependants.length, childrenAges: dependants.map((d: any) => d.ageRange === '0-17' ? 10 : 25), basePlanId: modalPlan.id, leadCode, selectedPlanName: `${modalPlan.name} — $${modalPlan.basePrice}/mes`, province }, specificPrice).then(() => notifyLead(leadCode));
                               sendLeadToKommoCRM({ name: `${firstName} ${lastName}`, email, phone, subject: `Contratación: ${modalPlan.name}`, amount: specificPrice, province, details: `PLAN: ${modalPlan.name} | Base: $${modalPlan.basePrice}/mes | Total: $${specificPrice}/mes | Ref: ${leadCode}`, leadCode, planName: modalPlan.name });
                             }}
                             className="w-full py-3 rounded-xl bg-[#0C4169] hover:bg-slate-900 text-xs font-black uppercase tracking-wider text-white cursor-pointer transition"
@@ -1593,7 +1593,7 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
                                   setSelectedPlanToBuy(plan);
                                   setCheckoutStep(1);
                                   const specificPrice = calculateDynamicPrice(plan.basePrice);
-                                  addLead({ fullName: `${firstName} ${lastName}`, email, phone, docType, docNumber, birthDate, type: dependants.length > 0 ? 'familiar' : 'individual', primaryAge: calculateAge(birthDate) ?? 35, childrenCount: dependants.length, childrenAges: dependants.map((d: any) => d.ageRange === '0-17' ? 10 : 25), basePlanId: plan.id, leadCode, selectedPlanName: `${plan.name} — $${plan.basePrice}/mes`, province }, specificPrice);
+                                  addLead({ fullName: `${firstName} ${lastName}`, email, phone, docType, docNumber, birthDate, type: dependants.length > 0 ? 'familiar' : 'individual', primaryAge: calculateAge(birthDate) ?? 35, childrenCount: dependants.length, childrenAges: dependants.map((d: any) => d.ageRange === '0-17' ? 10 : 25), basePlanId: plan.id, leadCode, selectedPlanName: `${plan.name} — $${plan.basePrice}/mes`, province }, specificPrice).then(() => notifyLead(leadCode));
                                   sendLeadToKommoCRM({ name: `${firstName} ${lastName}`, email, phone, subject: `Contratación: ${plan.name}`, amount: specificPrice, province, details: `PLAN: ${plan.name} | Base: $${plan.basePrice}/mes | Total: $${specificPrice}/mes | Ref: ${leadCode} | Dependientes: ${dependants.length}`, leadCode, planName: plan.name });
                                 }}
                                 className="w-full py-3 rounded-xl bg-[#0C4169] hover:bg-slate-900 text-xs font-black uppercase tracking-wider text-white cursor-pointer shadow hover:shadow-md transition"
