@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, LeadNote, QuoteState, AdminUser, ClientAddress } from '../types';
+import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, LeadNote, QuoteState, AdminUser, ClientAddress, CrmState, CrmEntry, CrmActivity } from '../types';
 import { getStoredAttribution } from '../utils/attribution';
 
 interface ColmedikalContextType {
@@ -55,6 +55,11 @@ interface ColmedikalContextType {
   deleteCMSBlogPost: (id: string) => Promise<void>;
   publishSitemap: (xml: string) => Promise<void>;
   publishRobots: (txt: string) => Promise<void>;
+  // Shared CRM (server store — see src/server/crm.ts)
+  crm: CrmState;
+  refreshCrm: () => Promise<void>;
+  addLeadActivity: (leadId: string, a: { type: CrmActivity['type']; body: string; dueAt?: string }) => Promise<void>;
+  updateLeadActivity: (leadId: string, activityId: string, change: { done?: boolean; delete?: boolean }) => Promise<void>;
 }
 
 const ColmedikalContext = createContext<ColmedikalContextType | undefined>(undefined);
@@ -157,6 +162,77 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const clientContractNumbers = useRef<Record<string, string>>({});
   const persistOverride = (key: string, value: any) => {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
+  };
+
+  // ==================== SHARED CRM (server store) ====================
+  // Status / notes / assignee / follow-up used to live ONLY in the overrides
+  // above (this admin's browser). The server store is now authoritative and
+  // shared by the whole team; the refs above are kept as the optimistic layer.
+  const [crm, setCrm] = useState<CrmState>({ data: {}, portal: {} });
+  const crmMigrated = useRef(false);
+  const adminName = () => {
+    try { return JSON.parse(sessionStorage.getItem('colmedikal_user') || '{}')?.name || 'Admin'; } catch { return 'Admin'; }
+  };
+  const crmFetch = async (url: string, body: any) => {
+    const t = token || sessionStorage.getItem('colmedikal_token');
+    if (!t) return;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ by: adminName(), ...body }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.success) throw new Error(j.message || `HTTP ${r.status}`);
+  };
+  const crmPatch = (leadId: string, patch: Record<string, unknown>) =>
+    crmFetch(`/api/admin/crm/${encodeURIComponent(leadId)}`, patch).catch(err => console.warn('[crm]', err));
+
+  const loadCrm = async (authToken: string) => {
+    try {
+      const r = await fetch('/api/admin/crm', { headers: { Authorization: `Bearer ${authToken}` } });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.success) return;
+      const data: Record<string, CrmEntry> = j.data || {};
+      // One-time: push this browser's pre-existing local overrides that the
+      // server doesn't have yet, so nothing recorded before the shared store is lost.
+      if (!crmMigrated.current) {
+        crmMigrated.current = true;
+        const ids = new Set([
+          ...Object.keys(leadStatusOverrides.current), ...Object.keys(leadNotesOverrides.current),
+          ...Object.keys(leadAssignOverrides.current), ...Object.keys(leadFollowUpOverrides.current),
+        ]);
+        for (const id of ids) {
+          const srv = data[id];
+          const patch: Record<string, unknown> = { silent: true };
+          if (!srv?.status && leadStatusOverrides.current[id]) patch.status = leadStatusOverrides.current[id];
+          if (!srv?.lostReason && leadLostReasonOverrides.current[id]) patch.lostReason = leadLostReasonOverrides.current[id];
+          if (!srv?.notes?.length && leadNotesOverrides.current[id]?.length) patch.notes = leadNotesOverrides.current[id];
+          if (srv?.assignedTo === undefined && leadAssignOverrides.current[id]) patch.assignedTo = leadAssignOverrides.current[id];
+          if (srv?.followUpDate === undefined && leadFollowUpOverrides.current[id]) patch.followUpDate = leadFollowUpOverrides.current[id];
+          if (Object.keys(patch).length > 1) crmPatch(id, patch);
+        }
+      }
+      for (const [id, e] of Object.entries(data)) {
+        if (e.status) leadStatusOverrides.current[id] = e.status;
+        if (e.notes) leadNotesOverrides.current[id] = e.notes;
+        if (e.assignedTo !== undefined) leadAssignOverrides.current[id] = e.assignedTo;
+        if (e.followUpDate !== undefined) leadFollowUpOverrides.current[id] = e.followUpDate;
+        if (e.lostReason !== undefined) leadLostReasonOverrides.current[id] = e.lostReason;
+      }
+      setCrm({ data, portal: j.portal || {} });
+    } catch { /* keep previous values on failure */ }
+  };
+  const refreshCrm = async () => {
+    const t = token || sessionStorage.getItem('colmedikal_token');
+    if (t) await loadCrm(t);
+  };
+  const addLeadActivity = async (leadId: string, a: { type: CrmActivity['type']; body: string; dueAt?: string }) => {
+    await crmFetch(`/api/admin/crm/${encodeURIComponent(leadId)}/activities`, a);
+    await refreshCrm();
+  };
+  const updateLeadActivity = async (leadId: string, activityId: string, change: { done?: boolean; delete?: boolean }) => {
+    await crmFetch(`/api/admin/crm/${encodeURIComponent(leadId)}/activities/${encodeURIComponent(activityId)}`, change);
+    await refreshCrm();
   };
 
   const [seoSettings, setSeoSettings] = useState<Record<string, string>>({});
@@ -317,6 +393,9 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           }
         }
       } catch { /* keep previous values on failure */ }
+
+      // Shared CRM store — overrides the browser-local refs with the team's truth
+      await loadCrm(authToken);
 
       if (doctorsRes) {
         let fetchedDoctors: any[] = doctorsRes.data || [];
@@ -880,6 +959,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     leadStatusOverrides.current[strId] = status;
     persistOverride('colmedikal_lead_overrides', leadStatusOverrides.current);
     if (!token) return;
+    crmPatch(strId, { status }).then(refreshCrm);
     try {
       await apiCall(`/api/admin/leads/${strId}`, 'PUT', { status }, token);
     } catch {
@@ -956,7 +1036,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const response = await fetch('/api/portal/set-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ leadId, newPassword }),
+      body: JSON.stringify({ leadId, newPassword, by: adminName() }),
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.success) {
@@ -968,6 +1048,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const existing = leadNotesOverrides.current[id] || [];
     leadNotesOverrides.current[id] = [...existing, note];
     persistOverride('colmedikal_lead_notes', leadNotesOverrides.current);
+    crmPatch(String(id), { notes: leadNotesOverrides.current[id] }).then(refreshCrm);
     setLeads(prev => prev.map(l => l.id === id ? { ...l, notes: leadNotesOverrides.current[id] } : l));
     setLocalLeads(prev => {
       const updated = prev.map(l => l.id === id ? { ...l, notes: leadNotesOverrides.current[id] } : l);
@@ -979,6 +1060,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const assignLead = (id: string, assignedTo: string) => {
     leadAssignOverrides.current[id] = assignedTo;
     persistOverride('colmedikal_lead_assign', leadAssignOverrides.current);
+    crmPatch(String(id), { assignedTo }).then(refreshCrm);
     setLeads(prev => prev.map(l => l.id === id ? { ...l, assignedTo } : l));
     setLocalLeads(prev => {
       const updated = prev.map(l => l.id === id ? { ...l, assignedTo } : l);
@@ -990,6 +1072,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const setLeadFollowUp = (id: string, followUpDate: string) => {
     leadFollowUpOverrides.current[id] = followUpDate;
     persistOverride('colmedikal_lead_followup', leadFollowUpOverrides.current);
+    crmPatch(String(id), { followUpDate });
     setLeads(prev => prev.map(l => l.id === id ? { ...l, followUpDate } : l));
     setLocalLeads(prev => {
       const updated = prev.map(l => l.id === id ? { ...l, followUpDate } : l);
@@ -1003,6 +1086,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     persistOverride('colmedikal_lead_lost', leadLostReasonOverrides.current);
     leadStatusOverrides.current[id] = 'Perdido';
     persistOverride('colmedikal_lead_overrides', leadStatusOverrides.current);
+    crmPatch(String(id), { status: 'Perdido', lostReason }).then(refreshCrm);
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status: 'Perdido', lostReason } : l));
     setLocalLeads(prev => {
       const updated = prev.map(l => l.id === id ? { ...l, status: 'Perdido' as const, lostReason } : l);
@@ -1231,6 +1315,10 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     deleteCMSBlogPost,
     publishSitemap,
     publishRobots,
+    crm,
+    refreshCrm,
+    addLeadActivity,
+    updateLeadActivity,
   };
 
   return (

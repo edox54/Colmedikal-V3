@@ -100,6 +100,28 @@ export interface LeadQuote {
   lostReason?: string;
 }
 
+// Shared CRM store (server: src/server/crm.ts)
+export interface CrmActivity {
+  id: string;
+  type: 'nota' | 'llamada' | 'whatsapp' | 'email' | 'reunion' | 'cambio_etapa' | 'sistema';
+  body: string;
+  by: string;
+  at: string;
+  dueAt?: string;
+  doneAt?: string;
+}
+export interface CrmEntry {
+  status?: LeadQuote['status'];
+  assignedTo?: string;
+  followUpDate?: string;
+  lostReason?: string;
+  notes?: LeadNote[];
+  activities: CrmActivity[];
+  updatedAt: number;
+}
+export interface PortalAccess { hasPassword: boolean; passwordSetAt?: string; lastLoginAt?: string }
+export interface CrmState { data: Record<string, CrmEntry>; portal: Record<string, PortalAccess> }
+
 export interface Testimonial {
   id: string;
   name: string;

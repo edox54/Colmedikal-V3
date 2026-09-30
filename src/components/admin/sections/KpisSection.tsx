@@ -41,14 +41,16 @@ import {
 } from 'lucide-react';
 import { AppointmentItem } from '../../../types';
 import { AdminSharedProps } from '../adminTypes';
+import CrmDashboard from '../crm/CrmDashboard';
 
-type Props = Pick<AdminSharedProps, 'doctors' | 'refunds' | 'appointments' | 'leads' | 'activeTab' | 'setActiveTab' | 'pendingRefunds' | 'totalRefundAmountPending' | 'totalLeadsUncontacted' | 'pendingAuthsCount'>;
+type Props = Pick<AdminSharedProps, 'doctors' | 'refunds' | 'appointments' | 'leads' | 'activeTab' | 'setActiveTab' | 'pendingRefunds' | 'totalRefundAmountPending' | 'totalLeadsUncontacted' | 'pendingAuthsCount' | 'resolvePlanName'>;
 
 export default function KpisSection(props: Props) {
   const { doctors, refunds, appointments, leads, setActiveTab, pendingRefunds, totalRefundAmountPending, totalLeadsUncontacted, pendingAuthsCount } = props;
   return (
         <div className="space-y-8 animate-in fade-in duration-200" id="admin-kpi-panel">
-          
+          <CrmDashboard leads={leads} resolvePlanName={props.resolvePlanName} />
+
           {/* Bento Statistcs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             

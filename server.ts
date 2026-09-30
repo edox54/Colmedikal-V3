@@ -7,6 +7,7 @@ import { createServer as createViteServer } from 'vite';
 import jwt from 'jsonwebtoken';
 import helmet from 'helmet';
 import crypto from 'crypto';
+import { registerCrmRoutes, logActivity, recordPortalLogin } from './src/server/crm';
 import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, clientMail, teamMail, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
@@ -532,6 +533,8 @@ async function startServer() {
     return qd || {};
   };
 
+  registerCrmRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, loadPortalCreds });
+
   app.post('/api/portal/login', express.json(), async (req, res) => {
     try {
       if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
@@ -580,6 +583,7 @@ async function startServer() {
       }
 
       loginAttempts.delete(docNumber);
+      recordPortalLogin(matchedLeadId);
       const token = jwt.sign({ type: 'portal', leadId: matchedLeadId, iat: Date.now() }, JWT_SECRET!, { expiresIn: '4h' });
       res.json({ success: true, token });
     } catch (e) {
@@ -742,8 +746,10 @@ async function startServer() {
 
       // Authoritative write — this is what /api/portal/login actually checks.
       const store = loadPortalCreds();
+      const hadPassword = !!store[String(leadId)];
       store[String(leadId)] = { docNumber, hash, salt, updatedAt: Date.now() };
       savePortalCreds(store);
+      logActivity(String(leadId), 'sistema', hadPassword ? 'Contraseña del portal restablecida' : 'Acceso al portal de clientes creado', typeof req.body?.by === 'string' ? req.body.by.slice(0, 80) : 'Admin');
 
       // Best-effort mirror into quote_data — harmless if the external API
       // doesn't persist it, since the local store above is already authoritative.
@@ -965,6 +971,7 @@ async function startServer() {
         fs.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
         return res.status(502).json({ success: false, message: 'No se pudo enviar' });
       }
+      if (results[0].status === 'fulfilled') logActivity(String(lead.id), 'email', `Cotización enviada automáticamente a ${d.email}${plan ? ` (${plan})` : ''}`);
       res.json({ success: true, client: results[0].status === 'fulfilled', team: results[1].status === 'fulfilled' });
     } catch (e) {
       console.error('[lead-notify]', e);
@@ -993,6 +1000,7 @@ async function startServer() {
       if (!/\S+@\S+\.\S+/.test(d.email)) return res.status(400).json({ success: false, message: 'El lead no tiene un correo válido' });
 
       await mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...clientMail(d) });
+      logActivity(String(lead.id), 'email', `Cotización enviada a ${d.email}${d.plan ? ` (${d.plan})` : ''}`, typeof req.body?.by === 'string' ? req.body.by.slice(0, 80) : 'Admin');
       res.json({ success: true, to: d.email });
     } catch (e: any) {
       console.error('[admin-send-quote-email]', e?.message || e);

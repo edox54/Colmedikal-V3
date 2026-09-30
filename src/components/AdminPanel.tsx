@@ -62,6 +62,7 @@ import RefundsSection from './admin/sections/RefundsSection';
 import AppointmentsSection from './admin/sections/AppointmentsSection';
 import AuthsSection from './admin/sections/AuthsSection';
 import LeadsSection from './admin/sections/LeadsSection';
+import CrmProvider from './admin/crm/CrmProvider';
 import ClientesSection from './admin/sections/ClientesSection';
 import DoctorsSection from './admin/sections/DoctorsSection';
 import AdminsSection from './admin/sections/AdminsSection';
@@ -621,6 +622,7 @@ function AuthenticatedAdminShell({ data }: { data: AdminSharedProps }) {
 
   return (
     <div className={theme === 'dark' ? 'dark' : ''} id="colmedikal-admin-portal">
+      <CrmProvider data={data}>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 lg:flex">
         <AdminSidebar
           activeTab={activeTab}
@@ -660,6 +662,7 @@ function AuthenticatedAdminShell({ data }: { data: AdminSharedProps }) {
           </main>
         </div>
       </div>
+      </CrmProvider>
     </div>
   );
 }

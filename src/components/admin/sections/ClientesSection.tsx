@@ -40,11 +40,17 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { AdminSharedProps } from '../adminTypes';
+import { useColmedikal } from '../../../context/ColmedikalContext';
+import { useCrmUI } from '../crm/CrmProvider';
 
 type Props = Pick<AdminSharedProps, 'leads' | 'updateClientPaymentStatus' | 'setClientContractNumber' | 'setClientPassword' | 'refreshData' | 'clientSearchFilter' | 'setClientSearchFilter' | 'passwordModalLeadId' | 'setPasswordModalLeadId' | 'newPasswordInput' | 'setNewPasswordInput' | 'passwordFieldVisible' | 'setPasswordFieldVisible' | 'passwordSaveLoading' | 'setPasswordSaveLoading' | 'passwordSaveError' | 'setPasswordSaveError' | 'passwordSaveSuccess' | 'setPasswordSaveSuccess' | 'contractEditId' | 'setContractEditId' | 'contractNumberInput' | 'setContractNumberInput' | 'resolvePlanName' | 'PLAN_CATALOG' | 'handlePlanChange'>;
 
 export default function ClientesSection(props: Props) {
   const { leads, updateClientPaymentStatus, setClientContractNumber, setClientPassword, refreshData, clientSearchFilter, setClientSearchFilter, passwordModalLeadId, setPasswordModalLeadId, newPasswordInput, setNewPasswordInput, passwordFieldVisible, setPasswordFieldVisible, passwordSaveLoading, setPasswordSaveLoading, passwordSaveError, setPasswordSaveError, passwordSaveSuccess, setPasswordSaveSuccess, contractEditId, setContractEditId, contractNumberInput, setContractNumberInput, resolvePlanName, PLAN_CATALOG, handlePlanChange } = props;
+  const { crm } = useColmedikal();
+  const { openLead } = useCrmUI();
+  // Portal access truth = server credential store (quote_data's hash often doesn't persist)
+  const portalOf = (c: { id: string; quoteData?: { portalPasswordHash?: string } }) => !!crm.portal[String(c.id)]?.hasPassword || !!c.quoteData?.portalPasswordHash;
         const clients = leads.filter(l => l.status === 'Cierre Efectivo');
         const q = clientSearchFilter.toLowerCase().trim();
         const filtered = q
@@ -60,7 +66,7 @@ export default function ClientesSection(props: Props) {
         const pagados = clients.filter(c => (c.quoteData?.paymentStatus || 'Pendiente') === 'Pagado').length;
         const pendientes = clients.filter(c => (c.quoteData?.paymentStatus || 'Pendiente') === 'Pendiente').length;
         const atrasados = clients.filter(c => c.quoteData?.paymentStatus === 'Atrasado').length;
-        const conPortal = clients.filter(c => !!c.quoteData?.portalPasswordHash).length;
+        const conPortal = clients.filter(portalOf).length;
 
         const modalClient = passwordModalLeadId ? clients.find(c => c.id === passwordModalLeadId) : null;
 
@@ -142,7 +148,7 @@ export default function ClientesSection(props: Props) {
               filtered.map((c) => {
                 const planName = resolvePlanName(c);
                 const paymentStatus = c.quoteData?.paymentStatus || 'Pendiente';
-                const hasPortalAccess = !!c.quoteData?.portalPasswordHash;
+                const hasPortalAccess = portalOf(c);
                 return (
                   <div key={c.id} className="p-3.5">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -180,7 +186,7 @@ export default function ClientesSection(props: Props) {
                             {c.quoteData?.contractNumber || c.quoteData?.leadCode || c.id.slice(0, 12).toUpperCase()}
                           </button>
                         )}
-                        <h4 className="text-sm font-black text-slate-900 dark:text-white">{c.quoteData?.fullName || '—'}</h4>
+                        <h4 className="text-sm font-black text-slate-900 dark:text-white"><button onClick={() => openLead(String(c.id))} className="hover:underline hover:text-teal-700 cursor-pointer text-left" title="Abrir ficha del cliente">{c.quoteData?.fullName || '—'}</button></h4>
                         {planName
                           ? <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-bold uppercase inline-block">{planName}</span>
                           : <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded font-medium italic inline-block">Sin plan registrado</span>}
