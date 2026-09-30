@@ -125,14 +125,12 @@ export default function AdminSidebar({
 
 function SidebarBrand({ compact }: { compact?: boolean }) {
   return (
-    <div className={`flex items-center gap-3 ${compact ? 'px-0 pb-4' : 'px-5 py-6'}`}>
-      <div className="w-10 h-10 bg-slate-900 dark:bg-brand-500/20 rounded-xl flex items-center justify-center text-brand-400 border border-slate-750 dark:border-brand-500/30 shrink-0">
-        <Building2 className="w-5 h-5" />
+    <div className={compact ? 'px-0 pb-4' : 'px-5 py-6'}>
+      {/* Institutional logo (white plate so it reads in dark mode too) */}
+      <div className="rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200 dark:ring-slate-700">
+        <img src="/brand/colmedikal-logo.png" alt="Colmedikal — Medicina Prepagada S.A." className="h-11 w-auto" />
       </div>
-      <div className="min-w-0">
-        <span className="block text-sm font-display font-black text-slate-950 dark:text-white uppercase tracking-tight truncate">Colmedikal</span>
-        <span className="block text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">Consola Corporativa</span>
-      </div>
+      <span className="mt-2 block text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">Consola Corporativa</span>
     </div>
   );
 }

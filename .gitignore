@@ -1,6 +1,7 @@
 node_modules/
 build/
-dist/
+# dist/ is committed: `vite build` exceeds the CloudLinux LVE memory limit on the server,
+# so we build locally and the server only pulls + restarts (see DEPLOYMENT-GUIDE / memory).
 coverage/
 .DS_Store
 *.log

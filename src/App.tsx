@@ -21,18 +21,20 @@ import Blog from './components/Blog';
 import FloatingWidget from './components/FloatingWidget';
 import SEOController from './seo/SEOController';
 import { ColmedikalProvider } from './context/ColmedikalContext';
-import AdminPanel from './components/AdminPanel';
+const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
 import NotFound from './components/NotFound';
 import TrackingManager from './components/TrackingManager';
 import CookieConsent from './components/CookieConsent';
-import SEOPanel from './components/SEOPanel';
-import PowerSEOPanel from './components/PowerSEOPanel';
+const SEOPanel = React.lazy(() => import('./components/SEOPanel'));
+const PowerSEOPanel = React.lazy(() => import('./components/PowerSEOPanel'));
 import MapaRedMedica from './components/MapaRedMedica';
 import Gracias from './components/Gracias';
-import PortalAfiliados from './components/PortalAfiliados';
+const PortalAfiliados = React.lazy(() => import('./components/PortalAfiliados'));
 import Maintenance from './components/Maintenance';
 import Logo from './components/Logo';
 import { captureAttribution } from './utils/attribution';
+// ponytail: admin / SEO / portal are lazy chunks — keeps the main bundle (and the
+// server-side `vite build` memory peak, which CloudLinux LVE kills near ~1GB) down.
 import { useColmedikal } from './context/ColmedikalContext';
 
 
@@ -86,6 +88,7 @@ function AppRoutes() {
   // uses (see deactivated_doctors) — toggled from AdminPanel's "Sitio" tab.
   const isMaintenance = seoSettings.maintenance_mode === 'true';
   return (
+    <React.Suspense fallback={null}>
     <Routes>
       {/* Admin tools stay reachable during maintenance so it can be turned back off. */}
       <Route path="/admin" element={<AdminLayout component={AdminPanel} />} />
@@ -120,6 +123,7 @@ function AppRoutes() {
         </>
       )}
     </Routes>
+    </React.Suspense>
   );
 }
 

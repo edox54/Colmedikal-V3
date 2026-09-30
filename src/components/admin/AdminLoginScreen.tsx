@@ -48,8 +48,8 @@ export default function AdminLoginScreen(props: Props) {
         <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans transition-all duration-300" id="admin-login-screen">
           <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-6">
             <div className="flex justify-center">
-              <span className="p-4 bg-amber-500/10 text-amber-500 rounded-3xl border border-amber-500/20 shadow-inner">
-                <Building2 className="w-10 h-10" />
+              <span className="rounded-2xl bg-white px-5 py-3 shadow-lg">
+                <img src="/brand/colmedikal-logo.png" alt="Colmedikal — Medicina Prepagada S.A." className="h-14 w-auto" />
               </span>
             </div>
             <div className="text-center space-y-1.5">
