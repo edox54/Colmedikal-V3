@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { LOGO_PNG_BASE64, LOGO_RATIO } from '../assets/brand-logo';
 
 interface PDFDependant {
   relation: string;
@@ -24,6 +25,8 @@ interface PDFGeneratorOptions {
   signatureText?: string;
   features: string[];
   especialidades?: Record<string, boolean>;
+  /** false = don't trigger a browser download (server-side email attachment) */
+  download?: boolean;
 }
 
 /**
@@ -50,20 +53,14 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
 
   // HELPER Functions
   const drawHeader = () => {
-    // Top Accent Bar
+    // White header with the institutional logo + navy accent bars
     doc.setFillColor(12, 65, 105); // NAVY
-    doc.rect(0, 0, pageWidth, 40, 'F');
-
-    // Branding text
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.text('Colmedikal', 15, 18);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(190, 220, 240);
-    doc.text('MEDICINA PREPAGADA DE EXCELENCIA S.A.', 15, 24);
+    doc.rect(0, 0, pageWidth, 3, 'F');
+    const logoW = 58;
+    doc.addImage(LOGO_PNG_BASE64, 'PNG', 12, 9, logoW, logoW / LOGO_RATIO);
+    doc.setDrawColor(12, 65, 105);
+    doc.setLineWidth(0.6);
+    doc.line(0, 40, pageWidth, 40);
 
     // Document Subject Badge
     doc.setFillColor(69, 151, 202); // STEEL_MUTED
@@ -223,8 +220,10 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
       doc.setFillColor(16, 185, 129); // Green bullets
       doc.circle(18, bulletY - 1, 1.2, 'F');
       doc.setTextColor(28, 46, 60);
-      doc.text(feat, 22, bulletY);
-      bulletY += 5.5;
+      // Wrap to the left column (x 22 → 104) so long lines don't run into "Especialidades"
+      const lines = doc.splitTextToSize(feat, 82);
+      doc.text(lines, 22, bulletY);
+      bulletY += 4 * lines.length + 1.5;
     });
 
   if (options.especialidades) {
@@ -284,8 +283,8 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
-  doc.text('Declaro bajo la gravedad del juramento que todos los datos consignados en esta suscripción digital son verdaderos y fidedignos.', 15, 244);
-  doc.text('Ratifico conocer los periodos obligatorios de carencia (30 días para atención ambulatoria, 90 días para hospitalización y maternidad).', 15, 247.5);
+  // Wrapped to the space left of the verification seal (seal starts at pageWidth - 65)
+  doc.text(doc.splitTextToSize('Declaro bajo la gravedad del juramento que todos los datos consignados en esta suscripción digital son verdaderos y fidedignos. Ratifico conocer los periodos obligatorios de carencia (30 días para atención ambulatoria, 90 días para hospitalización y maternidad).', pageWidth - 65 - 15 - 5), 15, 245);
 
   // Draw signature line or visual simulated signature
   if (options.signatureText) {
@@ -321,7 +320,7 @@ export function generateQuotePDF(options: PDFGeneratorOptions): jsPDF {
   doc.text('ESTADO: SUSCRIPCION PENDIENTE', pageWidth - 60, 264);
 
   // Download Action
-  doc.save(`Colmedikal_Cotizacion_${options.leadCode}.pdf`);
+  if (options.download !== false) doc.save(`Colmedikal_Cotizacion_${options.leadCode}.pdf`);
 
   return doc;
 }

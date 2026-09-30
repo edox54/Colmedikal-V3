@@ -2,6 +2,8 @@
 // SMTP through the cPanel mailbox. nodemailer is pure JS — no fetch/undici/WASM,
 // so it's safe under the CloudLinux LVE memory limits (see httpsGetJson in server.ts).
 import nodemailer from 'nodemailer';
+import { PLANS } from '../data/plans';
+import { generateQuotePDF } from '../utils/pdfGenerator';
 
 const port = Number(process.env.SMTP_PORT) || 465;
 export const mailer = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
@@ -19,6 +21,37 @@ export const LEAD_NOTIFY_TO = (process.env.LEAD_NOTIFY_TO || 'colnexos2@gmail.co
   .split(',').map(s => s.trim()).filter(Boolean);
 
 const WHATSAPP = '098 702 8756';
+const LOGO_URL = 'https://colmedikal.com/brand/colmedikal-logo.png';
+
+const findPlan = (d: LeadMailData) =>
+  PLANS.find(p => p.id === d.planId) || (d.plan ? PLANS.find(p => d.plan.startsWith(p.name)) : undefined);
+
+/** The same "Cotización certificada" PDF the customer can download in the Cotizador. Null until a plan is chosen. */
+export function quotePdfAttachment(d: LeadMailData): { filename: string; content: Buffer; contentType: string } | null {
+  const plan = findPlan(d);
+  if (!plan) return null;
+  const doc = generateQuotePDF({
+    download: false,
+    leadCode: d.code,
+    fullName: d.fullName,
+    email: d.email,
+    phone: d.phone,
+    docNumber: d.docNumber || '—',
+    docType: d.docType || 'cedula',
+    planName: plan.name,
+    basePrice: plan.basePrice,
+    finalPrice: d.price > 0 ? d.price : plan.basePrice,
+    province: d.province || '—',
+    coverageStartDate: '',
+    dependents: (d.childrenAges || []).map(age => ({ relation: 'Dependiente', age })),
+    hospitalNetwork: 'Red Cobertura Directa Colmedikal',
+    maxCoverage: plan.cobertura,
+    dedHosp: plan.dedHosp,
+    features: plan.caracteristicas || [],
+    especialidades: plan.especialidades || {},
+  });
+  return { filename: `Colmedikal_Cotizacion_${d.code}.pdf`, content: Buffer.from(doc.output('arraybuffer')), contentType: 'application/pdf' };
+}
 const WHATSAPP_URL = 'https://wa.me/593987028756';
 
 const esc = (s: unknown) =>
@@ -35,6 +68,9 @@ export interface LeadMailData {
   province?: string;
   members: number; // titular + dependientes
   plan: string; // '' = todavía no eligió plan
+  planId?: string;
+  docType?: string;
+  childrenAges?: number[];
   price: number;
   source?: { channel?: string; detail?: string; utmCampaign?: string; landingPage?: string };
   createdAt?: string;
@@ -49,7 +85,7 @@ const rows = (pairs: [string, unknown][]) =>
 const layout = (title: string, body: string) => `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:24px 12px"><tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:12px;overflow:hidden">
-<tr><td style="background:#0C4169;padding:20px 24px;color:#fff;font-size:20px;font-weight:bold">Colmedikal</td></tr>
+<tr><td style="background:#fff;padding:18px 24px;border-top:4px solid #0C4169;border-bottom:1px solid #e2e8f0"><img src="${LOGO_URL}" alt="Colmedikal — Medicina Prepagada S.A." width="180" style="display:block;width:180px;height:auto;border:0"></td></tr>
 <tr><td style="padding:24px"><h1 style="margin:0 0 16px;font-size:18px;color:#0C4169">${esc(title)}</h1>${body}</td></tr>
 <tr><td style="padding:16px 24px;background:#f8fafc;color:#64748b;font-size:12px">Colmedikal · Medicina prepagada · <a href="https://colmedikal.com" style="color:#0d9488">colmedikal.com</a> · WhatsApp <a href="${WHATSAPP_URL}" style="color:#0d9488">${WHATSAPP}</a></td></tr>
 </table></td></tr></table></body></html>`;
@@ -65,6 +101,7 @@ export function clientMail(d: LeadMailData) {
     ['Personas a cubrir', d.members],
     ['Provincia', d.province],
   ])}</table>
+${d.plan && findPlan(d) ? '<p style="font-size:14px;color:#334155;line-height:1.6">Adjuntamos en PDF la información de tu plan para que la tengas siempre a mano.</p>' : ''}
 <p style="font-size:14px;color:#334155;line-height:1.6">Un asesor de afiliación se pondrá en contacto contigo para confirmar tu cotización. Si prefieres adelantarte, escríbenos por WhatsApp indicando tu código <b>${esc(d.code)}</b>.</p>
 <p style="text-align:center;margin:24px 0"><a href="${WHATSAPP_URL}?text=${encodeURIComponent(`Hola, mi código de cotización es ${d.code}`)}" style="background:#0d9488;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Escribir por WhatsApp</a></p>`;
   return { subject: `${title} · ${d.code}`, html: layout(title, body) };

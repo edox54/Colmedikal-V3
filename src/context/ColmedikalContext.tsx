@@ -64,6 +64,14 @@ interface ColmedikalContextType {
 
 const ColmedikalContext = createContext<ColmedikalContextType | undefined>(undefined);
 
+/** ms timestamp from a JWT's `exp` claim, or null if it can't be read. */
+function jwtExpiry(token: string): number | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch { return null; }
+}
+
 // API Configuration
 const API_BASE_URL = 'https://api.colmedikal.com';
 const API_TIMEOUT = 10000;
@@ -105,6 +113,9 @@ async function apiCall(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      // Expired/revoked admin token → let the provider log out cleanly instead of
+      // leaving the panel "logged in" with every dataset silently empty.
+      if (token && response.status === 401) window.dispatchEvent(new Event('colmedikal:session-expired'));
       const error = await response.json().catch(() => ({ error: response.statusText }));
       throw new Error(error.error || `API Error: ${response.status}`);
     }
@@ -259,6 +270,29 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [error, setError] = useState<string | null>(null);
   const [publicSettingsLoaded, setPublicSettingsLoaded] = useState(false);
 
+  // Session expiry: log out exactly when the token expires, or as soon as the
+  // API rejects it (401 from apiCall). Without this the admin UI kept showing
+  // "logged in" after a reload with a dead token and every number at 0.
+  useEffect(() => {
+    if (!token) return;
+    const onExpired = () => { logout(); };
+    // A 401 on one endpoint might be a role restriction — confirm against the
+    // leads endpoint (every admin role can read it) before logging out.
+    let checking = false;
+    const on401 = async () => {
+      if (checking) return;
+      checking = true;
+      try {
+        const r = await fetch(`${API_BASE_URL}/api/admin/leads?limit=1`, { headers: { Authorization: `Bearer ${token}` } });
+        if (r.status === 401) logout();
+      } catch { /* offline: keep the session */ } finally { checking = false; }
+    };
+    window.addEventListener('colmedikal:session-expired', on401);
+    const exp = Number(sessionStorage.getItem('colmedikal_token_expiry')) || 0;
+    const timer = exp ? setTimeout(onExpired, Math.max(0, Math.min(exp - Date.now(), 2 ** 31 - 1))) : undefined;
+    return () => { window.removeEventListener('colmedikal:session-expired', on401); clearTimeout(timer); };
+  }, [token]);
+
   // Initialize: Load data on mount
   useEffect(() => {
     fetchPublicData();
@@ -306,8 +340,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setToken(response.token);
       setUser(response.admin);
       sessionStorage.setItem('colmedikal_token', response.token);
-      // Token expires in 1 hour (JWT default)
-      sessionStorage.setItem('colmedikal_token_expiry', String(Date.now() + 60 * 60 * 1000));
+      // Use the JWT's own `exp` when present; fall back to 1 hour
+      sessionStorage.setItem('colmedikal_token_expiry', String(jwtExpiry(response.token) ?? Date.now() + 60 * 60 * 1000));
       sessionStorage.setItem('colmedikal_user', JSON.stringify(response.admin));
 
       // Load data after login

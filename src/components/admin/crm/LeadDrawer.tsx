@@ -63,14 +63,12 @@ export default function LeadDrawer({ data, leadId, onClose }: { data: AdminShare
     <div className="min-w-0"><dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{k}</dt><dd className="break-words text-xs text-slate-800 dark:text-slate-100">{v || '—'}</dd></div>
   );
 
-  // Rendered in place (not portaled to <body>) so it inherits the admin's `dark` class;
-  // CrmProvider sits at shell level, outside any transformed ancestor.
   return (
     <div className="fixed inset-0 z-[100] flex justify-end bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150" onClick={onClose}>
       <aside role="dialog" aria-modal="true" aria-label={`Ficha de ${q.fullName}`} onClick={e => e.stopPropagation()}
-        className="flex h-full w-full max-w-2xl flex-col bg-slate-50 dark:bg-slate-950 shadow-2xl animate-in slide-in-from-right duration-200">
+        className="flex h-dvh max-h-screen w-full max-w-2xl min-w-0 flex-col overflow-hidden bg-slate-50 dark:bg-slate-950 shadow-2xl">
         {/* Header */}
-        <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4" style={{ borderTop: `4px solid ${STAGE_STYLE[lead.status]?.dot}` }}>
+        <header className="shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4" style={{ borderTop: `4px solid ${STAGE_STYLE[lead.status]?.dot}` }}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="font-mono text-[10px] tracking-widest text-slate-400">{q.contractNumber ? `CONTRATO ${q.contractNumber}` : q.leadCode || `LEAD ${lead.id}`}</p>
@@ -92,7 +90,7 @@ export default function LeadDrawer({ data, leadId, onClose }: { data: AdminShare
           </div>
         </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-5">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-5">
           {/* Pipeline controls */}
           <Card>
             <div className="mb-3 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Etapa">

@@ -104,7 +104,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     toggleAdminActiveStatus,
     updateAdminRole,
     seoSettings,
-    saveSEOSettings
+    saveSEOSettings,
+    token
   } = useColmedikal();
 
   const prevLeadsCountRef = useRef(leads.length);
@@ -127,12 +128,21 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   };
 
   // Secure Authentication States
+  // The panel counts as logged in only while the API token is alive — the flag
+  // alone survived token expiry and showed an empty (all-zero) panel on reload.
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return sessionStorage.getItem('colmedikal_admin_auth') === 'true';
+    return sessionStorage.getItem('colmedikal_admin_auth') === 'true' && !!sessionStorage.getItem('colmedikal_token');
   });
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  useEffect(() => {
+    if (isAuthenticated && !token) {
+      setIsAuthenticated(false);
+      sessionStorage.removeItem('colmedikal_admin_auth');
+      setLoginError('Tu sesión expiró. Ingresa de nuevo para ver los datos actualizados.');
+    }
+  }, [token, isAuthenticated]);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Document Viewer overlay state

@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 import helmet from 'helmet';
 import crypto from 'crypto';
 import { registerCrmRoutes, logActivity, recordPortalLogin } from './src/server/crm';
-import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, clientMail, teamMail, type LeadMailData } from './src/server/leadMail';
+import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
 // WASM-based llhttp parser, which fails under CloudLinux LVE memory limits).
@@ -904,6 +904,10 @@ async function startServer() {
   let leadsRefresh: Promise<any[]> | null = null;
   const refreshLeadsShared = () =>
     (leadsRefresh ||= getLeads(true).finally(() => { leadsRefresh = null; }));
+  const pdfFor = (d: LeadMailData) => {
+    try { const a = quotePdfAttachment(d); return a ? [a] : []; }
+    catch (e) { console.error('[lead-pdf]', d.code, e); return []; } // email still goes out without the PDF
+  };
   const leadMailData = (lead: any): LeadMailData => {
     const qd = parseQuoteData(lead);
     const ov = loadLeadPlanOverrides()[String(lead.id)];
@@ -917,6 +921,9 @@ async function startServer() {
       province: qd.province,
       members: 1 + (Number(qd.childrenCount) || 0),
       plan: ov?.selectedPlanName || qd.selectedPlanName || '',
+      planId: ov?.basePlanId || qd.basePlanId || undefined,
+      docType: qd.docType,
+      childrenAges: Array.isArray(qd.childrenAges) ? qd.childrenAges.map(Number).filter(Number.isFinite) : [],
       price: Number(ov?.estimatedPrice ?? lead.estimated_price ?? lead.estimatedPrice) || 0,
       source: qd.source,
       createdAt: lead.created_at || lead.timestamp,
@@ -959,7 +966,7 @@ async function startServer() {
       const team = teamMail(d, isNew);
       const results = await Promise.allSettled([
         /\S+@\S+\.\S+/.test(d.email)
-          ? mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...client })
+          ? mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...client, attachments: pdfFor(d) })
           : Promise.reject(new Error('lead sin email válido')),
         LEAD_NOTIFY_TO.length
           ? mailer.sendMail({ from: MAIL_FROM, to: LEAD_NOTIFY_TO, replyTo: d.email || undefined, ...team })
@@ -999,7 +1006,7 @@ async function startServer() {
       const d = leadMailData(lead);
       if (!/\S+@\S+\.\S+/.test(d.email)) return res.status(400).json({ success: false, message: 'El lead no tiene un correo válido' });
 
-      await mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...clientMail(d) });
+      await mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...clientMail(d), attachments: pdfFor(d) });
       logActivity(String(lead.id), 'email', `Cotización enviada a ${d.email}${d.plan ? ` (${d.plan})` : ''}`, typeof req.body?.by === 'string' ? req.body.by.slice(0, 80) : 'Admin');
       res.json({ success: true, to: d.email });
     } catch (e: any) {

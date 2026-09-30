@@ -2,6 +2,8 @@ import type React from 'react';
 // Mounts the CRM overlays (lead file drawer + toasts) once for the whole admin
 // shell, so any section can open a lead's file with useCrmUI().openLead(id).
 import { createContext, useContext, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useAdminTheme } from '../AdminThemeContext';
 import type { AdminSharedProps } from '../adminTypes';
 import LeadDrawer from './LeadDrawer';
 import { Toaster } from './ui';
@@ -25,11 +27,21 @@ export async function sendQuoteEmail(leadId: string) {
 
 export default function CrmProvider({ data, children }: { data: AdminSharedProps; children: React.ReactNode }) {
   const [leadId, setLeadId] = useState<string | null>(null);
+  const { theme } = useAdminTheme();
   return (
     <Ctx.Provider value={{ openLead: id => setLeadId(String(id)) }}>
       {children}
-      {leadId && <LeadDrawer data={data} leadId={leadId} onClose={() => setLeadId(null)} />}
-      <Toaster />
+      {/* Portaled to <body>: the admin sits inside an `animate-in` wrapper whose
+          (fill-mode: both) transform animation turns it into the containing
+          block for position:fixed, so an in-tree drawer grew to the page height.
+          The wrapper div re-applies the admin's dark theme outside the tree. */}
+      {createPortal(
+        <div className={theme === 'dark' ? 'dark' : ''}>
+          {leadId && <LeadDrawer data={data} leadId={leadId} onClose={() => setLeadId(null)} />}
+          <Toaster />
+        </div>,
+        document.body,
+      )}
     </Ctx.Provider>
   );
 }
