@@ -1575,8 +1575,12 @@ async function startServer() {
     verifyPortalPassword,
     getContact: async (leadId) => {
       const lead = await getLeadById(leadId) || (await getLeads()).find((l) => String(l.id) === leadId);
-      if (!lead) return null;
+      if (!lead) {
+        console.warn("[portal-contact] lead not found in API", leadId);
+        return null;
+      }
       const qd = parseQuoteData(lead);
+      if (!qd.email) console.warn("[portal-contact] lead has no quote_data.email", leadId, "keys:", Object.keys(qd).join(","));
       return { email: String(qd.email || ""), fullName: String(qd.fullName || "") };
     },
     findLegacyAccount: async (doc) => {
