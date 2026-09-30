@@ -24,14 +24,14 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 
 // server.ts
 var import_config = require("dotenv/config");
-var import_express3 = __toESM(require("express"), 1);
-var import_path3 = __toESM(require("path"), 1);
-var import_fs3 = __toESM(require("fs"), 1);
+var import_express4 = __toESM(require("express"), 1);
+var import_path4 = __toESM(require("path"), 1);
+var import_fs4 = __toESM(require("fs"), 1);
 var import_https = __toESM(require("https"), 1);
 var import_vite = require("vite");
 var import_jsonwebtoken = __toESM(require("jsonwebtoken"), 1);
 var import_helmet = __toESM(require("helmet"), 1);
-var import_crypto3 = __toESM(require("crypto"), 1);
+var import_crypto4 = __toESM(require("crypto"), 1);
 
 // src/server/crm.ts
 var import_fs = __toESM(require("fs"), 1);
@@ -1012,6 +1012,141 @@ ${comment ? `<p style="font-size:14px;color:#334155;line-height:1.6;background:#
   await mailer.sendMail({ from: MAIL_FROM, to, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
 }
 
+// src/server/portalPassword.ts
+var import_fs3 = __toESM(require("fs"), 1);
+var import_path3 = __toESM(require("path"), 1);
+var import_crypto3 = __toESM(require("crypto"), 1);
+var import_express3 = __toESM(require("express"), 1);
+
+// src/data/password.ts
+var MIN_PASSWORD = 8;
+var passwordProblem = (p) => p.length < MIN_PASSWORD ? `La contrase\xF1a debe tener al menos ${MIN_PASSWORD} caracteres.` : !/[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(p) || !/\d/.test(p) ? "La contrase\xF1a debe combinar letras y n\xFAmeros." : p.length > 200 ? "La contrase\xF1a es demasiado larga." : "";
+
+// src/server/portalPassword.ts
+var TOKEN_TTL = 30 * 6e4;
+var PORTAL_URL = "https://colmedikal.com/mi-colmedikal";
+function registerPortalPasswordRoutes(app, deps) {
+  const TOKENS_FILE = import_path3.default.join(deps.dataDir, "portal-reset-tokens.json");
+  const loadTokens = () => {
+    try {
+      return JSON.parse(import_fs3.default.readFileSync(TOKENS_FILE, "utf8"));
+    } catch {
+      return {};
+    }
+  };
+  const saveTokens = (t) => {
+    const now2 = Date.now();
+    for (const k of Object.keys(t)) if (t[k].exp < now2) delete t[k];
+    import_fs3.default.mkdirSync(deps.dataDir, { recursive: true });
+    import_fs3.default.writeFileSync(TOKENS_FILE, JSON.stringify(t));
+  };
+  const sha = (s) => import_crypto3.default.createHash("sha256").update(s).digest("hex");
+  const normId = (s) => typeof s === "string" ? s.toLowerCase().replace(/\s/g, "").trim() : "";
+  const hits = /* @__PURE__ */ new Map();
+  const throttled = (key, max, windowMs) => {
+    const now2 = Date.now();
+    const list = (hits.get(key) || []).filter((t) => now2 - t < windowMs);
+    list.push(now2);
+    hits.set(key, list);
+    return list.length > max;
+  };
+  const clientIp = (req) => String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.ip || "";
+  const setPassword = (leadId, password) => {
+    const store = deps.loadPortalCreds();
+    const { hash, salt } = deps.hashPortalPassword(password);
+    store[leadId] = { ...store[leadId], hash, salt, updatedAt: Date.now() };
+    deps.savePortalCreds(store);
+  };
+  const sendChangedNotice = async (leadId, how) => {
+    const c = await deps.getContact(leadId).catch(() => null);
+    if (!mailer || !c?.email) return;
+    const title = "Tu contrase\xF1a de Mi Colmedikal cambi\xF3";
+    const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(c.fullName.split(" ")[0])}, la contrase\xF1a de tu cuenta en Mi Colmedikal se cambi\xF3 ${esc(how)} el ${esc((/* @__PURE__ */ new Date()).toLocaleString("es-EC", { timeZone: "America/Guayaquil", dateStyle: "long", timeStyle: "short" }))}.</p>
+<p style="font-size:14px;color:#334155;line-height:1.6">Si fuiste t\xFA, no necesitas hacer nada. <b>Si no reconoces este cambio</b>, restablece tu contrase\xF1a de inmediato desde <a href="${PORTAL_URL}" style="color:#0d9488">Mi Colmedikal</a> y escr\xEDbenos por WhatsApp al 098 702 8756.</p>`;
+    await mailer.sendMail({ from: MAIL_FROM, to: c.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+  };
+  app.post("/api/portal/forgot", import_express3.default.json(), async (req, res) => {
+    const generic = { success: true, message: "Si la c\xE9dula tiene una cuenta activa, enviamos un enlace para restablecer la contrase\xF1a al correo registrado. Revisa tambi\xE9n la carpeta de spam." };
+    try {
+      const doc = normId(req.body?.docNumber);
+      if (!/^[a-z0-9]{5,20}$/.test(doc)) return res.status(400).json({ success: false, message: "Ingresa tu n\xFAmero de c\xE9dula o pasaporte." });
+      if (throttled(`ip:${clientIp(req)}`, 10, 60 * 6e4) || throttled(`doc:${doc}`, 3, 15 * 6e4)) {
+        return res.status(429).json({ success: false, message: "Demasiadas solicitudes. Intenta de nuevo en unos minutos." });
+      }
+      const store = deps.loadPortalCreds();
+      let leadId = Object.entries(store).find(([, c]) => normId(c.docNumber) === doc)?.[0];
+      if (!leadId) {
+        const legacy = await deps.findLegacyAccount?.(doc).catch(() => null);
+        if (!legacy) return res.json(generic);
+        leadId = legacy.leadId;
+        store[leadId] = { docNumber: doc, hash: legacy.hash, salt: legacy.salt, updatedAt: Date.now() };
+        deps.savePortalCreds(store);
+      }
+      if (!mailer) return res.json(generic);
+      const contact = await deps.getContact(leadId).catch(() => null);
+      if (!contact?.email) return res.json(generic);
+      const token = import_crypto3.default.randomBytes(32).toString("base64url");
+      const tokens = loadTokens();
+      for (const [k, v] of Object.entries(tokens)) if (v.leadId === leadId) delete tokens[k];
+      tokens[sha(token)] = { leadId, exp: Date.now() + TOKEN_TTL };
+      saveTokens(tokens);
+      const link = `${PORTAL_URL}?reset=${token}`;
+      const title = "Restablece tu contrase\xF1a de Mi Colmedikal";
+      const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(contact.fullName.split(" ")[0])}, recibimos una solicitud para restablecer la contrase\xF1a de tu cuenta en Mi Colmedikal.</p>
+<p style="text-align:center;margin:28px 0"><a href="${link}" style="background:#0C4169;color:#fff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:bold;font-size:14px">Crear nueva contrase\xF1a</a></p>
+<p style="font-size:12px;color:#64748b;line-height:1.6">El enlace vence en 30 minutos y sirve una sola vez. Si no solicitaste este cambio, ignora este correo: tu contrase\xF1a actual sigue funcionando.</p>
+<p style="font-size:11px;color:#94a3b8;word-break:break-all">Si el bot\xF3n no funciona, copia este enlace en tu navegador:<br>${esc(link)}</p>`;
+      await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+      logActivity(leadId, "sistema", "El cliente solicit\xF3 restablecer su contrase\xF1a del portal", "Cliente");
+      res.json(generic);
+    } catch (e) {
+      console.error("[portal-forgot]", e);
+      res.json(generic);
+    }
+  });
+  app.post("/api/portal/reset", import_express3.default.json(), async (req, res) => {
+    try {
+      const token = typeof req.body?.token === "string" ? req.body.token : "";
+      const password = typeof req.body?.password === "string" ? req.body.password : "";
+      if (throttled(`reset:${clientIp(req)}`, 20, 15 * 6e4)) return res.status(429).json({ success: false, message: "Demasiados intentos. Espera unos minutos." });
+      const tokens = loadTokens();
+      const rec = token ? tokens[sha(token)] : void 0;
+      if (!rec || rec.exp < Date.now()) return res.status(400).json({ success: false, message: "El enlace no es v\xE1lido o ya venci\xF3. Solicita uno nuevo." });
+      const problem = passwordProblem(password);
+      if (problem) return res.status(400).json({ success: false, message: problem });
+      delete tokens[sha(token)];
+      saveTokens(tokens);
+      setPassword(rec.leadId, password);
+      logActivity(rec.leadId, "sistema", "El cliente restableci\xF3 su contrase\xF1a del portal (enlace por correo)", "Cliente");
+      sendChangedNotice(rec.leadId, "mediante el enlace de restablecimiento").catch((e) => console.error("[portal-reset-mail]", e?.message || e));
+      res.json({ success: true, message: "Contrase\xF1a actualizada. Ya puedes ingresar con tu c\xE9dula y la nueva contrase\xF1a." });
+    } catch (e) {
+      console.error("[portal-reset]", e);
+      res.status(500).json({ success: false, message: "Error interno" });
+    }
+  });
+  app.post("/api/portal/change-password", deps.verifyPortalToken, import_express3.default.json(), async (req, res) => {
+    try {
+      const leadId = String(req.leadId);
+      const current = typeof req.body?.current === "string" ? req.body.current : "";
+      const password = typeof req.body?.password === "string" ? req.body.password : "";
+      if (throttled(`chg:${leadId}`, 5, 15 * 6e4)) return res.status(429).json({ success: false, message: "Demasiados intentos. Espera unos minutos." });
+      const cred = deps.loadPortalCreds()[leadId];
+      if (!cred || !deps.verifyPortalPassword(current, cred.hash, cred.salt)) return res.status(400).json({ success: false, message: "La contrase\xF1a actual no es correcta." });
+      const problem = passwordProblem(password);
+      if (problem) return res.status(400).json({ success: false, message: problem });
+      if (password === current) return res.status(400).json({ success: false, message: "La nueva contrase\xF1a debe ser distinta de la actual." });
+      setPassword(leadId, password);
+      logActivity(leadId, "sistema", "El cliente cambi\xF3 su contrase\xF1a del portal", "Cliente");
+      sendChangedNotice(leadId, "desde tu panel").catch((e) => console.error("[portal-change-mail]", e?.message || e));
+      res.json({ success: true, message: "Contrase\xF1a actualizada." });
+    } catch (e) {
+      console.error("[portal-change-password]", e);
+      res.status(500).json({ success: false, message: "Error interno" });
+    }
+  });
+}
+
 // server.ts
 function httpsGetJson(url, timeoutMs = 4e3) {
   return new Promise((resolve, reject) => {
@@ -1058,7 +1193,7 @@ function verifyToken(req, res, next) {
   }
 }
 async function startServer() {
-  const app = (0, import_express3.default)();
+  const app = (0, import_express4.default)();
   const PORT = Number(process.env.PORT) || 3e3;
   app.use((req, res, next) => {
     if (req.hostname === "www.colmedikal.com") {
@@ -1089,7 +1224,7 @@ async function startServer() {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     next();
   });
-  app.post("/api/auth/login", import_express3.default.json(), async (req, res) => {
+  app.post("/api/auth/login", import_express4.default.json(), async (req, res) => {
     try {
       const { password } = req.body;
       if (!password || typeof password !== "string") {
@@ -1100,7 +1235,7 @@ async function startServer() {
       let isValid = false;
       if (passwordBuffer.length === correctBuffer.length) {
         try {
-          isValid = import_crypto3.default.timingSafeEqual(passwordBuffer, correctBuffer);
+          isValid = import_crypto4.default.timingSafeEqual(passwordBuffer, correctBuffer);
         } catch {
           isValid = false;
         }
@@ -1131,7 +1266,7 @@ async function startServer() {
   app.get("/api/version", (req, res) => {
     try {
       const { execSync } = require("child_process");
-      const metaRaw = import_fs3.default.readFileSync(import_path3.default.join(process.cwd(), "metadata.json"), "utf-8");
+      const metaRaw = import_fs4.default.readFileSync(import_path4.default.join(process.cwd(), "metadata.json"), "utf-8");
       const meta = JSON.parse(metaRaw);
       const deployVersion = meta.deployVersion || "1.0";
       const gitCommit = execSync("git rev-parse --short HEAD", { encoding: "utf-8", cwd: process.cwd() }).trim();
@@ -1149,7 +1284,7 @@ async function startServer() {
       });
     }
   });
-  app.post("/api/forms/submit", import_express3.default.json(), async (req, res) => {
+  app.post("/api/forms/submit", import_express4.default.json(), async (req, res) => {
     try {
       const { type, data } = req.body;
       if (!type || !["contact", "quote", "reimbursement"].includes(type)) {
@@ -1240,7 +1375,7 @@ async function startServer() {
       return null;
     }
   };
-  app.post("/api/leads/lookup", import_express3.default.json(), async (req, res) => {
+  app.post("/api/leads/lookup", import_express4.default.json(), async (req, res) => {
     try {
       if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
         return res.json({ isDuplicate: false, codes: [], configured: false });
@@ -1277,44 +1412,44 @@ async function startServer() {
   const PORTAL_HASH_ITERATIONS = 21e4;
   const PORTAL_HASH_KEYLEN = 32;
   const PORTAL_HASH_DIGEST = "sha256";
-  const PORTAL_DATA_DIR = import_path3.default.join(process.cwd(), "data");
-  const PORTAL_CREDS_FILE = import_path3.default.join(PORTAL_DATA_DIR, "portal-credentials.json");
-  const PAYMENT_OVERRIDES_FILE = import_path3.default.join(PORTAL_DATA_DIR, "payment-status-overrides.json");
+  const PORTAL_DATA_DIR = import_path4.default.join(process.cwd(), "data");
+  const PORTAL_CREDS_FILE = import_path4.default.join(PORTAL_DATA_DIR, "portal-credentials.json");
+  const PAYMENT_OVERRIDES_FILE = import_path4.default.join(PORTAL_DATA_DIR, "payment-status-overrides.json");
   function loadPaymentOverrides() {
     try {
-      return JSON.parse(import_fs3.default.readFileSync(PAYMENT_OVERRIDES_FILE, "utf8"));
+      return JSON.parse(import_fs4.default.readFileSync(PAYMENT_OVERRIDES_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function savePaymentOverrides(store) {
-    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs3.default.writeFileSync(PAYMENT_OVERRIDES_FILE, JSON.stringify(store));
+    import_fs4.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs4.default.writeFileSync(PAYMENT_OVERRIDES_FILE, JSON.stringify(store));
   }
   function loadPortalCreds() {
     try {
-      return JSON.parse(import_fs3.default.readFileSync(PORTAL_CREDS_FILE, "utf8"));
+      return JSON.parse(import_fs4.default.readFileSync(PORTAL_CREDS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function savePortalCreds(store) {
-    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs3.default.writeFileSync(PORTAL_CREDS_FILE, JSON.stringify(store));
+    import_fs4.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs4.default.writeFileSync(PORTAL_CREDS_FILE, JSON.stringify(store));
   }
-  const CLIENT_ADDRESS_FILE = import_path3.default.join(PORTAL_DATA_DIR, "client-address-overrides.json");
+  const CLIENT_ADDRESS_FILE = import_path4.default.join(PORTAL_DATA_DIR, "client-address-overrides.json");
   function loadClientAddresses() {
     try {
-      return JSON.parse(import_fs3.default.readFileSync(CLIENT_ADDRESS_FILE, "utf8"));
+      return JSON.parse(import_fs4.default.readFileSync(CLIENT_ADDRESS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveClientAddresses(store) {
-    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs3.default.writeFileSync(CLIENT_ADDRESS_FILE, JSON.stringify(store));
+    import_fs4.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs4.default.writeFileSync(CLIENT_ADDRESS_FILE, JSON.stringify(store));
   }
-  const LEAD_PLAN_FILE = import_path3.default.join(PORTAL_DATA_DIR, "lead-plan-overrides.json");
+  const LEAD_PLAN_FILE = import_path4.default.join(PORTAL_DATA_DIR, "lead-plan-overrides.json");
   const PLAN_CATALOG = {
     inicio: { name: "Plan Inicio 2K", basePrice: 8 },
     proteccion: { name: "Plan Protecci\xF3n 3K", basePrice: 12 },
@@ -1322,50 +1457,50 @@ async function startServer() {
   };
   function loadLeadPlanOverrides() {
     try {
-      return JSON.parse(import_fs3.default.readFileSync(LEAD_PLAN_FILE, "utf8"));
+      return JSON.parse(import_fs4.default.readFileSync(LEAD_PLAN_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveLeadPlanOverrides(store) {
-    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs3.default.writeFileSync(LEAD_PLAN_FILE, JSON.stringify(store));
+    import_fs4.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs4.default.writeFileSync(LEAD_PLAN_FILE, JSON.stringify(store));
   }
-  const CONTRACT_NUMBERS_FILE = import_path3.default.join(PORTAL_DATA_DIR, "client-contract-numbers.json");
+  const CONTRACT_NUMBERS_FILE = import_path4.default.join(PORTAL_DATA_DIR, "client-contract-numbers.json");
   function loadContractNumbers() {
     try {
-      return JSON.parse(import_fs3.default.readFileSync(CONTRACT_NUMBERS_FILE, "utf8"));
+      return JSON.parse(import_fs4.default.readFileSync(CONTRACT_NUMBERS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveContractNumbers(store) {
-    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs3.default.writeFileSync(CONTRACT_NUMBERS_FILE, JSON.stringify(store));
+    import_fs4.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs4.default.writeFileSync(CONTRACT_NUMBERS_FILE, JSON.stringify(store));
   }
-  const DELETED_LEADS_FILE = import_path3.default.join(PORTAL_DATA_DIR, "deleted-lead-ids.json");
+  const DELETED_LEADS_FILE = import_path4.default.join(PORTAL_DATA_DIR, "deleted-lead-ids.json");
   function loadDeletedLeads() {
     try {
-      return JSON.parse(import_fs3.default.readFileSync(DELETED_LEADS_FILE, "utf8"));
+      return JSON.parse(import_fs4.default.readFileSync(DELETED_LEADS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveDeletedLeads(store) {
-    import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs3.default.writeFileSync(DELETED_LEADS_FILE, JSON.stringify(store));
+    import_fs4.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs4.default.writeFileSync(DELETED_LEADS_FILE, JSON.stringify(store));
   }
   function hashPortalPassword(password, saltHex) {
-    const salt = saltHex || import_crypto3.default.randomBytes(16).toString("hex");
-    const hash = import_crypto3.default.pbkdf2Sync(password, salt, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST).toString("hex");
+    const salt = saltHex || import_crypto4.default.randomBytes(16).toString("hex");
+    const hash = import_crypto4.default.pbkdf2Sync(password, salt, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST).toString("hex");
     return { hash, salt };
   }
   function verifyPortalPassword(password, storedHashHex, saltHex) {
     try {
-      const candidate = import_crypto3.default.pbkdf2Sync(password, saltHex, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST);
+      const candidate = import_crypto4.default.pbkdf2Sync(password, saltHex, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST);
       const stored = Buffer.from(storedHashHex, "hex");
       if (candidate.length !== stored.length) return false;
-      return import_crypto3.default.timingSafeEqual(candidate, stored);
+      return import_crypto4.default.timingSafeEqual(candidate, stored);
     } catch {
       return false;
     }
@@ -1421,7 +1556,26 @@ async function startServer() {
   };
   registerCrmRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, loadPortalCreds });
   registerClaimRoutes(app, { dataDir: PORTAL_DATA_DIR, verifyPortalToken, requireAdmin: makeRequireAdmin(httpsJson) });
-  app.post("/api/portal/login", import_express3.default.json(), async (req, res) => {
+  registerPortalPasswordRoutes(app, {
+    dataDir: PORTAL_DATA_DIR,
+    verifyPortalToken,
+    loadPortalCreds,
+    savePortalCreds,
+    hashPortalPassword,
+    verifyPortalPassword,
+    getContact: async (leadId) => {
+      const lead = await getLeadById(leadId) || (await getLeads()).find((l) => String(l.id) === leadId);
+      if (!lead) return null;
+      const qd = parseQuoteData(lead);
+      return { email: String(qd.email || ""), fullName: String(qd.fullName || "") };
+    },
+    findLegacyAccount: async (doc) => {
+      const leads = await getLeads(true).catch(() => []);
+      const hit = leads.map((l) => ({ l, qd: parseQuoteData(l) })).filter(({ qd }) => normId(qd.docNumber) === doc && qd.portalPasswordHash && qd.portalPasswordSalt).sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime())[0];
+      return hit ? { leadId: String(hit.l.id), hash: hit.qd.portalPasswordHash, salt: hit.qd.portalPasswordSalt } : null;
+    }
+  });
+  app.post("/api/portal/login", import_express4.default.json(), async (req, res) => {
     try {
       if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
         return res.status(503).json({ success: false, message: "Portal no disponible por el momento" });
@@ -1446,9 +1600,13 @@ async function startServer() {
       }
       if (!matchedLeadId) {
         const leads = await getLeads(true).catch(() => []);
-        const candidates = leads.map((l) => ({ l, qd: parseQuoteData(l) })).filter(({ qd }) => normId(qd.docNumber) === docNumber && qd.portalPasswordHash && qd.portalPasswordSalt).sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime());
+        const candidates = leads.map((l) => ({ l, qd: parseQuoteData(l) })).filter(({ l, qd }) => !credsStore[String(l.id)] && normId(qd.docNumber) === docNumber && qd.portalPasswordHash && qd.portalPasswordSalt).sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime());
         const match = candidates.find(({ qd }) => verifyPortalPassword(password, qd.portalPasswordHash, qd.portalPasswordSalt));
-        if (match) matchedLeadId = String(match.l.id);
+        if (match) {
+          matchedLeadId = String(match.l.id);
+          credsStore[matchedLeadId] = { docNumber, hash: match.qd.portalPasswordHash, salt: match.qd.portalPasswordSalt, updatedAt: Date.now() };
+          savePortalCreds(credsStore);
+        }
       }
       if (!matchedLeadId) {
         const next = { count: (attempt?.count || 0) + 1, lockUntil: 0 };
@@ -1577,7 +1735,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/portal/set-password", import_express3.default.json(), async (req, res) => {
+  app.post("/api/portal/set-password", import_express4.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -1622,7 +1780,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/set-payment-status", import_express3.default.json(), async (req, res) => {
+  app.post("/api/admin/set-payment-status", import_express4.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -1648,7 +1806,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/portal/address", verifyPortalToken, import_express3.default.json(), async (req, res) => {
+  app.post("/api/portal/address", verifyPortalToken, import_express4.default.json(), async (req, res) => {
     try {
       const leadId = req.leadId;
       const str3 = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
@@ -1692,7 +1850,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/leads/plan-override", import_express3.default.json(), async (req, res) => {
+  app.post("/api/leads/plan-override", import_express4.default.json(), async (req, res) => {
     try {
       const leadId = req.body?.leadId;
       const selectedPlanName = typeof req.body?.selectedPlanName === "string" ? req.body.selectedPlanName.trim().slice(0, 200) : "";
@@ -1715,7 +1873,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  const LEAD_MAIL_FILE = import_path3.default.join(PORTAL_DATA_DIR, "lead-mail-sent.json");
+  const LEAD_MAIL_FILE = import_path4.default.join(PORTAL_DATA_DIR, "lead-mail-sent.json");
   let leadsRefresh = null;
   const refreshLeadsShared = () => leadsRefresh ||= getLeads(true).finally(() => {
     leadsRefresh = null;
@@ -1750,7 +1908,7 @@ async function startServer() {
       createdAt: lead.created_at || lead.timestamp
     };
   };
-  app.post("/api/leads/notify", import_express3.default.json(), async (req, res) => {
+  app.post("/api/leads/notify", import_express4.default.json(), async (req, res) => {
     try {
       if (!mailer) return res.json({ success: false, configured: false });
       const code = typeof req.body?.leadCode === "string" ? req.body.leadCode.trim() : "";
@@ -1770,15 +1928,15 @@ async function startServer() {
       const { plan } = d;
       let sent = {};
       try {
-        sent = JSON.parse(import_fs3.default.readFileSync(LEAD_MAIL_FILE, "utf8"));
+        sent = JSON.parse(import_fs4.default.readFileSync(LEAD_MAIL_FILE, "utf8"));
       } catch {
       }
       const key = `${code}|${plan}`;
       if (sent[key]) return res.json({ success: true, skipped: true });
       const isNew = !Object.keys(sent).some((k) => k.startsWith(code + "|"));
       sent[key] = Date.now();
-      import_fs3.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-      import_fs3.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
+      import_fs4.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+      import_fs4.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
       const client = clientMail(d);
       const team = teamMail(d, isNew);
       const results = await Promise.allSettled([
@@ -1790,7 +1948,7 @@ async function startServer() {
       });
       if (results.every((r) => r.status === "rejected")) {
         delete sent[key];
-        import_fs3.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
+        import_fs4.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
         return res.status(502).json({ success: false, message: "No se pudo enviar" });
       }
       if (results[0].status === "fulfilled") logActivity(String(lead.id), "email", `Cotizaci\xF3n enviada autom\xE1ticamente a ${d.email}${plan ? ` (${plan})` : ""}`);
@@ -1800,7 +1958,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/send-quote-email", import_express3.default.json(), async (req, res) => {
+  app.post("/api/admin/send-quote-email", import_express4.default.json(), async (req, res) => {
     try {
       const callerToken = req.headers.authorization?.split(" ")[1];
       if (!callerToken) return res.status(401).json({ success: false, message: "Token de administrador requerido" });
@@ -1823,7 +1981,7 @@ async function startServer() {
       res.status(502).json({ success: false, message: "No se pudo enviar el correo" });
     }
   });
-  app.post("/api/admin/set-lead-plan", import_express3.default.json(), async (req, res) => {
+  app.post("/api/admin/set-lead-plan", import_express4.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -1856,7 +2014,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/set-contract-number", import_express3.default.json(), async (req, res) => {
+  app.post("/api/admin/set-contract-number", import_express4.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -1910,7 +2068,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/delete-lead", import_express3.default.json(), async (req, res) => {
+  app.post("/api/admin/delete-lead", import_express4.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -1958,7 +2116,7 @@ async function startServer() {
     if (!provided) return res.status(401).json({ success: false, message: "API key requerida" });
     const a = Buffer.from(provided);
     const b = Buffer.from(PARTNER_API_KEY);
-    if (a.length !== b.length || !import_crypto3.default.timingSafeEqual(a, b)) {
+    if (a.length !== b.length || !import_crypto4.default.timingSafeEqual(a, b)) {
       return res.status(403).json({ success: false, message: "API key inv\xE1lida" });
     }
     next();
@@ -1986,8 +2144,8 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  const distPath = import_path3.default.join(process.cwd(), "dist");
-  const hasDist = import_fs3.default.existsSync(import_path3.default.join(distPath, "index.html"));
+  const distPath = import_path4.default.join(process.cwd(), "dist");
+  const hasDist = import_fs4.default.existsSync(import_path4.default.join(distPath, "index.html"));
   const isProd = process.env.NODE_ENV === "production" || hasDist;
   if (!isProd) {
     const vite = await (0, import_vite.createServer)({
@@ -1996,7 +2154,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(import_express3.default.static(distPath, { index: false }));
+    app.use(import_express4.default.static(distPath, { index: false }));
     const routes = {
       "/": {
         title: "Colmedikal | Medicina Prepagada en Ecuador \u2014 Planes Familia e Individual",
@@ -2161,7 +2319,7 @@ ${[...staticUrls, ...extraUrls, ...blogUrls].join("\n")}
         keywords: ov.keywords || base.keywords,
         og_image: base.og_image
       };
-      let html = import_fs3.default.readFileSync(import_path3.default.join(distPath, "index.html"), "utf8");
+      let html = import_fs4.default.readFileSync(import_path4.default.join(distPath, "index.html"), "utf8");
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc2(meta.title)}</title>`);
       const ogType = pathname.startsWith("/blog/") && pathname !== "/blog" ? "article" : "website";
       const inject = `

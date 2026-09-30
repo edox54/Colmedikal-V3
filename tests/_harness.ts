@@ -1,0 +1,17 @@
+import express from 'express';
+import path from 'path';
+import { registerClaimRoutes } from '../src/server/claims';
+import { registerPortalPasswordRoutes } from '../src/server/portalPassword';
+import crypto from 'crypto';
+const app = express();
+const auth = (req: any, res: any, next: any) => (req.headers.authorization === 'Bearer demo' ? ((req.leadId = '77'), next()) : res.status(401).json({ success: false }));
+registerClaimRoutes(app, { dataDir: '/private/tmp/claude-501/-Users-edox54/ff1f1089-867e-48e0-a88e-833dc7489f6e/scratchpad/harness-data', verifyPortalToken: auth, requireAdmin: (_q: any, _r: any, n: any) => n() });
+const h=(p:string,salt=crypto.randomBytes(8).toString('hex'))=>({hash:crypto.createHash('sha256').update(salt+p).digest('hex'),salt});
+let creds:any={'77':{docNumber:'1712345678',...h('Vieja1234'),updatedAt:1}};
+registerPortalPasswordRoutes(app,{dataDir:'/private/tmp/claude-501/-Users-edox54/ff1f1089-867e-48e0-a88e-833dc7489f6e/scratchpad/pp',verifyPortalToken:auth,loadPortalCreds:()=>creds,savePortalCreds:(c:any)=>{creds=c},hashPortalPassword:(p:string)=>h(p),verifyPortalPassword:(p:string,x:string,s:string)=>h(p,s).hash===x,getContact:async()=>({email:'a@b.co',fullName:'Ana'})});
+app.get('/api/portal/me', auth, (_q, r) => r.json({ success: true, data: { fullName: 'Ana Pérez Demo', docNumber: '1712345678', email: 'ana@demo.ec', phone: '0991234567', address: { city: 'Quito' }, addressComplete: true, selectedPlanName: 'Plan Plus 5K — $22/mes', basePlanId: 'plus', childrenCount: 0, childrenAges: [], paymentStatus: 'Pagado', status: 'Cierre Efectivo', clientSince: '2026-01-10' } }));
+app.get('/api/portal/dashboard', auth, (_q, r) => r.json({ success: true, data: { refunds: [], authorizations: [], appointments: [{ id: 5, doctorName: 'Dr. Ruiz', specialty: 'Cardiología', aptDate: '2026-10-05', aptTime: '10:00', status: 'Confirmada' }] } }));
+const dist = '/Users/edox54/Colmedikal-V3-Secured/dist';
+app.use(express.static(dist, { index: false }));
+app.get('*', (_q, r) => r.sendFile(path.join(dist, 'index.html')));
+app.listen(3230, () => console.log('harness on 3230'));

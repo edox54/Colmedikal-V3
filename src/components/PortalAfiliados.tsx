@@ -29,6 +29,7 @@ import {
 import { Page } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
 import ClaimsPanel from './portal/ClaimsPanel';
+import { ChangePassword, ForgotPassword, ResetPassword } from './portal/PasswordForms';
 import { listClaims } from './portal/claimsApi';
 import type { Claim } from '../data/claims';
 import AgendamientoCitas from './AgendamientoCitas';
@@ -248,6 +249,10 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
   const [docNumberInput, setDocNumberInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
+  // Password reset: the emailed link lands on /mi-colmedikal?reset=TOKEN
+  const [resetToken] = useState(() => new URLSearchParams(window.location.search).get('reset') || '');
+  const [authView, setAuthView] = useState<'login' | 'forgot' | 'reset'>(() => (new URLSearchParams(window.location.search).get('reset') ? 'reset' : 'login'));
+  const [loginNotice, setLoginNotice] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Real profile + dashboard data (refunds/authorizations/appointments), loaded after login
@@ -537,7 +542,17 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
             <p className="text-xs text-slate-400 mt-1">Ingresa para realizar trámites inmediatos y vigilar tus coberturas</p>
           </div>
 
-          <form onSubmit={handleLogin} className="p-8 space-y-6">
+          {authView === 'forgot' ? <ForgotPassword onBack={() => setAuthView('login')} />
+          : authView === 'reset' ? <ResetPassword token={resetToken} onDone={(m) => {
+              window.history.replaceState(null, '', window.location.pathname); // drop the one-time token from the URL
+              setLoginNotice(m); setAuthView('login');
+            }} />
+          : <form onSubmit={handleLogin} className="p-8 space-y-6">
+            {loginNotice && (
+              <div className="p-3 bg-teal-50 border border-teal-200 text-teal-800 text-xs rounded-xl flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 shrink-0" /><span>{loginNotice}</span>
+              </div>
+            )}
             {loginError && (
               <div className="p-3 bg-red-50 border border-red-100 text-red-650 text-xs rounded-xl flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -571,9 +586,9 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
             </div>
 
             <div className="flex items-center justify-end text-[11px]">
-              <a href="#reset" onClick={(e) => { e.preventDefault(); alert('Para restablecer tu contraseña contacta a tu asesor Colmedikal: 02-2567191 o WhatsApp: 098 702 8756'); }} className="text-indigo-650 font-semibold hover:underline">
+              <button type="button" onClick={() => { setAuthView('forgot'); setLoginError(''); }} className="text-indigo-650 font-semibold hover:underline cursor-pointer">
                 ¿Olvidaste tu contraseña?
-              </a>
+              </button>
             </div>
 
             <button
@@ -590,7 +605,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 ¿No eres afiliado activo? <button onClick={() => setCurrentPage('cotizador')} className="text-teal-650 font-bold hover:underline cursor-pointer">Cotiza un plan médico aquí</button>
               </p>
             </div>
-          </form>
+          </form>}
         </section>
       ) : !profile ? (
         /* Profile still loading (or failed and about to log out) */
@@ -1318,6 +1333,8 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                   </div>,
                   document.body
                 )}
+
+                {portalToken && <ChangePassword portalToken={portalToken} />}
               </div>
             )}
 

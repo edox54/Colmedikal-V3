@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import crypto from 'crypto';
 import { registerCrmRoutes, logActivity, recordPortalLogin, makeRequireAdmin } from './src/server/crm';
 import { registerClaimRoutes, loadLegacyHidden } from './src/server/claims';
+import { registerPortalPasswordRoutes } from './src/server/portalPassword';
 import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
@@ -536,6 +537,23 @@ async function startServer() {
 
   registerCrmRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, loadPortalCreds });
   registerClaimRoutes(app, { dataDir: PORTAL_DATA_DIR, verifyPortalToken, requireAdmin: makeRequireAdmin(httpsJson) });
+  registerPortalPasswordRoutes(app, {
+    dataDir: PORTAL_DATA_DIR, verifyPortalToken, loadPortalCreds, savePortalCreds, hashPortalPassword, verifyPortalPassword,
+    getContact: async (leadId) => {
+      const lead = (await getLeadById(leadId)) || (await getLeads()).find(l => String(l.id) === leadId);
+      if (!lead) return null;
+      const qd = parseQuoteData(lead);
+      return { email: String(qd.email || ''), fullName: String(qd.fullName || '') };
+    },
+    findLegacyAccount: async (doc) => {
+      const leads = await getLeads(true).catch(() => [] as any[]);
+      const hit = leads
+        .map(l => ({ l, qd: parseQuoteData(l) }))
+        .filter(({ qd }) => normId(qd.docNumber) === doc && qd.portalPasswordHash && qd.portalPasswordSalt)
+        .sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime())[0];
+      return hit ? { leadId: String(hit.l.id), hash: hit.qd.portalPasswordHash, salt: hit.qd.portalPasswordSalt } : null;
+    },
+  });
 
   app.post('/api/portal/login', express.json(), async (req, res) => {
     try {
@@ -571,10 +589,17 @@ async function startServer() {
         const leads = await getLeads(true).catch(() => [] as any[]);
         const candidates = leads
           .map(l => ({ l, qd: parseQuoteData(l) }))
-          .filter(({ qd }) => normId(qd.docNumber) === docNumber && qd.portalPasswordHash && qd.portalPasswordSalt)
+          // Skip accounts that have a local credential: that one is authoritative, and
+          // a stale quote_data hash would otherwise keep an old/reset password working.
+          .filter(({ l, qd }) => !credsStore[String(l.id)] && normId(qd.docNumber) === docNumber && qd.portalPasswordHash && qd.portalPasswordSalt)
           .sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime());
         const match = candidates.find(({ qd }) => verifyPortalPassword(password, qd.portalPasswordHash, qd.portalPasswordSalt));
-        if (match) matchedLeadId = String(match.l.id);
+        if (match) {
+          matchedLeadId = String(match.l.id);
+          // Adopt the legacy credential into the local store so change/reset password work for this account.
+          credsStore[matchedLeadId] = { docNumber, hash: match.qd.portalPasswordHash, salt: match.qd.portalPasswordSalt, updatedAt: Date.now() };
+          savePortalCreds(credsStore);
+        }
       }
 
       if (!matchedLeadId) {
