@@ -2,6 +2,8 @@
 //   POST /api/admin/access/link          Super Admin emails a member a one-time link (24 h)
 //                                         to create their password (new access) or set a new one.
 //   POST /api/admin/access/set-password  the member sets it from that link.
+//   GET  /api/admin/access/permissions   panel permissions (own; Super Admin gets everyone's)
+//   PUT  /api/admin/access/permissions/:email   Super Admin sets a member's modules/actions
 // Admin accounts live in api.colmedikal.com; the password is written there with the
 // service account (API_ADMIN_EMAIL), which must be a Super Admin.
 import fs from 'fs';
@@ -10,6 +12,7 @@ import crypto from 'crypto';
 import express from 'express';
 import type { Express } from 'express';
 import { MAIL_FROM, esc, layout, mailer } from './leadMail';
+import { cleanPermissions, roleDefaults, type AdminPermissions } from '../data/adminPermissions';
 
 type Tokens = Record<string, { email: string; exp: number }>; // key = sha256(token)
 type HttpsJson = (url: string, opts?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<any>;
@@ -48,22 +51,81 @@ export function registerAdminAccessRoutes(app: Express, deps: {
     hits.set(key, list);
     return list.length > max;
   };
+  // Caller's token must be accepted by the API; returns the caller's row and the member list.
+  const whoIs = async (req: express.Request) => {
+    const tok = req.headers.authorization?.split(' ')[1] || '';
+    if (!tok) return { status: 401 as const };
+    let users: any[];
+    try { users = (await deps.httpsJson(`${API}/api/admin/users`, { headers: { Authorization: `Bearer ${tok}` } }))?.data || []; }
+    catch { return { status: 403 as const }; }
+    const email = String(jwtPayload(tok)?.email || '').toLowerCase();
+    const caller = users.find(u => String(u.email).toLowerCase() === email);
+    if (!caller || !caller.active) return { status: 403 as const };
+    return { status: 200 as const, caller, users, isSuper: caller.role === 'Super Admin' };
+  };
+
+  type PermStore = Record<string, AdminPermissions & { updatedAt: number; by: string }>;
+  const PERMS_FILE = path.join(deps.dataDir, 'admin-permissions.json');
+  const loadPerms = (): PermStore => { try { return JSON.parse(fs.readFileSync(PERMS_FILE, 'utf8')); } catch { return {}; } };
+  const effective = (u: any, store: PermStore): AdminPermissions => {
+    if (u.role === 'Super Admin') return roleDefaults('Super Admin'); // never restrictable → no lockout
+    const saved = store[String(u.email).toLowerCase()];
+    return saved ? { modules: saved.modules, deleteLeads: saved.deleteLeads } : roleDefaults(u.role);
+  };
+
+  app.get('/api/admin/access/permissions', async (req, res) => {
+    const w = await whoIs(req);
+    if (w.status !== 200) return res.status(w.status).json({ success: false, message: 'No autorizado' });
+    const store = loadPerms();
+    const mine = effective(w.caller, store);
+    if (!w.isSuper) return res.json({ success: true, mine });
+    const all: Record<string, AdminPermissions & { custom: boolean }> = {};
+    for (const u of w.users) {
+      const key = String(u.email).toLowerCase();
+      all[key] = { ...effective(u, store), custom: !!store[key] && u.role !== 'Super Admin' };
+    }
+    res.json({ success: true, mine, all });
+  });
+
+  app.put('/api/admin/access/permissions/:email', express.json(), async (req, res) => {
+    try {
+      const w = await whoIs(req);
+      if (w.status !== 200) return res.status(w.status).json({ success: false, message: 'No autorizado' });
+      if (!w.isSuper) return res.status(403).json({ success: false, message: 'Solo el Super Admin puede gestionar accesos' });
+      const target = String(req.params.email || '').toLowerCase();
+      const member = w.users.find(u => String(u.email).toLowerCase() === target);
+      if (!member) return res.status(404).json({ success: false, message: 'Miembro no encontrado' });
+      if (member.role === 'Super Admin') return res.status(400).json({ success: false, message: 'El Super Admin siempre tiene acceso total.' });
+      const store = loadPerms();
+      if (req.body?.reset === true) delete store[target]; // back to role defaults
+      else {
+        const p = cleanPermissions(req.body);
+        if (!p) return res.status(400).json({ success: false, message: 'Permisos inválidos' });
+        store[target] = { ...p, updatedAt: Date.now(), by: String(w.caller.email) };
+      }
+      fs.mkdirSync(deps.dataDir, { recursive: true });
+      fs.writeFileSync(PERMS_FILE, JSON.stringify(store));
+      console.log('[admin-permissions]', target, 'set by', w.caller.email);
+      res.json({ success: true, permissions: { ...effective(member, store), custom: !!store[target] } });
+    } catch (e: any) {
+      console.error('[admin-permissions]', e?.message || e);
+      res.status(500).json({ success: false, message: 'No se pudieron guardar los permisos' });
+    }
+  });
+
   const clientIp = (req: express.Request) => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || '';
 
   // 1) Super Admin sends the link
   app.post('/api/admin/access/link', express.json(), async (req, res) => {
     try {
-      const tok = req.headers.authorization?.split(' ')[1] || '';
       const target = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
       const isNew = req.body?.isNew === true;
-      if (!tok) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
-      // The caller's own token must be accepted by the API, and the caller must be an active Super Admin.
-      let users: any[];
-      try { users = (await deps.httpsJson(`${API}/api/admin/users`, { headers: { Authorization: `Bearer ${tok}` } }))?.data || []; }
-      catch { return res.status(403).json({ success: false, message: 'No autorizado' }); }
-      const callerEmail = String(jwtPayload(tok)?.email || '').toLowerCase();
-      const caller = users.find(u => String(u.email).toLowerCase() === callerEmail);
-      if (!caller || caller.role !== 'Super Admin' || !caller.active) return res.status(403).json({ success: false, message: 'Solo el Super Admin puede gestionar accesos' });
+      const w = await whoIs(req);
+      if (w.status === 401) return res.status(401).json({ success: false, message: 'Token de administrador requerido' });
+      if (w.status !== 200) return res.status(403).json({ success: false, message: 'No autorizado' });
+      if (!w.isSuper) return res.status(403).json({ success: false, message: 'Solo el Super Admin puede gestionar accesos' });
+      const { caller, users } = w;
+      const callerEmail = String(caller.email).toLowerCase();
       const member = users.find(u => String(u.email).toLowerCase() === target);
       if (!member) return res.status(404).json({ success: false, message: 'Miembro no encontrado' });
       if (!mailer) return res.status(503).json({ success: false, message: 'El correo no está configurado en el servidor' });

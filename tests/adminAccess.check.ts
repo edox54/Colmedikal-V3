@@ -41,6 +41,21 @@ const post = (p: string, body: any, tok?: string) => fetch(base + p, { method: '
   assert.equal(await post('/api/admin/access/set-password', { token, password: 'Nueva2026x' }), 200);
   assert.deepEqual(puts, [{ url: 'https://api.colmedikal.com/api/admin/users/aud%40x.co', auth: 'Bearer svc', body: '{"password":"Nueva2026x"}' }]);
   assert.equal(await post('/api/admin/access/set-password', { token, password: 'Otra2026xx' }), 400, 'single use');
+  // permissions
+  const req = (m: string, p: string, tok: string, body?: any) => fetch(base + p, { method: m, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: body && JSON.stringify(body) }).then(async r => ({ s: r.status, b: await r.json() }));
+  let g = await req('GET', '/api/admin/access/permissions', jwt('aud@x.co'));
+  assert.deepEqual(g.b.mine, { modules: ['refunds'], deleteLeads: false }, 'role defaults');
+  assert.equal(g.b.all, undefined, 'only Super Admin sees everyone');
+  assert.equal((await req('PUT', '/api/admin/access/permissions/aud%40x.co', jwt('aud@x.co'), { modules: ['admins'] })).s, 403, 'cannot grant self');
+  assert.equal((await req('PUT', '/api/admin/access/permissions/boss%40x.co', jwt('boss@x.co'), { modules: [] })).s, 400, 'Super Admin not restrictable');
+  assert.equal((await req('PUT', '/api/admin/access/permissions/aud%40x.co', jwt('boss@x.co'), { modules: ['leads', 'bogus', 'kpis'], deleteLeads: 'yes' })).s, 200);
+  g = await req('GET', '/api/admin/access/permissions', jwt('aud@x.co'));
+  assert.deepEqual(g.b.mine, { modules: ['kpis', 'leads'], deleteLeads: false }, 'unknown modules dropped, strict boolean');
+  g = await req('GET', '/api/admin/access/permissions', jwt('boss@x.co'));
+  assert.equal(g.b.all['aud@x.co'].custom, true);
+  assert.equal(g.b.all['boss@x.co'].modules.length, 8);
+  await req('PUT', '/api/admin/access/permissions/aud%40x.co', jwt('boss@x.co'), { reset: true });
+  assert.deepEqual((await req('GET', '/api/admin/access/permissions', jwt('aud@x.co'))).b.mine.modules, ['refunds'], 'reset to role');
   console.log('adminAccess.check OK');
   srv.close();
 })().catch(e => { console.error(e); process.exit(1); });

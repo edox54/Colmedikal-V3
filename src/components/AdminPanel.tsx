@@ -55,6 +55,8 @@ import AdminSidebar from './admin/AdminSidebar';
 import AdminHeader from './admin/AdminHeader';
 import AdminLoginScreen from './admin/AdminLoginScreen';
 import AdminSetPassword from './admin/AdminSetPassword';
+import { fetchPermissions, savePermissions, type PermissionsResponse } from './admin/permissionsApi';
+import { roleDefaults, type AdminPermissions } from '../data/adminPermissions';
 import DocumentPreviewModal from './admin/DocumentPreviewModal';
 import { AdminThemeProvider, useAdminTheme } from './admin/AdminThemeContext';
 import { AdminSharedProps, ActiveTab } from './admin/adminTypes';
@@ -257,15 +259,27 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     } catch { return 'Auditor' as const; }
   })();
 
+  // Per-member permissions set by the Super Admin in Gestionar Accesos (role defaults until loaded / if unset).
+  const [perms, setPerms] = useState<PermissionsResponse | null>(null);
+  const reloadPermissions = async () => {
+    if (!token) return;
+    try { setPerms(await fetchPermissions(token)); } catch (e) { console.warn('[permissions]', e); }
+  };
+  useEffect(() => { if (isAuthenticated) reloadPermissions(); else setPerms(null); }, [isAuthenticated, token]);
+  const savingMemberPermissions = async (email: string, p: AdminPermissions | { reset: true }) => {
+    if (!token) throw new Error('Not authenticated');
+    await savePermissions(token, email, p);
+    await reloadPermissions();
+  };
+  const myPerms = perms?.mine ?? roleDefaults(currentUserRole);
+
   const canSeeTab = (tab: string) => {
     if (currentUserRole === 'Super Admin') return true;
-    if (currentUserRole === 'Mid Admin') return tab !== 'seo';
-    if (currentUserRole === 'Equipo Comercial') return tab === 'kpis' || tab === 'leads' || tab === 'auths' || tab === 'clientes';
-    if (currentUserRole === 'Auditor') return tab === 'refunds';
-    return false;
+    if (tab === 'sitio' || tab === 'seo') return false; // site/SEO settings stay Super Admin only
+    return (myPerms.modules as string[]).includes(tab);
   };
 
-  const canDeleteLeads = currentUserRole === 'Super Admin' || currentUserRole === 'Mid Admin';
+  const canDeleteLeads = currentUserRole === 'Super Admin' || myPerms.deleteLeads;
   const canManageAdmins = currentUserRole === 'Super Admin';
 
   const normalizePlanName = (name?: string): string => {
@@ -371,12 +385,12 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
-  // Redirect to the only accessible tab when user role is restrictive
+  // Move off a tab the member can't see (e.g. on login, or after the Super Admin narrows their permissions)
   useEffect(() => {
-    if (!isAuthenticated) return;
-    if (currentUserRole === 'Auditor' && activeTab !== 'refunds') setActiveTab('refunds');
-    if (currentUserRole === 'Equipo Comercial' && !['kpis', 'leads', 'auths', 'clientes'].includes(activeTab)) setActiveTab('kpis');
-  }, [isAuthenticated, currentUserRole]);
+    if (!isAuthenticated || canSeeTab(activeTab)) return;
+    const first = (['kpis', 'refunds', 'appointments', 'auths', 'leads', 'clientes', 'doctors', 'admins'] as const).find(canSeeTab);
+    if (first) setActiveTab(first);
+  }, [isAuthenticated, currentUserRole, perms, activeTab]);
 
   // Sound notification when new leads arrive
   useEffect(() => {
@@ -600,6 +614,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     contractEditId, setContractEditId, contractNumberInput, setContractNumberInput,
     newAdmin, setNewAdmin, isSubmittingAdmin, adminSuccessMsg, adminErrorMsg, handleRegisterAdmin,
     currentUserRole, canSeeTab, canDeleteLeads, canManageAdmins,
+    permissionsAll: perms?.all, saveMemberPermissions: savingMemberPermissions,
     resolvePlanName, SOURCE_BADGE, PLAN_CATALOG, handlePlanChange, exportLeadsCSV,
     newDoc, setNewDoc, editingDocId, docSuccessMsg, handleAddDoctor, handleEditInitiate, handleCancelEdit,
     avatarGomez, avatarRestrepo, avatarDoctorM2, avatarDoctorF2,
@@ -687,6 +702,12 @@ function AuthenticatedAdminShell({ data }: { data: AdminSharedProps }) {
           />
 
           <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+            {!canSeeTab(activeTab) ? (
+              <div className="max-w-md mx-auto mt-16 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center space-y-2">
+                <p className="text-sm font-bold text-slate-900 dark:text-white">No tienes módulos asignados</p>
+                <p className="text-xs text-slate-500">Pide al Super Admin que habilite tus accesos en Gestionar Accesos.</p>
+              </div>
+            ) : <>
             {activeTab === 'kpis' && <KpisSection {...data} />}
             {activeTab === 'refunds' && <ClaimsSection type="reembolso" {...data} />}
             {activeTab === 'appointments' && <AppointmentsSection {...data} />}
@@ -696,6 +717,7 @@ function AuthenticatedAdminShell({ data }: { data: AdminSharedProps }) {
             {activeTab === 'doctors' && <DoctorsSection {...data} />}
             {activeTab === 'admins' && <AdminsSection {...data} />}
             {activeTab === 'sitio' && <SitioSection {...data} />}
+            </>}
           </main>
         </div>
       </div>

@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react';
+import { ADMIN_MODULES, roleDefaults, type AdminModule, type AdminPermissions } from '../../../data/adminPermissions';
+import type { MemberPermissions } from '../permissionsApi';
 import {
   Building2,
   Users,
@@ -39,16 +41,19 @@ import {
   EyeOff,
   ChevronRight,
   KeyRound,
+  ShieldCheck,
 } from 'lucide-react';
 import { AdminSharedProps } from '../adminTypes';
 
-type Props = Pick<AdminSharedProps, 'admins' | 'deleteAdmin' | 'toggleAdminActiveStatus' | 'updateAdminRole' | 'updateAdminPassword' | 'sendAdminPasswordLink' | 'newAdmin' | 'setNewAdmin' | 'isSubmittingAdmin' | 'adminSuccessMsg' | 'adminErrorMsg' | 'handleRegisterAdmin' | 'canManageAdmins'>;
+type Props = Pick<AdminSharedProps, 'admins' | 'deleteAdmin' | 'toggleAdminActiveStatus' | 'updateAdminRole' | 'updateAdminPassword' | 'sendAdminPasswordLink' | 'newAdmin' | 'setNewAdmin' | 'isSubmittingAdmin' | 'adminSuccessMsg' | 'adminErrorMsg' | 'handleRegisterAdmin' | 'canManageAdmins' | 'permissionsAll' | 'saveMemberPermissions'>;
 
 export default function AdminsSection(props: Props) {
-  const { admins, deleteAdmin, toggleAdminActiveStatus, updateAdminRole, updateAdminPassword, sendAdminPasswordLink, newAdmin, setNewAdmin, isSubmittingAdmin, adminSuccessMsg, adminErrorMsg, handleRegisterAdmin, canManageAdmins } = props;
+  const { admins, deleteAdmin, toggleAdminActiveStatus, updateAdminRole, updateAdminPassword, sendAdminPasswordLink, newAdmin, setNewAdmin, isSubmittingAdmin, adminSuccessMsg, adminErrorMsg, handleRegisterAdmin, canManageAdmins, permissionsAll, saveMemberPermissions } = props;
+  const [permsFor, setPermsFor] = useState<{ email: string; name: string; role: string } | null>(null);
   const [pwFor, setPwFor] = useState<{ email: string; name: string } | null>(null);
   return (
     <div className="space-y-8 animate-in fade-in duration-205" id="admin-users-panel">
+      {permsFor && <MemberPermissionsDialog target={permsFor} current={permissionsAll?.[permsFor.email.toLowerCase()]} onSave={saveMemberPermissions} onClose={() => setPermsFor(null)} />}
       {pwFor && <ChangeAdminPassword target={pwFor} onSave={updateAdminPassword} onSendLink={sendAdminPasswordLink} onClose={() => setPwFor(null)} />}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -259,6 +264,14 @@ export default function AdminsSection(props: Props) {
                       {canManageAdmins && (
                         <td className="py-3.5 text-center whitespace-nowrap">
                           <button
+                            onClick={() => setPermsFor({ email: adm.email, name: adm.name, role: adm.role })}
+                            className="p-2 mr-1.5 text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 rounded-xl transition cursor-pointer"
+                            title="Permisos y módulos"
+                            aria-label={`Permisos de ${adm.name}`}
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => setPwFor({ email: adm.email, name: adm.name })}
                             className="p-2 mr-1.5 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition cursor-pointer"
                             title="Cambiar contraseña"
@@ -363,6 +376,75 @@ function ChangeAdminPassword({ target, onSave, onSendLink, onClose }: {
             <p className="text-[11px] text-slate-400">Mínimo 8 caracteres. La sesión actual de esa persona sigue abierta hasta que expire.</p>
             <button type="submit" disabled={busy} className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-bold cursor-pointer">{busy ? 'Guardando…' : 'Guardar contraseña'}</button>
           </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MemberPermissionsDialog({ target, current, onSave, onClose }: {
+  target: { email: string; name: string; role: string };
+  current?: MemberPermissions;
+  onSave: (email: string, p: AdminPermissions | { reset: true }) => Promise<void>;
+  onClose: () => void;
+}) {
+  const isSuper = target.role === 'Super Admin';
+  const start = current ?? { ...roleDefaults(target.role), custom: false };
+  const [modules, setModules] = useState<AdminModule[]>(start.modules);
+  const [deleteLeads, setDeleteLeads] = useState(start.deleteLeads);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  const toggle = (id: AdminModule) => setModules(m => (m.includes(id) ? m.filter(x => x !== id) : [...m, id]));
+  const run = async (p: AdminPermissions | { reset: true }) => {
+    setBusy(true); setErr('');
+    try { await onSave(target.email, p); onClose(); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'No se pudieron guardar los permisos.'); }
+    finally { setBusy(false); }
+  };
+  const applyRole = () => { const d = roleDefaults(target.role); setModules(d.modules); setDeleteLeads(d.deleteLeads); };
+
+  const box = 'w-4 h-4 accent-indigo-600 cursor-pointer disabled:cursor-not-allowed';
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true" aria-labelledby="member-perms-title" onClick={onClose}>
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 shadow-xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 id="member-perms-title" className="text-base font-black text-slate-900 dark:text-white">Permisos de acceso</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{target.name} · {target.role}{current?.custom ? ' · personalizado' : ' · según su rol'}</p>
+          </div>
+          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer" aria-label="Cerrar"><X className="w-4 h-4" /></button>
+        </div>
+        {isSuper ? (
+          <p className="p-3 rounded-xl bg-violet-50 border border-violet-200 text-violet-800 text-xs">El Super Admin siempre tiene acceso total. Para limitarlo, cambia primero su rol.</p>
+        ) : (
+          <>
+            {err && <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex gap-2"><AlertCircle className="w-4 h-4 shrink-0" /><span>{err}</span></div>}
+            <fieldset className="space-y-1">
+              <legend className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Módulos que puede ver</legend>
+              {ADMIN_MODULES.map(m => (
+                <label key={m.id} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer text-sm text-slate-800 dark:text-slate-200">
+                  <input type="checkbox" className={box} checked={modules.includes(m.id)} onChange={() => toggle(m.id)} />
+                  {m.label}
+                </label>
+              ))}
+            </fieldset>
+            <fieldset className="space-y-1">
+              <legend className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Acciones</legend>
+              <label className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer text-sm text-slate-800 dark:text-slate-200">
+                <input type="checkbox" className={box} checked={deleteLeads} onChange={(e) => setDeleteLeads(e.target.checked)} disabled={!modules.includes('leads')} />
+                Eliminar cotizaciones
+              </label>
+            </fieldset>
+            <p className="text-[11px] text-slate-400">Los cambios se aplican la próxima vez que la persona recargue el panel. Configuración del sitio y SEO quedan solo para el Super Admin.</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button type="button" onClick={applyRole} disabled={busy} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer">Usar permisos del rol</button>
+              <button type="button" onClick={() => run({ modules, deleteLeads: deleteLeads && modules.includes('leads') })} disabled={busy} className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold cursor-pointer">{busy ? 'Guardando…' : 'Guardar permisos'}</button>
+            </div>
+            {current?.custom && (
+              <button type="button" onClick={() => run({ reset: true })} disabled={busy} className="w-full text-[11px] font-semibold text-slate-500 hover:text-slate-700 underline cursor-pointer">Quitar personalización (volver a los permisos del rol)</button>
+            )}
+          </>
         )}
       </div>
     </div>

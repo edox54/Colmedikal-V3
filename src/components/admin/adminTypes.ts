@@ -165,6 +165,8 @@ export interface AdminSharedProps extends AdminCtx {
   canSeeTab: (tab: string) => boolean;
   canDeleteLeads: boolean;
   canManageAdmins: boolean;
+  permissionsAll?: Record<string, import('./permissionsApi').MemberPermissions>;
+  saveMemberPermissions: (email: string, p: import('../../data/adminPermissions').AdminPermissions | { reset: true }) => Promise<void>;
 
   resolvePlanName: (l: { quoteData?: { selectedPlanName?: string; basePlanId?: string } }) => string;
   SOURCE_BADGE: Record<string, string>;

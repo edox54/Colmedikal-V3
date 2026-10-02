@@ -1170,6 +1170,41 @@ var import_fs4 = __toESM(require("fs"), 1);
 var import_path4 = __toESM(require("path"), 1);
 var import_crypto4 = __toESM(require("crypto"), 1);
 var import_express4 = __toESM(require("express"), 1);
+
+// src/data/adminPermissions.ts
+var ADMIN_MODULES = [
+  { id: "kpis", label: "Consola General" },
+  { id: "refunds", label: "Reembolsos" },
+  { id: "appointments", label: "Citas M\xE9dicas" },
+  { id: "auths", label: "Preautorizaciones" },
+  { id: "leads", label: "Cotizaciones Recibidas" },
+  { id: "clientes", label: "Clientes" },
+  { id: "doctors", label: "Directorio M\xE9dico" },
+  { id: "admins", label: "Gestionar Accesos (solo ver)" }
+];
+var ALL = ADMIN_MODULES.map((m) => m.id);
+function roleDefaults(role) {
+  switch (role) {
+    case "Super Admin":
+      return { modules: [...ALL], deleteLeads: true };
+    case "Mid Admin":
+      return { modules: [...ALL], deleteLeads: true };
+    case "Equipo Comercial":
+      return { modules: ["kpis", "leads", "auths", "clientes"], deleteLeads: false };
+    case "Auditor":
+      return { modules: ["refunds"], deleteLeads: false };
+    default:
+      return { modules: [], deleteLeads: false };
+  }
+}
+function cleanPermissions(p) {
+  if (!p || typeof p !== "object") return null;
+  const { modules, deleteLeads } = p;
+  if (!Array.isArray(modules)) return null;
+  return { modules: ALL.filter((id) => modules.includes(id)), deleteLeads: deleteLeads === true };
+}
+
+// src/server/adminAccess.ts
 var API = "https://api.colmedikal.com";
 var TOKEN_TTL2 = 24 * 60 * 6e4;
 var ADMIN_URL = "https://colmedikal.com/admin";
@@ -1205,22 +1240,82 @@ function registerAdminAccessRoutes(app, deps) {
     hits.set(key, list);
     return list.length > max;
   };
+  const whoIs = async (req) => {
+    const tok = req.headers.authorization?.split(" ")[1] || "";
+    if (!tok) return { status: 401 };
+    let users;
+    try {
+      users = (await deps.httpsJson(`${API}/api/admin/users`, { headers: { Authorization: `Bearer ${tok}` } }))?.data || [];
+    } catch {
+      return { status: 403 };
+    }
+    const email = String(jwtPayload(tok)?.email || "").toLowerCase();
+    const caller = users.find((u) => String(u.email).toLowerCase() === email);
+    if (!caller || !caller.active) return { status: 403 };
+    return { status: 200, caller, users, isSuper: caller.role === "Super Admin" };
+  };
+  const PERMS_FILE = import_path4.default.join(deps.dataDir, "admin-permissions.json");
+  const loadPerms = () => {
+    try {
+      return JSON.parse(import_fs4.default.readFileSync(PERMS_FILE, "utf8"));
+    } catch {
+      return {};
+    }
+  };
+  const effective = (u, store) => {
+    if (u.role === "Super Admin") return roleDefaults("Super Admin");
+    const saved = store[String(u.email).toLowerCase()];
+    return saved ? { modules: saved.modules, deleteLeads: saved.deleteLeads } : roleDefaults(u.role);
+  };
+  app.get("/api/admin/access/permissions", async (req, res) => {
+    const w = await whoIs(req);
+    if (w.status !== 200) return res.status(w.status).json({ success: false, message: "No autorizado" });
+    const store = loadPerms();
+    const mine = effective(w.caller, store);
+    if (!w.isSuper) return res.json({ success: true, mine });
+    const all = {};
+    for (const u of w.users) {
+      const key = String(u.email).toLowerCase();
+      all[key] = { ...effective(u, store), custom: !!store[key] && u.role !== "Super Admin" };
+    }
+    res.json({ success: true, mine, all });
+  });
+  app.put("/api/admin/access/permissions/:email", import_express4.default.json(), async (req, res) => {
+    try {
+      const w = await whoIs(req);
+      if (w.status !== 200) return res.status(w.status).json({ success: false, message: "No autorizado" });
+      if (!w.isSuper) return res.status(403).json({ success: false, message: "Solo el Super Admin puede gestionar accesos" });
+      const target = String(req.params.email || "").toLowerCase();
+      const member = w.users.find((u) => String(u.email).toLowerCase() === target);
+      if (!member) return res.status(404).json({ success: false, message: "Miembro no encontrado" });
+      if (member.role === "Super Admin") return res.status(400).json({ success: false, message: "El Super Admin siempre tiene acceso total." });
+      const store = loadPerms();
+      if (req.body?.reset === true) delete store[target];
+      else {
+        const p = cleanPermissions(req.body);
+        if (!p) return res.status(400).json({ success: false, message: "Permisos inv\xE1lidos" });
+        store[target] = { ...p, updatedAt: Date.now(), by: String(w.caller.email) };
+      }
+      import_fs4.default.mkdirSync(deps.dataDir, { recursive: true });
+      import_fs4.default.writeFileSync(PERMS_FILE, JSON.stringify(store));
+      console.log("[admin-permissions]", target, "set by", w.caller.email);
+      res.json({ success: true, permissions: { ...effective(member, store), custom: !!store[target] } });
+    } catch (e) {
+      console.error("[admin-permissions]", e?.message || e);
+      res.status(500).json({ success: false, message: "No se pudieron guardar los permisos" });
+    }
+  });
   const clientIp = (req) => String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.ip || "";
   app.post("/api/admin/access/link", import_express4.default.json(), async (req, res) => {
     try {
-      const tok = req.headers.authorization?.split(" ")[1] || "";
       const target = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
       const isNew = req.body?.isNew === true;
-      if (!tok) return res.status(401).json({ success: false, message: "Token de administrador requerido" });
-      let users;
-      try {
-        users = (await deps.httpsJson(`${API}/api/admin/users`, { headers: { Authorization: `Bearer ${tok}` } }))?.data || [];
-      } catch {
-        return res.status(403).json({ success: false, message: "No autorizado" });
-      }
-      const callerEmail = String(jwtPayload(tok)?.email || "").toLowerCase();
-      const caller = users.find((u) => String(u.email).toLowerCase() === callerEmail);
-      if (!caller || caller.role !== "Super Admin" || !caller.active) return res.status(403).json({ success: false, message: "Solo el Super Admin puede gestionar accesos" });
+      const w = await whoIs(req);
+      if (w.status === 401) return res.status(401).json({ success: false, message: "Token de administrador requerido" });
+      if (w.status !== 200) return res.status(403).json({ success: false, message: "No autorizado" });
+      if (!w.isSuper) return res.status(403).json({ success: false, message: "Solo el Super Admin puede gestionar accesos" });
+      const { caller, users } = w;
+      const callerEmail = String(caller.email).toLowerCase();
       const member = users.find((u) => String(u.email).toLowerCase() === target);
       if (!member) return res.status(404).json({ success: false, message: "Miembro no encontrado" });
       if (!mailer) return res.status(503).json({ success: false, message: "El correo no est\xE1 configurado en el servidor" });
