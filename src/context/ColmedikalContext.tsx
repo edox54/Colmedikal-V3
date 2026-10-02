@@ -44,6 +44,8 @@ interface ColmedikalContextType {
   deleteAdmin: (email: string) => Promise<void>;
   toggleAdminActiveStatus: (email: string) => Promise<void>;
   updateAdminRole: (email: string, role: AdminUser['role']) => Promise<void>;
+  updateAdminPassword: (email: string, password: string) => Promise<void>;
+  sendAdminPasswordLink: (email: string, isNew?: boolean) => Promise<string>;
   fetchDashboard: () => Promise<any>;
   // SEO & CMS
   seoSettings: Record<string, string>;
@@ -1260,6 +1262,24 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setAdmins(prev => prev.map(a => a.email === email ? { ...a, role } : a));
   };
 
+  const updateAdminPassword = async (email: string, password: string) => {
+    if (!token) throw new Error('Not authenticated');
+    await apiCall(`/api/admin/users/${encodeURIComponent(email)}`, 'PUT', { password }, token);
+  };
+
+  // Emails the member a one-time link to create their own password (served by this site's server, not the API).
+  const sendAdminPasswordLink = async (email: string, isNew = false) => {
+    if (!token) throw new Error('Not authenticated');
+    const r = await fetch('/api/admin/access/link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ email, isNew }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.success) throw new Error(j.message || 'No se pudo enviar el correo');
+    return String(j.message);
+  };
+
   const fetchAdmins = async (authToken: string) => {
     try {
       const res = await apiCall('/api/admin/users', 'GET', undefined, authToken);
@@ -1372,6 +1392,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     deleteAdmin,
     toggleAdminActiveStatus,
     updateAdminRole,
+    updateAdminPassword,
+    sendAdminPasswordLink,
     fetchDashboard,
     seoSettings,
     seoMetaOverrides,

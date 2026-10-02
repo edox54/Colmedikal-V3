@@ -42,6 +42,8 @@ export interface AdminCtx {
   deleteAdmin: (email: string) => Promise<void>;
   toggleAdminActiveStatus: (email: string) => Promise<void>;
   updateAdminRole: (email: string, role: AdminUser['role']) => Promise<void>;
+  updateAdminPassword: (email: string, password: string) => Promise<void>;
+  sendAdminPasswordLink: (email: string, isNew?: boolean) => Promise<string>;
   seoSettings: Record<string, string>;
   saveSEOSettings: (settings: Record<string, string>) => Promise<void>;
 }

@@ -54,6 +54,7 @@ import avatarDoctorF2 from '../assets/images/avatar_doctor_f2_1780025316717.png'
 import AdminSidebar from './admin/AdminSidebar';
 import AdminHeader from './admin/AdminHeader';
 import AdminLoginScreen from './admin/AdminLoginScreen';
+import AdminSetPassword from './admin/AdminSetPassword';
 import DocumentPreviewModal from './admin/DocumentPreviewModal';
 import { AdminThemeProvider, useAdminTheme } from './admin/AdminThemeContext';
 import { AdminSharedProps, ActiveTab } from './admin/adminTypes';
@@ -103,6 +104,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     deleteAdmin,
     toggleAdminActiveStatus,
     updateAdminRole,
+    updateAdminPassword,
+    sendAdminPasswordLink,
     seoSettings,
     saveSEOSettings,
     token,
@@ -199,12 +202,15 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     password: '',
   });
   const [isSubmittingAdmin, setIsSubmittingAdmin] = useState(false);
+  // Emailed "create your password" link lands on /admin?setpw=TOKEN
+  const [setPwToken, setSetPwToken] = useState(() => new URLSearchParams(window.location.search).get('setpw') || '');
+  const [loginNotice, setLoginNotice] = useState('');
   const [adminSuccessMsg, setAdminSuccessMsg] = useState('');
   const [adminErrorMsg, setAdminErrorMsg] = useState('');
 
   const handleRegisterAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAdmin.email || !newAdmin.name || !newAdmin.password) {
+    if (!newAdmin.email || !newAdmin.name) {
       setAdminErrorMsg('Por favor complete todos los campos.');
       return;
     }
@@ -212,7 +218,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
       setAdminErrorMsg('Por favor ingrese un correo válido.');
       return;
     }
-    if (newAdmin.password.length < 8) {
+    if (newAdmin.password && newAdmin.password.length < 8) {
       setAdminErrorMsg('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
@@ -221,10 +227,15 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     setAdminErrorMsg('');
     setAdminSuccessMsg('');
     try {
-      await addAdmin(newAdmin.email, newAdmin.name, newAdmin.role, newAdmin.password);
-      setAdminSuccessMsg(`¡Acceso otorgado con éxito para ${newAdmin.name}!`);
+      // No password typed → random one nobody knows; the member creates theirs from the emailed link.
+      const password = newAdmin.password || Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, '0')).join('');
+      await addAdmin(newAdmin.email, newAdmin.name, newAdmin.role, password);
+      let mailNote = '';
+      try { await sendAdminPasswordLink(newAdmin.email.trim().toLowerCase(), true); mailNote = ' Le enviamos un correo para crear su contraseña.'; }
+      catch (mailErr) { mailNote = ` No se pudo enviar el correo (${mailErr instanceof Error ? mailErr.message : 'error'}); usa la llave 🔑 para reenviarlo.`; }
+      setAdminSuccessMsg(`¡Acceso otorgado con éxito para ${newAdmin.name}!${mailNote}`);
       setNewAdmin({ email: '', name: '', role: 'Mid Admin', password: '' });
-      setTimeout(() => setAdminSuccessMsg(''), 4000);
+      setTimeout(() => setAdminSuccessMsg(''), 8000);
     } catch (err: any) {
       setAdminErrorMsg('Ocurrió un error al registrar el acceso seguro.');
     } finally {
@@ -236,14 +247,14 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   const currentUserRole = (() => {
     try {
       const stored = sessionStorage.getItem('colmedikal_user');
-      if (!stored) return 'Super Admin' as const;
+      if (!stored) return 'Auditor' as const;
       const userObj = JSON.parse(stored);
       const role = userObj?.role as string;
       const validRoles = ['Super Admin', 'Mid Admin', 'Equipo Comercial', 'Auditor'] as const;
       return validRoles.includes(role as any)
         ? role as 'Super Admin' | 'Mid Admin' | 'Equipo Comercial' | 'Auditor'
-        : 'Super Admin' as const;
-    } catch { return 'Super Admin' as const; }
+        : 'Auditor' as const; // unknown role → least privilege
+    } catch { return 'Auditor' as const; }
   })();
 
   const canSeeTab = (tab: string) => {
@@ -571,7 +582,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     updateLeadStatus, updateClientPaymentStatus, updateLeadPlan,
     setClientContractNumber, setClientPassword, addLeadNote, assignLead,
     setLeadFollowUp, setLeadLostReason, deleteLead, refreshData, addAdmin,
-    deleteAdmin, toggleAdminActiveStatus, updateAdminRole, seoSettings,
+    deleteAdmin, toggleAdminActiveStatus, updateAdminRole, updateAdminPassword, sendAdminPasswordLink, seoSettings,
     saveSEOSettings,
     setCurrentPage,
     isAuthenticated, setIsAuthenticated, username, setUsername, password,
@@ -599,8 +610,19 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
   return (
     <>
-      {!isAuthenticated ? (
-        <AdminLoginScreen {...data} />
+      {!isAuthenticated && setPwToken ? (
+        <AdminSetPassword token={setPwToken} onDone={(email, message) => {
+          window.history.replaceState(null, '', window.location.pathname); // drop the one-time token from the URL
+          if (email) setUsername(email);
+          setLoginNotice(message); setSetPwToken('');
+        }} />
+      ) : !isAuthenticated ? (
+        <>
+          {loginNotice && (
+            <div role="status" className="fixed top-4 inset-x-4 z-50 mx-auto max-w-md p-3 rounded-xl bg-emerald-600 text-white text-xs font-semibold shadow-lg">{loginNotice}</div>
+          )}
+          <AdminLoginScreen {...data} />
+        </>
       ) : (
         <AdminThemeProvider>
           <AuthenticatedAdminShell data={data} />
