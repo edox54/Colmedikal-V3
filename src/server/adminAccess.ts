@@ -31,6 +31,8 @@ export function registerAdminAccessRoutes(app: Express, deps: {
   dataDir: string;
   httpsJson: HttpsJson;
   getApiToken: (force?: boolean) => Promise<string>;
+  /** API_ADMIN_EMAIL — writes passwords set from links, so it must be an active Super Admin. */
+  serviceEmail?: string;
 }) {
   const FILE = path.join(deps.dataDir, 'admin-password-tokens.json');
   const load = (): Tokens => { try { return JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { return {}; } };
@@ -128,6 +130,13 @@ export function registerAdminAccessRoutes(app: Express, deps: {
       const callerEmail = String(caller.email).toLowerCase();
       const member = users.find(u => String(u.email).toLowerCase() === target);
       if (!member) return res.status(404).json({ success: false, message: 'Miembro no encontrado' });
+      // Don't email a link that can't work: the password is saved with the service account.
+      const svcEmail = String(deps.serviceEmail || '').toLowerCase();
+      const svc = users.find(u => String(u.email).toLowerCase() === svcEmail);
+      if (!svc || svc.role !== 'Super Admin' || !svc.active) {
+        console.warn('[admin-access-link] service account not usable:', svcEmail || '(unset)', svc ? `${svc.role}/${svc.active ? 'activo' : 'suspendido'}` : 'not in admin_users');
+        return res.status(409).json({ success: false, message: `Los enlaces por correo no funcionarán hasta que la cuenta ${svcEmail || 'de servicio'} sea Super Admin y esté activa en Gestionar Accesos. Mientras tanto usa "o asígnala tú".` });
+      }
       if (!mailer) return res.status(503).json({ success: false, message: 'El correo no está configurado en el servidor' });
       if (throttled(`link:${target}`, 5, 60 * 60_000)) return res.status(429).json({ success: false, message: 'Demasiados envíos para este miembro. Intenta más tarde.' });
 
@@ -182,7 +191,9 @@ export function registerAdminAccessRoutes(app: Express, deps: {
     } catch (e: any) {
       // 403 here = the service account (API_ADMIN_EMAIL) is not a Super Admin in the API.
       console.error('[admin-set-password]', e?.status || '', e?.message || e);
-      res.status(500).json({ success: false, message: 'No se pudo guardar la contraseña. Intenta de nuevo o contacta al administrador.' });
+      res.status(500).json({ success: false, message: e?.status === 403
+        ? 'El panel aún no está configurado para guardar contraseñas desde este enlace. Pide al administrador que te asigne la clave directamente.'
+        : 'No se pudo guardar la contraseña. Intenta de nuevo o contacta al administrador.' });
     }
   });
 }

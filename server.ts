@@ -548,7 +548,7 @@ async function startServer() {
     leadExists: async (leadId) => !!((await getLeadById(leadId)) || (await getLeads()).find(l => String(l.id) === leadId)),
   });
   startSlaTimer(commercialEmails);
-  registerAdminAccessRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, getApiToken });
+  registerAdminAccessRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, getApiToken, serviceEmail: API_ADMIN_EMAIL });
   const portalPw = registerPortalPasswordRoutes(app, {
     dataDir: PORTAL_DATA_DIR, verifyPortalToken, loadPortalCreds, savePortalCreds, hashPortalPassword, verifyPortalPassword,
     getContact: async (leadId) => {

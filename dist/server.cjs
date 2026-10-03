@@ -1418,6 +1418,12 @@ function registerAdminAccessRoutes(app, deps) {
       const callerEmail = String(caller.email).toLowerCase();
       const member = users.find((u) => String(u.email).toLowerCase() === target);
       if (!member) return res.status(404).json({ success: false, message: "Miembro no encontrado" });
+      const svcEmail = String(deps.serviceEmail || "").toLowerCase();
+      const svc = users.find((u) => String(u.email).toLowerCase() === svcEmail);
+      if (!svc || svc.role !== "Super Admin" || !svc.active) {
+        console.warn("[admin-access-link] service account not usable:", svcEmail || "(unset)", svc ? `${svc.role}/${svc.active ? "activo" : "suspendido"}` : "not in admin_users");
+        return res.status(409).json({ success: false, message: `Los enlaces por correo no funcionar\xE1n hasta que la cuenta ${svcEmail || "de servicio"} sea Super Admin y est\xE9 activa en Gestionar Accesos. Mientras tanto usa "o as\xEDgnala t\xFA".` });
+      }
       if (!mailer) return res.status(503).json({ success: false, message: "El correo no est\xE1 configurado en el servidor" });
       if (throttled(`link:${target}`, 5, 60 * 6e4)) return res.status(429).json({ success: false, message: "Demasiados env\xEDos para este miembro. Intenta m\xE1s tarde." });
       const token = import_crypto4.default.randomBytes(32).toString("base64url");
@@ -1467,7 +1473,7 @@ function registerAdminAccessRoutes(app, deps) {
       res.json({ success: true, message: "Contrase\xF1a creada. Ya puedes ingresar con tu correo y la nueva contrase\xF1a.", email: rec.email });
     } catch (e) {
       console.error("[admin-set-password]", e?.status || "", e?.message || e);
-      res.status(500).json({ success: false, message: "No se pudo guardar la contrase\xF1a. Intenta de nuevo o contacta al administrador." });
+      res.status(500).json({ success: false, message: e?.status === 403 ? "El panel a\xFAn no est\xE1 configurado para guardar contrase\xF1as desde este enlace. Pide al administrador que te asigne la clave directamente." : "No se pudo guardar la contrase\xF1a. Intenta de nuevo o contacta al administrador." });
     }
   });
 }
@@ -1958,7 +1964,7 @@ async function startServer() {
     leadExists: async (leadId) => !!(await getLeadById(leadId) || (await getLeads()).find((l) => String(l.id) === leadId))
   });
   startSlaTimer(commercialEmails);
-  registerAdminAccessRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, getApiToken });
+  registerAdminAccessRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, getApiToken, serviceEmail: API_ADMIN_EMAIL });
   const portalPw = registerPortalPasswordRoutes(app, {
     dataDir: PORTAL_DATA_DIR,
     verifyPortalToken,

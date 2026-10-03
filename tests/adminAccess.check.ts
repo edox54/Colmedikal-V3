@@ -12,12 +12,14 @@ const jwt = (email: string) => `x.${Buffer.from(JSON.stringify({ email })).toStr
 const users = [
   { email: 'boss@x.co', name: 'Boss', role: 'Super Admin', active: 1 },
   { email: 'aud@x.co', name: 'Aud', role: 'Auditor', active: 1 },
+  { email: 'svc@x.co', name: 'Svc', role: 'Mid Admin', active: 1 },
 ];
 const puts: { url: string; auth: string; body: string }[] = [];
 const app = express();
 registerAdminAccessRoutes(app, {
   dataDir: dir,
   getApiToken: async () => 'svc',
+  serviceEmail: 'svc@x.co',
   httpsJson: async (url, opts = {}) => {
     if (opts.method === 'PUT') { puts.push({ url, auth: opts.headers!.Authorization, body: opts.body! }); return {}; }
     if (opts.headers?.Authorization === 'Bearer bad') throw Object.assign(new Error('HTTP 401'), { status: 401 });
@@ -33,6 +35,8 @@ const post = (p: string, body: any, tok?: string) => fetch(base + p, { method: '
   assert.equal(await post('/api/admin/access/link', { email: 'aud@x.co' }, 'bad'), 403, 'token rejected by API');
   assert.equal(await post('/api/admin/access/link', { email: 'boss@x.co' }, jwt('aud@x.co')), 403, 'only Super Admin');
   assert.equal(await post('/api/admin/access/link', { email: 'nadie@x.co' }, jwt('boss@x.co')), 404);
+  assert.equal(await post('/api/admin/access/link', { email: 'aud@x.co' }, jwt('boss@x.co')), 409, 'service account not Super Admin → no broken link');
+  users[2].role = 'Super Admin';
   assert.equal(await post('/api/admin/access/link', { email: 'aud@x.co' }, jwt('boss@x.co')), 503, 'reaches mail step');
   const token = 'tok-123';
   fs.writeFileSync(path.join(dir, 'admin-password-tokens.json'), JSON.stringify({ [crypto.createHash('sha256').update(token).digest('hex')]: { email: 'aud@x.co', exp: Date.now() + 60_000 } }));
