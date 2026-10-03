@@ -40,5 +40,12 @@ const call = async (who, method, url, body) => {
   assert.ok(m2.cols.has('image') && m2.cols.has('nivel'), 'columns added');
   await m2.initializePool(); // second boot: duplicate columns are ignored
   assert.equal(m2.ddlLog.filter(s => s.includes('ADD COLUMN image')).length, 2);
+  // 8 h admin sessions (separate patch)
+  const sesPatch = path.join(__dirname, '../scripts/patch-api-session-8h.cjs');
+  assert.equal(require(tmp).generateToken({ id: 1, email: 'a', role: 'r' }), 'tok:1h');
+  execFileSync(process.execPath, [sesPatch, tmp]);
+  assert.match(execFileSync(process.execPath, [sesPatch, tmp]).toString(), /Already patched/);
+  delete require.cache[require.resolve(tmp)]; delete require.cache[fs.realpathSync(tmp)];
+  assert.equal(require(tmp).generateToken({ id: 1, email: 'a', role: 'r' }), 'tok:8h');
   console.log('apiAdminPatch.check OK');
 })().catch(e => { console.error(e); process.exit(1); });

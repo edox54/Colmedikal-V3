@@ -60,6 +60,12 @@ const post = (p: string, body: any, tok?: string) => fetch(base + p, { method: '
   assert.equal(g.b.all['boss@x.co'].modules.length, 8);
   await req('PUT', '/api/admin/access/permissions/aud%40x.co', jwt('boss@x.co'), { reset: true });
   assert.deepEqual((await req('GET', '/api/admin/access/permissions', jwt('aud@x.co'))).b.mine.modules, ['refunds'], 'reset to role');
+  // login history
+  assert.equal((await req('POST', '/api/admin/access/login-event', 'bad')).s, 403, 'unverified token not logged');
+  assert.equal((await req('POST', '/api/admin/access/login-event', jwt('aud@x.co'))).s, 200);
+  assert.equal((await req('GET', '/api/admin/access/logins', jwt('aud@x.co'))).s, 403, 'history is Super Admin only');
+  const hist = (await req('GET', '/api/admin/access/logins?email=aud%40x.co', jwt('boss@x.co'))).b.data;
+  assert.equal(hist.length, 1); assert.equal(hist[0].email, 'aud@x.co'); assert.equal(hist[0].role, 'Auditor');
   console.log('adminAccess.check OK');
   srv.close();
 })().catch(e => { console.error(e); process.exit(1); });

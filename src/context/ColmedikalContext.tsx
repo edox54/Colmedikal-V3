@@ -372,6 +372,8 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Use the JWT's own `exp` when present; fall back to 1 hour
       sessionStorage.setItem('colmedikal_token_expiry', String(jwtExpiry(response.token) ?? Date.now() + 60 * 60 * 1000));
       sessionStorage.setItem('colmedikal_user', JSON.stringify(response.admin));
+      // Login history (Gestionar Accesos) — best effort, never blocks the login
+      fetch('/api/admin/access/login-event', { method: 'POST', headers: { Authorization: `Bearer ${response.token}` } }).catch(() => {});
 
       // Load data after login
       await fetchAllData(response.token);

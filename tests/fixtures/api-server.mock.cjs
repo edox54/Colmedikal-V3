@@ -60,4 +60,13 @@ async function initializePool() {
     await executeQuery("UPDATE admin_users SET role = 'Auditor' WHERE role = 'Auditor Clínico'");
   } catch (e) { console.error(e); }
 }
-module.exports = { handleRequest, db, initializePool, cols, ddlLog };
+const jwt = { sign: (payload, secret, opts) => 'tok:' + opts.expiresIn };
+const JWT_SECRET = 'x';
+function generateToken(admin) {
+  return jwt.sign(
+    { id: admin.id, email: admin.email, role: admin.role },
+    JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+  );
+}
+module.exports = { handleRequest, db, initializePool, cols, ddlLog, generateToken };

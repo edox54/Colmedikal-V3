@@ -1405,6 +1405,44 @@ function registerAdminAccessRoutes(app, deps) {
       res.status(500).json({ success: false, message: "No se pudieron guardar los permisos" });
     }
   });
+  const LOGINS_FILE2 = import_path4.default.join(deps.dataDir, "admin-logins.json");
+  const MAX_LOGINS = 5e3;
+  const loadLogins = () => {
+    try {
+      return JSON.parse(import_fs4.default.readFileSync(LOGINS_FILE2, "utf8"));
+    } catch {
+      return [];
+    }
+  };
+  const device = (ua) => {
+    const os = /Windows/.test(ua) ? "Windows" : /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "Otro";
+    const br = /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Navegador";
+    return `${br} \xB7 ${os}`;
+  };
+  app.post("/api/admin/access/login-event", async (req, res) => {
+    const w = await whoIs(req);
+    if (w.status !== 200) return res.status(w.status).json({ success: false });
+    const list = loadLogins();
+    list.push({
+      email: String(w.caller.email).toLowerCase(),
+      name: String(w.caller.name || ""),
+      role: String(w.caller.role || ""),
+      at: (/* @__PURE__ */ new Date()).toISOString(),
+      ip: clientIp(req),
+      device: device(String(req.headers["user-agent"] || ""))
+    });
+    import_fs4.default.mkdirSync(deps.dataDir, { recursive: true });
+    import_fs4.default.writeFileSync(LOGINS_FILE2, JSON.stringify(list.slice(-MAX_LOGINS)));
+    res.json({ success: true });
+  });
+  app.get("/api/admin/access/logins", async (req, res) => {
+    const w = await whoIs(req);
+    if (w.status !== 200) return res.status(w.status).json({ success: false, message: "No autorizado" });
+    if (!w.isSuper) return res.status(403).json({ success: false, message: "Solo el Super Admin puede ver el historial" });
+    const email = typeof req.query.email === "string" ? req.query.email.toLowerCase() : "";
+    const data = loadLogins().filter((l) => !email || l.email === email).reverse().slice(0, 1e3);
+    res.json({ success: true, data });
+  });
   const clientIp = (req) => String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.ip || "";
   app.post("/api/admin/access/link", import_express4.default.json(), async (req, res) => {
     try {
@@ -2032,7 +2070,7 @@ async function startServer() {
       }
       loginAttempts.delete(docNumber);
       recordPortalLogin(matchedLeadId);
-      const token = import_jsonwebtoken.default.sign({ type: "portal", leadId: matchedLeadId, iat: Date.now() }, JWT_SECRET, { expiresIn: "4h" });
+      const token = import_jsonwebtoken.default.sign({ type: "portal", leadId: matchedLeadId, iat: Date.now() }, JWT_SECRET, { expiresIn: "8h" });
       res.json({ success: true, token });
     } catch (e) {
       console.error("[portal-login]", e);

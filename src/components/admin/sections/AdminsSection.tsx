@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { ADMIN_MODULES, roleDefaults, type AdminModule, type AdminPermissions } from '../../../data/adminPermissions';
 import type { MemberPermissions } from '../permissionsApi';
+import LoginHistory from '../LoginHistory';
 import {
   Building2,
   Users,
@@ -303,6 +304,7 @@ export default function AdminsSection(props: Props) {
 
       </div>
 
+      {canManageAdmins && <LoginHistory />}
     </div>
   );
 }

@@ -4,6 +4,8 @@
 //   POST /api/admin/access/set-password  the member sets it from that link.
 //   GET  /api/admin/access/permissions   panel permissions (own; Super Admin gets everyone's)
 //   PUT  /api/admin/access/permissions/:email   Super Admin sets a member's modules/actions
+//   POST /api/admin/access/login-event   the panel reports a successful login (token verified here)
+//   GET  /api/admin/access/logins        login history (Super Admin)
 // Admin accounts live in api.colmedikal.com; the password is written there with the
 // service account (API_ADMIN_EMAIL), which must be a Super Admin.
 import fs from 'fs';
@@ -113,6 +115,39 @@ export function registerAdminAccessRoutes(app: Express, deps: {
       console.error('[admin-permissions]', e?.message || e);
       res.status(500).json({ success: false, message: 'No se pudieron guardar los permisos' });
     }
+  });
+
+  // ---------- login history ----------
+  type LoginEntry = { email: string; name: string; role: string; at: string; ip: string; device: string };
+  const LOGINS_FILE = path.join(deps.dataDir, 'admin-logins.json');
+  const MAX_LOGINS = 5000; // ponytail: capped JSON log, oldest dropped; move to a DB table if a longer audit is needed
+  const loadLogins = (): LoginEntry[] => { try { return JSON.parse(fs.readFileSync(LOGINS_FILE, 'utf8')); } catch { return []; } };
+  const device = (ua: string) => {
+    const os = /Windows/.test(ua) ? 'Windows' : /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : 'Otro';
+    const br = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Navegador';
+    return `${br} · ${os}`;
+  };
+
+  app.post('/api/admin/access/login-event', async (req, res) => {
+    const w = await whoIs(req);
+    if (w.status !== 200) return res.status(w.status).json({ success: false });
+    const list = loadLogins();
+    list.push({
+      email: String(w.caller.email).toLowerCase(), name: String(w.caller.name || ''), role: String(w.caller.role || ''),
+      at: new Date().toISOString(), ip: clientIp(req), device: device(String(req.headers['user-agent'] || '')),
+    });
+    fs.mkdirSync(deps.dataDir, { recursive: true });
+    fs.writeFileSync(LOGINS_FILE, JSON.stringify(list.slice(-MAX_LOGINS)));
+    res.json({ success: true });
+  });
+
+  app.get('/api/admin/access/logins', async (req, res) => {
+    const w = await whoIs(req);
+    if (w.status !== 200) return res.status(w.status).json({ success: false, message: 'No autorizado' });
+    if (!w.isSuper) return res.status(403).json({ success: false, message: 'Solo el Super Admin puede ver el historial' });
+    const email = typeof req.query.email === 'string' ? req.query.email.toLowerCase() : '';
+    const data = loadLogins().filter(l => !email || l.email === email).reverse().slice(0, 1000);
+    res.json({ success: true, data });
   });
 
   const clientIp = (req: express.Request) => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || '';

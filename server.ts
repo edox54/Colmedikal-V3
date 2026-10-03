@@ -630,7 +630,7 @@ async function startServer() {
 
       loginAttempts.delete(docNumber);
       recordPortalLogin(matchedLeadId);
-      const token = jwt.sign({ type: 'portal', leadId: matchedLeadId, iat: Date.now() }, JWT_SECRET!, { expiresIn: '4h' });
+      const token = jwt.sign({ type: 'portal', leadId: matchedLeadId, iat: Date.now() }, JWT_SECRET!, { expiresIn: '8h' });
       res.json({ success: true, token });
     } catch (e) {
       console.error('[portal-login]', e);
