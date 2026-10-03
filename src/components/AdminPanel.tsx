@@ -265,7 +265,12 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     if (!token) return;
     try { setPerms(await fetchPermissions(token)); } catch (e) { console.warn('[permissions]', e); }
   };
-  useEffect(() => { if (isAuthenticated) reloadPermissions(); else setPerms(null); }, [isAuthenticated, token]);
+  useEffect(() => {
+    if (!isAuthenticated) { setPerms(null); return; }
+    reloadPermissions();
+    const t = setInterval(reloadPermissions, 60_000); // Super Admin changes apply without a reload
+    return () => clearInterval(t);
+  }, [isAuthenticated, token]);
   const savingMemberPermissions = async (email: string, p: AdminPermissions | { reset: true }) => {
     if (!token) throw new Error('Not authenticated');
     await savePermissions(token, email, p);

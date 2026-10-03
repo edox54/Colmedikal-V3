@@ -19,6 +19,9 @@ export const MAIL_FROM = process.env.MAIL_FROM || `Colmedikal <${process.env.SMT
 // Team inbox: receives new-lead alerts AND the customer's replies (Reply-To on the quote email).
 export const LEAD_NOTIFY_TO = (process.env.LEAD_NOTIFY_TO || 'colnexos2@gmail.com,contabilidad@grupocolnexos.com,info@colmedikal.com')
   .split(',').map(s => s.trim()).filter(Boolean);
+/** Reembolsos / preautorizaciones go to liquidaciones on top of the lead team. */
+export const CLAIMS_NOTIFY_TO = (process.env.CLAIMS_NOTIFY_TO || 'liquidaciones@colmedikal.com')
+  .split(',').map(s => s.trim()).filter(Boolean);
 
 const WHATSAPP = '098 702 8756';
 const LOGO_URL = 'https://colmedikal.com/brand/colmedikal-logo.png';

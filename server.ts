@@ -8,9 +8,10 @@ import jwt from 'jsonwebtoken';
 import helmet from 'helmet';
 import crypto from 'crypto';
 import { registerCrmRoutes, logActivity, recordPortalLogin, makeRequireAdmin } from './src/server/crm';
-import { registerClaimRoutes, loadLegacyHidden } from './src/server/claims';
+import { registerClaimRoutes, loadLegacyHidden, startSlaTimer } from './src/server/claims';
 import { registerPortalPasswordRoutes } from './src/server/portalPassword';
 import { registerAdminAccessRoutes } from './src/server/adminAccess';
+import { registerClientRoutes } from './src/server/clients';
 import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
@@ -537,9 +538,18 @@ async function startServer() {
   };
 
   registerCrmRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, loadPortalCreds });
-  registerClaimRoutes(app, { dataDir: PORTAL_DATA_DIR, verifyPortalToken, requireAdmin: makeRequireAdmin(httpsJson) });
+  // Active "Equipo Comercial" members, read with the service account (SLA alerts).
+  const commercialEmails = async () => {
+    const r = await httpsJson('https://api.colmedikal.com/api/admin/users', { headers: { Authorization: `Bearer ${await getApiToken()}` } });
+    return (r?.data || []).filter((u: any) => u.role === 'Equipo Comercial' && u.active).map((u: any) => String(u.email));
+  };
+  registerClaimRoutes(app, {
+    dataDir: PORTAL_DATA_DIR, verifyPortalToken, requireAdmin: makeRequireAdmin(httpsJson), commercialEmails,
+    leadExists: async (leadId) => !!((await getLeadById(leadId)) || (await getLeads()).find(l => String(l.id) === leadId)),
+  });
+  startSlaTimer(commercialEmails);
   registerAdminAccessRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, getApiToken });
-  registerPortalPasswordRoutes(app, {
+  const portalPw = registerPortalPasswordRoutes(app, {
     dataDir: PORTAL_DATA_DIR, verifyPortalToken, loadPortalCreds, savePortalCreds, hashPortalPassword, verifyPortalPassword,
     getContact: async (leadId) => {
       const lead = (await getLeadById(leadId)) || (await getLeads()).find(l => String(l.id) === leadId);
@@ -557,6 +567,7 @@ async function startServer() {
       return hit ? { leadId: String(hit.l.id), hash: hit.qd.portalPasswordHash, salt: hit.qd.portalPasswordSalt } : null;
     },
   });
+  registerClientRoutes(app, { requireAdmin: makeRequireAdmin(httpsJson), httpsJson, getLeads, parseQuoteData, sendWelcome: portalPw.sendWelcome });
 
   app.post('/api/portal/login', express.json(), async (req, res) => {
     try {

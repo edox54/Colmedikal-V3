@@ -24,14 +24,14 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 
 // server.ts
 var import_config = require("dotenv/config");
-var import_express5 = __toESM(require("express"), 1);
+var import_express6 = __toESM(require("express"), 1);
 var import_path5 = __toESM(require("path"), 1);
 var import_fs5 = __toESM(require("fs"), 1);
 var import_https = __toESM(require("https"), 1);
 var import_vite = require("vite");
 var import_jsonwebtoken = __toESM(require("jsonwebtoken"), 1);
 var import_helmet = __toESM(require("helmet"), 1);
-var import_crypto5 = __toESM(require("crypto"), 1);
+var import_crypto6 = __toESM(require("crypto"), 1);
 
 // src/server/crm.ts
 var import_fs = __toESM(require("fs"), 1);
@@ -335,6 +335,15 @@ function missingForSubmit(c) {
   for (const k of FILE_KINDS[c.type]) if (k.required && !c.files.some((f) => f.kind === k.kind)) out.push(`Documento: ${k.label}`);
   if (!c.declarationAccepted) out.push("Aceptar la autorizaci\xF3n y declaraci\xF3n");
   return out;
+}
+var CLAIM_SLA_HOURS = 72;
+var SLA_RUNNING = ["Recibida", "En revisi\xF3n"];
+var openHours = (c, at = Date.now()) => Math.max(0, (at - new Date(c.submittedAt || c.createdAt).getTime()) / 36e5);
+var slaDeadline = (c) => new Date(new Date(c.submittedAt || c.createdAt).getTime() + CLAIM_SLA_HOURS * 36e5);
+function slaLight(c, at = Date.now()) {
+  if (!SLA_RUNNING.includes(c.status)) return null;
+  const h = openHours(c, at);
+  return h >= CLAIM_SLA_HOURS ? "rojo" : h >= 48 ? "amarillo" : "verde";
 }
 
 // src/server/leadMail.ts
@@ -667,6 +676,7 @@ var mailer = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_
 }) : null;
 var MAIL_FROM = process.env.MAIL_FROM || `Colmedikal <${process.env.SMTP_USER}>`;
 var LEAD_NOTIFY_TO = (process.env.LEAD_NOTIFY_TO || "colnexos2@gmail.com,contabilidad@grupocolnexos.com,info@colmedikal.com").split(",").map((s) => s.trim()).filter(Boolean);
+var CLAIMS_NOTIFY_TO = (process.env.CLAIMS_NOTIFY_TO || "liquidaciones@colmedikal.com").split(",").map((s) => s.trim()).filter(Boolean);
 var WHATSAPP = "098 702 8756";
 var LOGO_URL = "https://colmedikal.com/brand/colmedikal-logo.png";
 var findPlan = (d) => PLANS.find((p) => p.id === d.planId) || (d.plan ? PLANS.find((p) => d.plan.startsWith(p.name)) : void 0);
@@ -824,108 +834,129 @@ function registerClaimRoutes(app, deps) {
     res.setHeader("X-Content-Type-Options", "nosniff");
     import_fs2.default.createReadStream(p).pipe(res);
   };
-  app.get("/api/portal/claims", verifyPortalToken, (req, res) => {
-    const leadId = String(req.leadId);
-    res.json({ success: true, data: load2().filter((c) => c.leadId === leadId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(forClient) });
-  });
-  app.post("/api/portal/claims", verifyPortalToken, import_express2.default.json({ limit: "200kb" }), (req, res) => {
-    const type = req.body?.type;
-    if (type !== "reembolso" && type !== "preautorizacion") return res.status(400).json({ success: false, message: "Tipo inv\xE1lido" });
-    const leadId = String(req.leadId);
-    const list = load2();
-    let claim = req.body?.id ? list.find((c) => c.id === req.body.id && c.leadId === leadId) : void 0;
-    if (req.body?.id && !claim) return res.status(404).json({ success: false, message: "Solicitud no encontrada" });
-    if (claim && claim.status !== "Borrador") return res.status(409).json({ success: false, message: "La solicitud ya fue enviada" });
-    if (!claim) {
-      if (list.filter((c) => c.leadId === leadId && c.status === "Borrador").length >= 5) return res.status(429).json({ success: false, message: "Tienes demasiados borradores; env\xEDa o descarta alguno." });
-      claim = { id: nextId(list, type), type, leadId, status: "Borrador", createdAt: now(), updatedAt: now(), form: {}, invoices: [], declarationAccepted: false, files: [], history: [{ at: now(), by: "Cliente", action: "Borrador creado" }], totalRequested: 0 };
-      list.push(claim);
-    }
-    claim.form = cleanForm(type, req.body?.form);
-    claim.invoices = type === "reembolso" ? cleanInvoices(req.body?.invoices) : [];
-    claim.declarationAccepted = req.body?.declarationAccepted === true;
-    claim.totalRequested = claimTotal(type, claim.form, claim.invoices);
-    claim.updatedAt = now();
-    save2(list);
-    res.json({ success: true, data: forClient(claim) });
-  });
-  app.post("/api/portal/claims/:id/files", verifyPortalToken, import_express2.default.raw({ type: "*/*", limit: MAX_FILE }), (req, res) => {
-    const m = mine(req, res);
-    if (!m) return;
-    const { list, claim } = m;
-    if (!CLIENT_EDITABLE.includes(claim.status)) return res.status(409).json({ success: false, message: "Esta solicitud ya no admite documentos" });
-    if (claim.files.length >= MAX_FILES) return res.status(400).json({ success: false, message: `M\xE1ximo ${MAX_FILES} documentos por solicitud` });
-    const kind = str2(req.header("x-file-kind"), 30);
-    if (!FILE_KINDS[claim.type].some((k) => k.kind === kind)) return res.status(400).json({ success: false, message: "Tipo de documento inv\xE1lido" });
-    const buf = req.body;
-    if (!Buffer.isBuffer(buf) || !buf.length) return res.status(400).json({ success: false, message: "Archivo vac\xEDo" });
-    const sig = SIGNATURES.find((s) => s.test(buf));
-    if (!sig) return res.status(415).json({ success: false, message: "Formato no permitido. Sube PDF, JPG, PNG, WEBP o HEIC." });
-    let name = "documento";
+  const clientRoutes = (base, auth, actor, fileBy) => {
+    app.get(base, ...auth, (req, res) => {
+      const leadId = String(req.leadId);
+      res.json({ success: true, data: load2().filter((c) => c.leadId === leadId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(forClient) });
+    });
+    app.post(base, ...auth, import_express2.default.json({ limit: "200kb" }), (req, res) => {
+      const type = req.body?.type;
+      if (type !== "reembolso" && type !== "preautorizacion") return res.status(400).json({ success: false, message: "Tipo inv\xE1lido" });
+      const leadId = String(req.leadId);
+      const list = load2();
+      let claim = req.body?.id ? list.find((c) => c.id === req.body.id && c.leadId === leadId) : void 0;
+      if (req.body?.id && !claim) return res.status(404).json({ success: false, message: "Solicitud no encontrada" });
+      if (claim && claim.status !== "Borrador") return res.status(409).json({ success: false, message: "La solicitud ya fue enviada" });
+      if (!claim) {
+        if (list.filter((c) => c.leadId === leadId && c.status === "Borrador").length >= 5) return res.status(429).json({ success: false, message: "Tienes demasiados borradores; env\xEDa o descarta alguno." });
+        claim = { id: nextId(list, type), type, leadId, status: "Borrador", createdAt: now(), updatedAt: now(), form: {}, invoices: [], declarationAccepted: false, files: [], history: [{ at: now(), by: actor(req), action: fileBy === "admin" ? "Borrador creado por el equipo Colmedikal" : "Borrador creado" }], totalRequested: 0 };
+        list.push(claim);
+      }
+      claim.form = cleanForm(type, req.body?.form);
+      claim.invoices = type === "reembolso" ? cleanInvoices(req.body?.invoices) : [];
+      claim.declarationAccepted = req.body?.declarationAccepted === true;
+      claim.totalRequested = claimTotal(type, claim.form, claim.invoices);
+      claim.updatedAt = now();
+      save2(list);
+      res.json({ success: true, data: forClient(claim) });
+    });
+    app.post(base + "/:id/files", ...auth, import_express2.default.raw({ type: "*/*", limit: MAX_FILE }), (req, res) => {
+      const m = mine(req, res);
+      if (!m) return;
+      const { list, claim } = m;
+      if (!CLIENT_EDITABLE.includes(claim.status)) return res.status(409).json({ success: false, message: "Esta solicitud ya no admite documentos" });
+      if (claim.files.length >= MAX_FILES) return res.status(400).json({ success: false, message: `M\xE1ximo ${MAX_FILES} documentos por solicitud` });
+      const kind = str2(req.header("x-file-kind"), 30);
+      if (!FILE_KINDS[claim.type].some((k) => k.kind === kind)) return res.status(400).json({ success: false, message: "Tipo de documento inv\xE1lido" });
+      const buf = req.body;
+      if (!Buffer.isBuffer(buf) || !buf.length) return res.status(400).json({ success: false, message: "Archivo vac\xEDo" });
+      const sig = SIGNATURES.find((s) => s.test(buf));
+      if (!sig) return res.status(415).json({ success: false, message: "Formato no permitido. Sube PDF, JPG, PNG, WEBP o HEIC." });
+      let name = "documento";
+      try {
+        name = decodeURIComponent(str2(req.header("x-file-name"), 400)) || name;
+      } catch {
+      }
+      name = name.replace(/[\\/\0<>:"|?*\u0000-\u001f]/g, "_").slice(0, 120);
+      const id = import_crypto2.default.randomUUID();
+      import_fs2.default.mkdirSync(import_path2.default.join(FILES_DIR, claim.id), { recursive: true });
+      import_fs2.default.writeFileSync(import_path2.default.join(FILES_DIR, claim.id, id), buf);
+      const file = { id, kind, name, mime: sig.mime, size: buf.length, uploadedAt: now(), by: fileBy };
+      claim.files.push(file);
+      if (claim.status !== "Borrador") claim.history.push({ at: now(), by: actor(req), action: `Documento agregado: ${name}` });
+      claim.updatedAt = now();
+      save2(list);
+      res.json({ success: true, data: file });
+    });
+    app.delete(base + "/:id/files/:fileId", ...auth, (req, res) => {
+      const m = mine(req, res);
+      if (!m) return;
+      const { list, claim } = m;
+      if (claim.status !== "Borrador") return res.status(409).json({ success: false, message: "No se pueden quitar documentos de una solicitud enviada" });
+      claim.files = claim.files.filter((f) => f.id !== req.params.fileId);
+      try {
+        import_fs2.default.unlinkSync(import_path2.default.join(FILES_DIR, claim.id, import_path2.default.basename(req.params.fileId)));
+      } catch {
+      }
+      save2(list);
+      res.json({ success: true });
+    });
+    app.get(base + "/:id/files/:fileId", ...auth, (req, res) => {
+      const m = mine(req, res);
+      if (!m) return;
+      sendFile(res, m.claim, req.params.fileId);
+    });
+    app.delete(base + "/:id", ...auth, (req, res) => {
+      const m = mine(req, res);
+      if (!m) return;
+      if (m.claim.status !== "Borrador") return res.status(409).json({ success: false, message: "Solo se pueden descartar borradores" });
+      save2(m.list.filter((c) => c !== m.claim));
+      import_fs2.default.rmSync(import_path2.default.join(FILES_DIR, m.claim.id), { recursive: true, force: true });
+      res.json({ success: true });
+    });
+    app.post(base + "/:id/submit", ...auth, import_express2.default.json(), (req, res) => {
+      const m = mine(req, res);
+      if (!m) return;
+      const { list, claim } = m;
+      const comment = str2(req.body?.comment, 1e3);
+      if (claim.status === "Documentos pendientes") {
+        claim.status = "En revisi\xF3n";
+        claim.history.push({ at: now(), by: actor(req), action: "Documentos enviados para revisi\xF3n", status: "En revisi\xF3n", comment: comment || void 0 });
+      } else if (claim.status === "Borrador") {
+        const missing = missingForSubmit(claim);
+        if (missing.length) return res.status(400).json({ success: false, message: "Faltan datos o documentos", missing });
+        claim.status = "Recibida";
+        claim.submittedAt = now();
+        claim.history.push({ at: now(), by: actor(req), action: fileBy === "admin" ? "Solicitud cargada por el equipo Colmedikal" : "Solicitud enviada", status: "Recibida", comment: comment || void 0 });
+        logActivity(claim.leadId, "sistema", `${CLAIM_LABEL[claim.type]} ${claim.id} ${fileBy === "admin" ? "cargada por el equipo" : "enviada"} ($${claim.totalRequested.toFixed(2)})`, actor(req));
+        notifyClient(claim, "").catch((e) => console.error("[claims-mail-client]", e?.message || e));
+      } else {
+        return res.status(409).json({ success: false, message: "Esta solicitud no est\xE1 pendiente de env\xEDo" });
+      }
+      claim.updatedAt = now();
+      save2(list);
+      notifyTeam(claim).catch((e) => console.error("[claims-mail-team]", e?.message || e));
+      res.json({ success: true, data: forClient(claim) });
+    });
+  };
+  clientRoutes("/api/portal/claims", [verifyPortalToken], () => "Cliente", "cliente");
+  const staffName = (req) => {
     try {
-      name = decodeURIComponent(str2(req.header("x-file-name"), 400)) || name;
+      const p = JSON.parse(Buffer.from(String(req.headers.authorization || "").split(" ")[1].split(".")[1], "base64url").toString("utf8"));
+      return str2(p.name || p.email, 80) || "Equipo Colmedikal";
     } catch {
+      return "Equipo Colmedikal";
     }
-    name = name.replace(/[\\/\0<>:"|?*\u0000-\u001f]/g, "_").slice(0, 120);
-    const id = import_crypto2.default.randomUUID();
-    import_fs2.default.mkdirSync(import_path2.default.join(FILES_DIR, claim.id), { recursive: true });
-    import_fs2.default.writeFileSync(import_path2.default.join(FILES_DIR, claim.id, id), buf);
-    const file = { id, kind, name, mime: sig.mime, size: buf.length, uploadedAt: now(), by: "cliente" };
-    claim.files.push(file);
-    if (claim.status !== "Borrador") claim.history.push({ at: now(), by: "Cliente", action: `Documento agregado: ${name}` });
-    claim.updatedAt = now();
-    save2(list);
-    res.json({ success: true, data: file });
-  });
-  app.delete("/api/portal/claims/:id/files/:fileId", verifyPortalToken, (req, res) => {
-    const m = mine(req, res);
-    if (!m) return;
-    const { list, claim } = m;
-    if (claim.status !== "Borrador") return res.status(409).json({ success: false, message: "No se pueden quitar documentos de una solicitud enviada" });
-    claim.files = claim.files.filter((f) => f.id !== req.params.fileId);
-    try {
-      import_fs2.default.unlinkSync(import_path2.default.join(FILES_DIR, claim.id, import_path2.default.basename(req.params.fileId)));
-    } catch {
+  };
+  const staffLead = async (req, res, next) => {
+    const leadId = str2(req.params.leadId, 80);
+    if (!/^[\w-]{1,80}$/.test(leadId) || !await deps.leadExists(leadId).catch(() => false)) {
+      return res.status(404).json({ success: false, message: "Cliente no encontrado" });
     }
-    save2(list);
-    res.json({ success: true });
-  });
-  app.get("/api/portal/claims/:id/files/:fileId", verifyPortalToken, (req, res) => {
-    const m = mine(req, res);
-    if (!m) return;
-    sendFile(res, m.claim, req.params.fileId);
-  });
-  app.delete("/api/portal/claims/:id", verifyPortalToken, (req, res) => {
-    const m = mine(req, res);
-    if (!m) return;
-    if (m.claim.status !== "Borrador") return res.status(409).json({ success: false, message: "Solo se pueden descartar borradores" });
-    save2(m.list.filter((c) => c !== m.claim));
-    import_fs2.default.rmSync(import_path2.default.join(FILES_DIR, m.claim.id), { recursive: true, force: true });
-    res.json({ success: true });
-  });
-  app.post("/api/portal/claims/:id/submit", verifyPortalToken, import_express2.default.json(), (req, res) => {
-    const m = mine(req, res);
-    if (!m) return;
-    const { list, claim } = m;
-    const comment = str2(req.body?.comment, 1e3);
-    if (claim.status === "Documentos pendientes") {
-      claim.status = "En revisi\xF3n";
-      claim.history.push({ at: now(), by: "Cliente", action: "Documentos enviados para revisi\xF3n", status: "En revisi\xF3n", comment: comment || void 0 });
-    } else if (claim.status === "Borrador") {
-      const missing = missingForSubmit(claim);
-      if (missing.length) return res.status(400).json({ success: false, message: "Faltan datos o documentos", missing });
-      claim.status = "Recibida";
-      claim.submittedAt = now();
-      claim.history.push({ at: now(), by: "Cliente", action: "Solicitud enviada", status: "Recibida", comment: comment || void 0 });
-      logActivity(claim.leadId, "sistema", `${CLAIM_LABEL[claim.type]} ${claim.id} enviada ($${claim.totalRequested.toFixed(2)})`, "Cliente");
-    } else {
-      return res.status(409).json({ success: false, message: "Esta solicitud no est\xE1 pendiente de env\xEDo" });
-    }
-    claim.updatedAt = now();
-    save2(list);
-    notifyTeam(claim).catch((e) => console.error("[claims-mail-team]", e?.message || e));
-    res.json({ success: true, data: forClient(claim) });
-  });
+    req.leadId = leadId;
+    next();
+  };
+  clientRoutes("/api/admin/claims-for/:leadId", [requireAdmin, staffLead], staffName, "admin");
   app.get("/api/admin/legacy-hidden", requireAdmin, (_req, res) => res.json({ success: true, data: loadLegacyHidden() }));
   app.post("/api/admin/legacy-hidden", requireAdmin, import_express2.default.json(), (req, res) => {
     const id = str2(req.body?.id, 60);
@@ -940,6 +971,7 @@ function registerClaimRoutes(app, deps) {
     res.json({ success: true });
   });
   app.get("/api/admin/claims", requireAdmin, (_req, res) => {
+    checkSla(deps.commercialEmails).catch((e) => console.error("[claims-sla]", e?.message || e));
     res.json({ success: true, data: load2().filter((c) => c.status !== "Borrador").sort((a, b) => (b.submittedAt || b.createdAt).localeCompare(a.submittedAt || a.createdAt)) });
   });
   app.get("/api/admin/claims/:id/files/:fileId", requireAdmin, (req, res) => {
@@ -973,8 +1005,9 @@ function registerClaimRoutes(app, deps) {
     res.json({ success: true, data: claim });
   });
 }
+var TEAM_TO = () => [.../* @__PURE__ */ new Set([...LEAD_NOTIFY_TO, ...CLAIMS_NOTIFY_TO])];
 async function notifyTeam(c) {
-  if (!mailer || !LEAD_NOTIFY_TO.length) return;
+  if (!mailer) return;
   const title = c.history.length && c.status === "En revisi\xF3n" ? `Documentos recibidos \xB7 ${c.id}` : `Nueva solicitud de ${c.type === "reembolso" ? "reembolso" : "preautorizaci\xF3n"} \xB7 ${c.id}`;
   const body = `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">${rows([
     ["Solicitud", `${c.id} \u2014 ${CLAIM_LABEL[c.type]}`],
@@ -987,9 +1020,10 @@ async function notifyTeam(c) {
     ...c.type === "preautorizacion" ? [["Hospital", c.form.hospital], ["Fecha probable de ingreso", c.form.fechaIngreso]] : [],
     ["Documentos", c.files.length]
   ])}</table><p style="text-align:center"><a href="https://colmedikal.com/admin" style="background:#0C4169;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Revisar en el panel</a></p>`;
-  await mailer.sendMail({ from: MAIL_FROM, to: LEAD_NOTIFY_TO, replyTo: c.form.correo || void 0, subject: title, html: layout(title, body) });
+  await mailer.sendMail({ from: MAIL_FROM, to: TEAM_TO(), replyTo: c.form.correo || void 0, subject: title, html: layout(title, body) });
 }
 var STATUS_COPY = {
+  Recibida: `recibimos tu solicitud. Nuestro equipo la revisar\xE1 y te responder\xE1 en un m\xE1ximo de ${CLAIM_SLA_HOURS} horas.`,
   "En revisi\xF3n": "Nuestro equipo de auditor\xEDa m\xE9dica est\xE1 revisando tu solicitud.",
   "Documentos pendientes": "Necesitamos documentos o informaci\xF3n adicional para continuar. Ingresa a Mi Colmedikal y s\xFAbelos desde tu solicitud.",
   Aprobada: "Tu solicitud fue aprobada.",
@@ -1000,7 +1034,8 @@ async function notifyClient(c, comment) {
   const to = c.form.correo;
   if (!mailer || !to || !/\S+@\S+\.\S+/.test(to)) return;
   const title = `${c.type === "reembolso" ? "Reembolso" : "Preautorizaci\xF3n"} ${c.id}: ${c.status}`;
-  const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc((c.form.titular || "").split(" ")[0])}, ${esc(STATUS_COPY[c.status] || "hay una actualizaci\xF3n en tu solicitud.")}</p>
+  const deadline = c.status === "Recibida" ? `<p style="font-size:13px;color:#0f172a;background:#f0fdfa;border-left:3px solid #0d9488;padding:10px 12px">Respuesta a m\xE1s tardar el <b>${esc(slaDeadline(c).toLocaleString("es-EC", { timeZone: "America/Guayaquil", dateStyle: "long", timeStyle: "short" }))}</b>.</p>` : "";
+  const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc((c.form.titular || "").split(" ")[0])}, ${esc(STATUS_COPY[c.status] || "hay una actualizaci\xF3n en tu solicitud.")}</p>${deadline}
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0 16px">${rows([
     ["Solicitud", c.id],
     ["Paciente", c.form.paciente],
@@ -1010,6 +1045,42 @@ async function notifyClient(c, comment) {
 ${comment ? `<p style="font-size:14px;color:#334155;line-height:1.6;background:#f8fafc;border-left:3px solid #0d9488;padding:10px 12px"><b>Comentario de Colmedikal:</b><br>${esc(comment).replace(/\n/g, "<br>")}</p>` : ""}
 <p style="text-align:center;margin:24px 0"><a href="https://colmedikal.com/mi-colmedikal" style="background:#0d9488;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Ver mi solicitud</a></p>`;
   await mailer.sendMail({ from: MAIL_FROM, to, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+}
+var SLA_THRESHOLDS = [24, 48, CLAIM_SLA_HOURS];
+var LIGHT_COLOR = { verde: "#16a34a", amarillo: "#d97706", rojo: "#dc2626" };
+async function checkSla(commercialEmails, at = Date.now()) {
+  if (!FILE2) return;
+  const list = load2();
+  const running = list.filter((c) => SLA_RUNNING.includes(c.status));
+  const due = running.filter((c) => SLA_THRESHOLDS.some((t) => openHours(c, at) >= t && !(c.slaAlerts || []).includes(t)));
+  if (!due.length) return;
+  const to = [.../* @__PURE__ */ new Set([...await commercialEmails().catch(() => []), ...CLAIMS_NOTIFY_TO])];
+  if (mailer && to.length) {
+    const row = (c) => {
+      const light = slaLight(c, at);
+      return `<tr><td style="padding:7px 10px;border-bottom:1px solid #e2e8f0"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${LIGHT_COLOR[light]}"></span></td>
+<td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:13px;font-family:monospace">${esc(c.id)}</td>
+<td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:13px">${esc(c.form.paciente || c.form.titular)}</td>
+<td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:13px">${esc(c.status)}</td>
+<td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:bold;text-align:right">${Math.floor(openHours(c, at))} h</td></tr>`;
+    };
+    const overdue = running.filter((c) => openHours(c, at) >= CLAIM_SLA_HOURS).length;
+    const title = overdue ? `${overdue} solicitud(es) superaron las ${CLAIM_SLA_HOURS} h` : `Solicitudes abiertas: ${due.map((c) => c.id).join(", ")}`;
+    const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Reembolsos y preautorizaciones abiertos. Compromiso con el cliente: respuesta en m\xE1ximo ${CLAIM_SLA_HOURS} horas.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 20px">${running.sort((a, b) => openHours(b, at) - openHours(a, at)).map(row).join("")}</table>
+<p style="font-size:12px;color:#64748b">\u25CF verde &lt; 48 h \xB7 \u25CF amarillo 48\u2013${CLAIM_SLA_HOURS} h \xB7 \u25CF rojo \u2265 ${CLAIM_SLA_HOURS} h</p>
+<p style="text-align:center"><a href="https://colmedikal.com/admin" style="background:#0C4169;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Abrir el panel</a></p>`;
+    await mailer.sendMail({ from: MAIL_FROM, to, subject: title, html: layout(title, body) });
+  }
+  for (const c of due) c.slaAlerts = SLA_THRESHOLDS.filter((t) => openHours(c, at) >= t);
+  save2(list);
+  console.log("[claims-sla] alerted", due.map((c) => c.id).join(","), "to", to.length, "recipients");
+}
+function startSlaTimer(commercialEmails) {
+  const run = () => checkSla(commercialEmails).catch((e) => console.error("[claims-sla]", e?.message || e));
+  setTimeout(run, 6e4);
+  setInterval(run, 30 * 6e4).unref();
+  return run;
 }
 
 // src/server/portalPassword.ts
@@ -1024,6 +1095,7 @@ var passwordProblem = (p) => p.length < MIN_PASSWORD ? `La contrase\xF1a debe te
 
 // src/server/portalPassword.ts
 var TOKEN_TTL = 30 * 6e4;
+var WELCOME_TTL = 72 * 60 * 6e4;
 var PORTAL_URL = "https://colmedikal.com/mi-colmedikal";
 function registerPortalPasswordRoutes(app, deps) {
   const TOKENS_FILE = import_path3.default.join(deps.dataDir, "portal-reset-tokens.json");
@@ -1065,6 +1137,14 @@ function registerPortalPasswordRoutes(app, deps) {
 <p style="font-size:14px;color:#334155;line-height:1.6">Si fuiste t\xFA, no necesitas hacer nada. <b>Si no reconoces este cambio</b>, restablece tu contrase\xF1a de inmediato desde <a href="${PORTAL_URL}" style="color:#0d9488">Mi Colmedikal</a> y escr\xEDbenos por WhatsApp al 098 702 8756.</p>`;
     await mailer.sendMail({ from: MAIL_FROM, to: c.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
   };
+  const issueLink = (leadId, ttl) => {
+    const token = import_crypto3.default.randomBytes(32).toString("base64url");
+    const tokens = loadTokens();
+    for (const [k, v] of Object.entries(tokens)) if (v.leadId === leadId) delete tokens[k];
+    tokens[sha(token)] = { leadId, exp: Date.now() + ttl };
+    saveTokens(tokens);
+    return `${PORTAL_URL}?reset=${token}`;
+  };
   app.post("/api/portal/forgot", import_express3.default.json(), async (req, res) => {
     const generic = { success: true, message: "Si la c\xE9dula tiene una cuenta activa, enviamos un enlace para restablecer la contrase\xF1a al correo registrado. Revisa tambi\xE9n la carpeta de spam." };
     try {
@@ -1102,12 +1182,7 @@ function registerPortalPasswordRoutes(app, deps) {
         console.warn("[portal-forgot] no email on lead", leadId);
         return res.json(generic);
       }
-      const token = import_crypto3.default.randomBytes(32).toString("base64url");
-      const tokens = loadTokens();
-      for (const [k, v] of Object.entries(tokens)) if (v.leadId === leadId) delete tokens[k];
-      tokens[sha(token)] = { leadId, exp: Date.now() + TOKEN_TTL };
-      saveTokens(tokens);
-      const link = `${PORTAL_URL}?reset=${token}`;
+      const link = issueLink(leadId, TOKEN_TTL);
       const title = "Restablece tu contrase\xF1a de Mi Colmedikal";
       const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(contact.fullName.split(" ")[0])}, recibimos una solicitud para restablecer la contrase\xF1a de tu cuenta en Mi Colmedikal.</p>
 <p style="text-align:center;margin:28px 0"><a href="${link}" style="background:#0C4169;color:#fff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:bold;font-size:14px">Crear nueva contrase\xF1a</a></p>
@@ -1163,6 +1238,26 @@ function registerPortalPasswordRoutes(app, deps) {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
+  const sendWelcome = async (leadId, docNumber, contact) => {
+    const store = deps.loadPortalCreds();
+    if (!store[leadId]) {
+      const { hash, salt } = deps.hashPortalPassword(import_crypto3.default.randomBytes(24).toString("base64url"));
+      store[leadId] = { docNumber: normId(docNumber), hash, salt, updatedAt: Date.now() };
+      deps.savePortalCreds(store);
+    }
+    if (!mailer || !contact.email) return false;
+    const link = issueLink(leadId, WELCOME_TTL);
+    const title = "Bienvenido a Mi Colmedikal";
+    const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(contact.fullName.split(" ")[0])}, ya tienes acceso a <b>Mi Colmedikal</b>, tu portal de afiliado: solicita reembolsos y preautorizaciones, agenda citas y revisa tu plan.</p>
+<p style="font-size:14px;color:#334155;line-height:1.6">Tu usuario es tu n\xFAmero de c\xE9dula o pasaporte: <b>${esc(docNumber)}</b>. Para entrar, primero crea tu contrase\xF1a:</p>
+<p style="text-align:center;margin:28px 0"><a href="${link}" style="background:#0C4169;color:#fff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:bold;font-size:14px">Crear mi contrase\xF1a</a></p>
+<p style="font-size:12px;color:#64748b;line-height:1.6">El enlace vence en 72 horas. Si vence, usa \u201C\xBFOlvidaste tu contrase\xF1a?\u201D en Mi Colmedikal.</p>
+<p style="font-size:11px;color:#94a3b8;word-break:break-all">Si el bot\xF3n no funciona, copia este enlace en tu navegador:<br>${esc(link)}</p>`;
+    await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+    logActivity(leadId, "email", "Correo de bienvenida a Mi Colmedikal enviado (crear contrase\xF1a)", "Sistema");
+    return true;
+  };
+  return { sendWelcome };
 }
 
 // src/server/adminAccess.ts
@@ -1190,7 +1285,8 @@ function roleDefaults(role) {
     case "Mid Admin":
       return { modules: [...ALL], deleteLeads: true };
     case "Equipo Comercial":
-      return { modules: ["kpis", "leads", "auths", "clientes"], deleteLeads: false };
+      return { modules: ["kpis", "refunds", "leads", "auths", "clientes"], deleteLeads: false };
+    // refunds: they file them manually
     case "Auditor":
       return { modules: ["refunds"], deleteLeads: false };
     default:
@@ -1244,14 +1340,18 @@ function registerAdminAccessRoutes(app, deps) {
     const tok = req.headers.authorization?.split(" ")[1] || "";
     if (!tok) return { status: 401 };
     let users;
+    const email = String(jwtPayload(tok)?.email || "").toLowerCase();
     try {
       users = (await deps.httpsJson(`${API}/api/admin/users`, { headers: { Authorization: `Bearer ${tok}` } }))?.data || [];
-    } catch {
+    } catch (e) {
+      console.warn("[admin-whois] API rejected token of", email || "(no email)", e?.status || e?.message);
       return { status: 403 };
     }
-    const email = String(jwtPayload(tok)?.email || "").toLowerCase();
     const caller = users.find((u) => String(u.email).toLowerCase() === email);
-    if (!caller || !caller.active) return { status: 403 };
+    if (!caller || !caller.active) {
+      console.warn("[admin-whois]", email || "(no email)", caller ? "is suspended" : "not in admin_users");
+      return { status: 403 };
+    }
     return { status: 200, caller, users, isSuper: caller.role === "Super Admin" };
   };
   const PERMS_FILE = import_path4.default.join(deps.dataDir, "admin-permissions.json");
@@ -1372,6 +1472,72 @@ function registerAdminAccessRoutes(app, deps) {
   });
 }
 
+// src/server/clients.ts
+var import_crypto5 = __toESM(require("crypto"), 1);
+var import_express5 = __toESM(require("express"), 1);
+var norm = (s) => typeof s === "string" ? s.toLowerCase().replace(/\s/g, "") : "";
+var str3 = (v, max = 160) => typeof v === "string" ? v.trim().slice(0, max) : "";
+function registerClientRoutes(app, deps) {
+  app.post("/api/admin/clients", deps.requireAdmin, import_express5.default.json(), async (req, res) => {
+    try {
+      const b = req.body || {};
+      const fullName = str3(b.fullName, 120);
+      const docType = b.docType === "pasaporte" ? "pasaporte" : "cedula";
+      const docNumber = str3(b.docNumber, 20).replace(/\s/g, "");
+      const email = str3(b.email, 160).toLowerCase();
+      const phone = str3(b.phone, 20);
+      const province = str3(b.province, 60);
+      const plan = PLANS.find((p) => p.id === b.planId);
+      if (fullName.split(" ").filter(Boolean).length < 2) return res.status(400).json({ success: false, message: "Ingresa nombres y apellidos." });
+      if (docType === "cedula" ? !/^\d{10}$/.test(docNumber) : !/^[A-Za-z0-9]{5,20}$/.test(docNumber)) {
+        return res.status(400).json({ success: false, message: docType === "cedula" ? "La c\xE9dula debe tener 10 d\xEDgitos." : "Pasaporte inv\xE1lido." });
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ success: false, message: "Correo inv\xE1lido." });
+      if (!/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) return res.status(400).json({ success: false, message: "Celular inv\xE1lido." });
+      const existing = (await deps.getLeads(true)).find((l) => norm(deps.parseQuoteData(l).docNumber) === norm(docNumber));
+      if (existing) return res.status(409).json({ success: false, message: "Ya existe un registro con esa c\xE9dula. \xC1brelo desde Clientes para darle acceso.", leadId: String(existing.id) });
+      const leadCode = `CM-${import_crypto5.default.randomBytes(3).toString("hex").toUpperCase()}`;
+      const quote = {
+        fullName,
+        email,
+        phone,
+        docType,
+        docNumber,
+        province,
+        type: "individual",
+        primaryAge: 35,
+        childrenCount: 0,
+        childrenAges: [],
+        basePlanId: plan?.id || "",
+        selectedPlanName: plan ? `${plan.name} \u2014 $${plan.basePrice}/mes` : "",
+        leadCode,
+        source: { channel: "Manual", detail: "Creado en el panel" }
+      };
+      const tok = req.headers.authorization.split(" ")[1];
+      const created = await deps.httpsJson("https://api.colmedikal.com/api/admin/leads", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ quote_data: quote, estimated_price: plan?.basePrice || 0, status: "Cierre Efectivo" })
+      });
+      const leadId = String(created?.id ?? created?.data?.id ?? "");
+      if (!leadId) throw new Error("API did not return the new lead id");
+      logActivity(leadId, "sistema", "Cliente creado manualmente en el panel", str3(b.by, 80) || "Admin");
+      let welcomeSent = false;
+      if (b.sendWelcome !== false) {
+        welcomeSent = await deps.sendWelcome(leadId, docNumber, { email, fullName }).catch((e) => {
+          console.error("[admin-clients-welcome]", e?.message || e);
+          return false;
+        });
+      }
+      console.log("[admin-clients] created", leadId, leadCode);
+      res.json({ success: true, leadId, leadCode, welcomeSent });
+    } catch (e) {
+      console.error("[admin-clients]", e?.status || "", e?.message || e);
+      res.status(500).json({ success: false, message: "No se pudo crear el cliente" });
+    }
+  });
+}
+
 // server.ts
 function httpsGetJson(url, timeoutMs = 4e3) {
   return new Promise((resolve, reject) => {
@@ -1418,7 +1584,7 @@ function verifyToken(req, res, next) {
   }
 }
 async function startServer() {
-  const app = (0, import_express5.default)();
+  const app = (0, import_express6.default)();
   const PORT = Number(process.env.PORT) || 3e3;
   app.use((req, res, next) => {
     if (req.hostname === "www.colmedikal.com") {
@@ -1449,7 +1615,7 @@ async function startServer() {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     next();
   });
-  app.post("/api/auth/login", import_express5.default.json(), async (req, res) => {
+  app.post("/api/auth/login", import_express6.default.json(), async (req, res) => {
     try {
       const { password } = req.body;
       if (!password || typeof password !== "string") {
@@ -1460,7 +1626,7 @@ async function startServer() {
       let isValid = false;
       if (passwordBuffer.length === correctBuffer.length) {
         try {
-          isValid = import_crypto5.default.timingSafeEqual(passwordBuffer, correctBuffer);
+          isValid = import_crypto6.default.timingSafeEqual(passwordBuffer, correctBuffer);
         } catch {
           isValid = false;
         }
@@ -1509,7 +1675,7 @@ async function startServer() {
       });
     }
   });
-  app.post("/api/forms/submit", import_express5.default.json(), async (req, res) => {
+  app.post("/api/forms/submit", import_express6.default.json(), async (req, res) => {
     try {
       const { type, data } = req.body;
       if (!type || !["contact", "quote", "reimbursement"].includes(type)) {
@@ -1600,7 +1766,7 @@ async function startServer() {
       return null;
     }
   };
-  app.post("/api/leads/lookup", import_express5.default.json(), async (req, res) => {
+  app.post("/api/leads/lookup", import_express6.default.json(), async (req, res) => {
     try {
       if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
         return res.json({ isDuplicate: false, codes: [], configured: false });
@@ -1716,16 +1882,16 @@ async function startServer() {
     import_fs5.default.writeFileSync(DELETED_LEADS_FILE, JSON.stringify(store));
   }
   function hashPortalPassword(password, saltHex) {
-    const salt = saltHex || import_crypto5.default.randomBytes(16).toString("hex");
-    const hash = import_crypto5.default.pbkdf2Sync(password, salt, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST).toString("hex");
+    const salt = saltHex || import_crypto6.default.randomBytes(16).toString("hex");
+    const hash = import_crypto6.default.pbkdf2Sync(password, salt, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST).toString("hex");
     return { hash, salt };
   }
   function verifyPortalPassword(password, storedHashHex, saltHex) {
     try {
-      const candidate = import_crypto5.default.pbkdf2Sync(password, saltHex, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST);
+      const candidate = import_crypto6.default.pbkdf2Sync(password, saltHex, PORTAL_HASH_ITERATIONS, PORTAL_HASH_KEYLEN, PORTAL_HASH_DIGEST);
       const stored = Buffer.from(storedHashHex, "hex");
       if (candidate.length !== stored.length) return false;
-      return import_crypto5.default.timingSafeEqual(candidate, stored);
+      return import_crypto6.default.timingSafeEqual(candidate, stored);
     } catch {
       return false;
     }
@@ -1780,9 +1946,20 @@ async function startServer() {
     return qd || {};
   };
   registerCrmRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, loadPortalCreds });
-  registerClaimRoutes(app, { dataDir: PORTAL_DATA_DIR, verifyPortalToken, requireAdmin: makeRequireAdmin(httpsJson) });
+  const commercialEmails = async () => {
+    const r = await httpsJson("https://api.colmedikal.com/api/admin/users", { headers: { Authorization: `Bearer ${await getApiToken()}` } });
+    return (r?.data || []).filter((u) => u.role === "Equipo Comercial" && u.active).map((u) => String(u.email));
+  };
+  registerClaimRoutes(app, {
+    dataDir: PORTAL_DATA_DIR,
+    verifyPortalToken,
+    requireAdmin: makeRequireAdmin(httpsJson),
+    commercialEmails,
+    leadExists: async (leadId) => !!(await getLeadById(leadId) || (await getLeads()).find((l) => String(l.id) === leadId))
+  });
+  startSlaTimer(commercialEmails);
   registerAdminAccessRoutes(app, { dataDir: PORTAL_DATA_DIR, httpsJson, getApiToken });
-  registerPortalPasswordRoutes(app, {
+  const portalPw = registerPortalPasswordRoutes(app, {
     dataDir: PORTAL_DATA_DIR,
     verifyPortalToken,
     loadPortalCreds,
@@ -1805,7 +1982,8 @@ async function startServer() {
       return hit ? { leadId: String(hit.l.id), hash: hit.qd.portalPasswordHash, salt: hit.qd.portalPasswordSalt } : null;
     }
   });
-  app.post("/api/portal/login", import_express5.default.json(), async (req, res) => {
+  registerClientRoutes(app, { requireAdmin: makeRequireAdmin(httpsJson), httpsJson, getLeads, parseQuoteData, sendWelcome: portalPw.sendWelcome });
+  app.post("/api/portal/login", import_express6.default.json(), async (req, res) => {
     try {
       if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
         return res.status(503).json({ success: false, message: "Portal no disponible por el momento" });
@@ -1967,7 +2145,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/portal/set-password", import_express5.default.json(), async (req, res) => {
+  app.post("/api/portal/set-password", import_express6.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -2012,7 +2190,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/set-payment-status", import_express5.default.json(), async (req, res) => {
+  app.post("/api/admin/set-payment-status", import_express6.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -2038,15 +2216,15 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/portal/address", verifyPortalToken, import_express5.default.json(), async (req, res) => {
+  app.post("/api/portal/address", verifyPortalToken, import_express6.default.json(), async (req, res) => {
     try {
       const leadId = req.leadId;
-      const str3 = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
-      const province = str3(req.body?.province, 100);
-      const city = str3(req.body?.city, 100);
-      const address1 = str3(req.body?.address1, 200);
-      const address2 = str3(req.body?.address2, 200);
-      const postalCode = str3(req.body?.postalCode, 20);
+      const str4 = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
+      const province = str4(req.body?.province, 100);
+      const city = str4(req.body?.city, 100);
+      const address1 = str4(req.body?.address1, 200);
+      const address2 = str4(req.body?.address2, 200);
+      const postalCode = str4(req.body?.postalCode, 20);
       if (!province || !city || !address1 || !postalCode) {
         return res.status(400).json({ success: false, message: "Provincia, ciudad, Direcci\xF3n 1 y c\xF3digo postal son obligatorios" });
       }
@@ -2082,7 +2260,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/leads/plan-override", import_express5.default.json(), async (req, res) => {
+  app.post("/api/leads/plan-override", import_express6.default.json(), async (req, res) => {
     try {
       const leadId = req.body?.leadId;
       const selectedPlanName = typeof req.body?.selectedPlanName === "string" ? req.body.selectedPlanName.trim().slice(0, 200) : "";
@@ -2140,7 +2318,7 @@ async function startServer() {
       createdAt: lead.created_at || lead.timestamp
     };
   };
-  app.post("/api/leads/notify", import_express5.default.json(), async (req, res) => {
+  app.post("/api/leads/notify", import_express6.default.json(), async (req, res) => {
     try {
       if (!mailer) return res.json({ success: false, configured: false });
       const code = typeof req.body?.leadCode === "string" ? req.body.leadCode.trim() : "";
@@ -2190,7 +2368,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/send-quote-email", import_express5.default.json(), async (req, res) => {
+  app.post("/api/admin/send-quote-email", import_express6.default.json(), async (req, res) => {
     try {
       const callerToken = req.headers.authorization?.split(" ")[1];
       if (!callerToken) return res.status(401).json({ success: false, message: "Token de administrador requerido" });
@@ -2213,7 +2391,7 @@ async function startServer() {
       res.status(502).json({ success: false, message: "No se pudo enviar el correo" });
     }
   });
-  app.post("/api/admin/set-lead-plan", import_express5.default.json(), async (req, res) => {
+  app.post("/api/admin/set-lead-plan", import_express6.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -2246,7 +2424,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/set-contract-number", import_express5.default.json(), async (req, res) => {
+  app.post("/api/admin/set-contract-number", import_express6.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -2300,7 +2478,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/delete-lead", import_express5.default.json(), async (req, res) => {
+  app.post("/api/admin/delete-lead", import_express6.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -2348,7 +2526,7 @@ async function startServer() {
     if (!provided) return res.status(401).json({ success: false, message: "API key requerida" });
     const a = Buffer.from(provided);
     const b = Buffer.from(PARTNER_API_KEY);
-    if (a.length !== b.length || !import_crypto5.default.timingSafeEqual(a, b)) {
+    if (a.length !== b.length || !import_crypto6.default.timingSafeEqual(a, b)) {
       return res.status(403).json({ success: false, message: "API key inv\xE1lida" });
     }
     next();
@@ -2386,7 +2564,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(import_express5.default.static(distPath, { index: false }));
+    app.use(import_express6.default.static(distPath, { index: false }));
     const routes = {
       "/": {
         title: "Colmedikal | Medicina Prepagada en Ecuador \u2014 Planes Familia e Individual",

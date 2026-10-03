@@ -25,6 +25,7 @@ import {
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Doctor } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
+import { doctorNivel } from '../data/network';
 
 export default function DirectorioMedico() {
   const { token, seoSettings } = useColmedikal();
@@ -136,8 +137,6 @@ export default function DirectorioMedico() {
     { id: 'amazonia', name: 'Amazonía (Tena / Puyo / Macas)' },
   ];
 
-  const NIVEL2_NAMES = new Set(['CENTRO MÉDICO ESPECIALIZADO NORTE (DEMO)', 'CLÍNICA AVANZADA DEL LITORAL (DEMO)']);
-  const NIVEL3_NAMES = new Set(['HOSPITAL DE ESPECIALIDADES COLMEDIKAL (DEMO)', 'CLÍNICA INTERNACIONAL COLMEDIKAL (DEMO)']);
 
   // Filters logic
   const filteredDoctors = doctors.filter(doc => {
@@ -243,8 +242,8 @@ export default function DirectorioMedico() {
       }
     }
 
-    // Nivel filter — API doesn't persist the nivel field, so we match by name for N2/N3
-    const docNivel = NIVEL3_NAMES.has(doc.name) ? 3 : NIVEL2_NAMES.has(doc.name) ? 2 : 1;
+    // Nivel set in the admin Directorio (legacy name fallback in src/data/network.ts)
+    const docNivel = doctorNivel(doc);
     const matchesNivel = selectedNivel === null || docNivel === selectedNivel;
 
     return matchesSearch && matchesSpecialty && matchesCity && matchesDoctorSpecialty && matchesNivel;

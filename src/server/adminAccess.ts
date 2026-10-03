@@ -56,11 +56,11 @@ export function registerAdminAccessRoutes(app: Express, deps: {
     const tok = req.headers.authorization?.split(' ')[1] || '';
     if (!tok) return { status: 401 as const };
     let users: any[];
-    try { users = (await deps.httpsJson(`${API}/api/admin/users`, { headers: { Authorization: `Bearer ${tok}` } }))?.data || []; }
-    catch { return { status: 403 as const }; }
     const email = String(jwtPayload(tok)?.email || '').toLowerCase();
+    try { users = (await deps.httpsJson(`${API}/api/admin/users`, { headers: { Authorization: `Bearer ${tok}` } }))?.data || []; }
+    catch (e: any) { console.warn('[admin-whois] API rejected token of', email || '(no email)', e?.status || e?.message); return { status: 403 as const }; }
     const caller = users.find(u => String(u.email).toLowerCase() === email);
-    if (!caller || !caller.active) return { status: 403 as const };
+    if (!caller || !caller.active) { console.warn('[admin-whois]', email || '(no email)', caller ? 'is suspended' : 'not in admin_users'); return { status: 403 as const }; }
     return { status: 200 as const, caller, users, isSuper: caller.role === 'Super Admin' };
   };
 

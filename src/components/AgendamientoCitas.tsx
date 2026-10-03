@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Page, Doctor } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
+import { doctorNivel, planCoversSpecialty, planNivel } from '../data/network';
 
 interface AgendamientoCitasProps {
   setCurrentPage: (page: Page) => void;
@@ -82,14 +83,7 @@ const matchesSpecialtyToken = (d: Doctor, token: string): boolean => {
   return (d.education || '').toLowerCase().includes(token.toLowerCase());
 };
 
-// Same nivel taxonomy as DirectorioMedico — the network's demo Nivel 2/3
-// centers aren't reachable by any currently sellable plan, so only Nivel 1
-// providers are ever bookable today. Kept data-driven so a future plan tied
-// to a higher nivel just works once added here.
-const NIVEL2_NAMES = new Set(['CENTRO MÉDICO ESPECIALIZADO NORTE (DEMO)', 'CLÍNICA AVANZADA DEL LITORAL (DEMO)']);
-const NIVEL3_NAMES = new Set(['HOSPITAL DE ESPECIALIDADES COLMEDIKAL (DEMO)', 'CLÍNICA INTERNACIONAL COLMEDIKAL (DEMO)']);
-const docNivel = (d: Doctor): number => NIVEL3_NAMES.has(d.name) ? 3 : NIVEL2_NAMES.has(d.name) ? 2 : 1;
-const PLAN_NIVEL: Record<string, number> = { inicio: 1, proteccion: 1, plus: 1 };
+// Network level + plan coverage rules live in src/data/network.ts (shared with DirectorioMedico).
 
 export default function AgendamientoCitas({ setCurrentPage, embedded }: AgendamientoCitasProps) {
   const { addAppointment, seoSettings } = useColmedikal();
@@ -179,9 +173,9 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
   }, [rawDoctors, seoSettings.deactivated_doctors]);
 
   // Only providers within the nivel that the client's current plan grants access to.
-  const clientNivel = profile ? (PLAN_NIVEL[profile.basePlanId] ?? 1) : 1;
+  const clientNivel = planNivel(profile?.basePlanId);
   const nivelDoctors = useMemo(
-    () => activeDoctors.filter(d => docNivel(d) === clientNivel),
+    () => activeDoctors.filter(d => doctorNivel(d) === clientNivel),
     [activeDoctors, clientNivel]
   );
 
@@ -199,8 +193,9 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
       .map(([tok]) => toTitleCase(tok));
     if (nivelDoctors.some(isDentalProvider)) list.push('Odontología');
     if (nivelDoctors.some(isLabProvider)) list.push('Laboratorio');
-    return list;
-  }, [nivelDoctors]);
+    // Only what the client's plan covers (e.g. Plan Inicio has no Cardiología)
+    return list.filter(sp => planCoversSpecialty(profile?.basePlanId, sp));
+  }, [nivelDoctors, profile?.basePlanId]);
 
   useEffect(() => {
     if (!specialty && specialtyOptions.length > 0) setSpecialty(specialtyOptions[0]);

@@ -16,6 +16,7 @@ type Creds = Record<string, { docNumber: string; hash: string; salt: string; upd
 type Tokens = Record<string, { leadId: string; exp: number }>; // key = sha256(token)
 
 const TOKEN_TTL = 30 * 60_000;
+const WELCOME_TTL = 72 * 60 * 60_000;
 const PORTAL_URL = 'https://colmedikal.com/mi-colmedikal';
 export { passwordProblem } from '../data/password';
 
@@ -72,6 +73,16 @@ export function registerPortalPasswordRoutes(app: Express, deps: {
     await mailer.sendMail({ from: MAIL_FROM, to: c.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
   };
 
+  /** One live link per account; returns the URL to email. */
+  const issueLink = (leadId: string, ttl: number) => {
+    const token = crypto.randomBytes(32).toString('base64url');
+    const tokens = loadTokens();
+    for (const [k, v] of Object.entries(tokens)) if (v.leadId === leadId) delete tokens[k];
+    tokens[sha(token)] = { leadId, exp: Date.now() + ttl };
+    saveTokens(tokens);
+    return `${PORTAL_URL}?reset=${token}`;
+  };
+
   // 1) Request a reset link. Always answers the same way so it can't be used
   //    to discover which cédulas have an account.
   app.post('/api/portal/forgot', express.json(), async (req, res) => {
@@ -103,13 +114,7 @@ export function registerPortalPasswordRoutes(app: Express, deps: {
       }
       if (!contact?.email) { console.warn('[portal-forgot] no email on lead', leadId); return res.json(generic); }
 
-      const token = crypto.randomBytes(32).toString('base64url');
-      const tokens = loadTokens();
-      for (const [k, v] of Object.entries(tokens)) if (v.leadId === leadId) delete tokens[k]; // one live link per account
-      tokens[sha(token)] = { leadId, exp: Date.now() + TOKEN_TTL };
-      saveTokens(tokens);
-
-      const link = `${PORTAL_URL}?reset=${token}`;
+      const link = issueLink(leadId, TOKEN_TTL);
       const title = 'Restablece tu contraseña de Mi Colmedikal';
       const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(contact.fullName.split(' ')[0])}, recibimos una solicitud para restablecer la contraseña de tu cuenta en Mi Colmedikal.</p>
 <p style="text-align:center;margin:28px 0"><a href="${link}" style="background:#0C4169;color:#fff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:bold;font-size:14px">Crear nueva contraseña</a></p>
@@ -169,4 +174,27 @@ export function registerPortalPasswordRoutes(app: Express, deps: {
       res.status(500).json({ success: false, message: 'Error interno' });
     }
   });
+
+  /** New client created by staff: register the account (random password nobody knows) and email a
+   *  72 h link to create their own. Returns false when the email couldn't be sent. */
+  const sendWelcome = async (leadId: string, docNumber: string, contact: { email: string; fullName: string }) => {
+    const store = deps.loadPortalCreds();
+    if (!store[leadId]) {
+      const { hash, salt } = deps.hashPortalPassword(crypto.randomBytes(24).toString('base64url'));
+      store[leadId] = { docNumber: normId(docNumber), hash, salt, updatedAt: Date.now() };
+      deps.savePortalCreds(store);
+    }
+    if (!mailer || !contact.email) return false;
+    const link = issueLink(leadId, WELCOME_TTL);
+    const title = 'Bienvenido a Mi Colmedikal';
+    const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(contact.fullName.split(' ')[0])}, ya tienes acceso a <b>Mi Colmedikal</b>, tu portal de afiliado: solicita reembolsos y preautorizaciones, agenda citas y revisa tu plan.</p>
+<p style="font-size:14px;color:#334155;line-height:1.6">Tu usuario es tu número de cédula o pasaporte: <b>${esc(docNumber)}</b>. Para entrar, primero crea tu contraseña:</p>
+<p style="text-align:center;margin:28px 0"><a href="${link}" style="background:#0C4169;color:#fff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:bold;font-size:14px">Crear mi contraseña</a></p>
+<p style="font-size:12px;color:#64748b;line-height:1.6">El enlace vence en 72 horas. Si vence, usa “¿Olvidaste tu contraseña?” en Mi Colmedikal.</p>
+<p style="font-size:11px;color:#94a3b8;word-break:break-all">Si el botón no funciona, copia este enlace en tu navegador:<br>${esc(link)}</p>`;
+    await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+    logActivity(leadId, 'email', 'Correo de bienvenida a Mi Colmedikal enviado (crear contraseña)', 'Sistema');
+    return true;
+  };
+  return { sendWelcome };
 }

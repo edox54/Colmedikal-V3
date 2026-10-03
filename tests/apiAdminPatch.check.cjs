@@ -30,5 +30,15 @@ const call = async (who, method, url, body) => {
   assert.equal(await call('boss@x.co', 'DELETE', '/api/admin/users/boss%40x.co'), 400, 'no self-delete');
   db['boss@x.co'].active = 0;
   assert.equal(await call('boss@x.co', 'PUT', '/api/admin/users/aud%40x.co', { role: 'Mid Admin' }), 403, 'suspended Super Admin blocked');
+  // doctors columns migration (separate patch)
+  const docPatch = path.join(__dirname, '../scripts/patch-api-doctors-columns.cjs');
+  delete require.cache[require.resolve(tmp)]; delete require.cache[fs.realpathSync(tmp)];
+  execFileSync(process.execPath, [docPatch, tmp]);
+  assert.match(execFileSync(process.execPath, [docPatch, tmp]).toString(), /Already patched/);
+  const m2 = require(tmp);
+  await m2.initializePool();
+  assert.ok(m2.cols.has('image') && m2.cols.has('nivel'), 'columns added');
+  await m2.initializePool(); // second boot: duplicate columns are ignored
+  assert.equal(m2.ddlLog.filter(s => s.includes('ADD COLUMN image')).length, 2);
   console.log('apiAdminPatch.check OK');
 })().catch(e => { console.error(e); process.exit(1); });

@@ -42,4 +42,22 @@ async function handleRequest(req, res, body0) {
     }
   } catch (e) { sendResponse(res, 500, { error: e.message }); }
 }
-module.exports = { handleRequest, db };
+const ddlLog = [];
+const cols = new Set(['id', 'name']);
+async function migrate(query) {
+  try {
+    await query("ALTER TABLE admin_users MODIFY COLUMN role ENUM('Super Admin','Mid Admin','Equipo Comercial','Auditor') NOT NULL DEFAULT 'Mid Admin'");
+    await query("UPDATE admin_users SET role = 'Auditor' WHERE role = 'Auditor Clínico'");
+  } catch (e) { console.error(e); }
+}
+async function initializePool() {
+  const executeQuery = async (sql) => {
+    ddlLog.push(sql);
+    const m = sql.match(/ADD COLUMN (\w+)/);
+    if (m) { if (cols.has(m[1])) throw new Error("Duplicate column name '" + m[1] + "'"); cols.add(m[1]); }
+  };
+  try {
+    await executeQuery("UPDATE admin_users SET role = 'Auditor' WHERE role = 'Auditor Clínico'");
+  } catch (e) { console.error(e); }
+}
+module.exports = { handleRequest, db, initializePool, cols, ddlLog };

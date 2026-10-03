@@ -1,7 +1,7 @@
 // Mi Colmedikal: list, create and follow reembolsos / preautorizaciones.
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ChevronRight, Clock, FileText, Loader2, Plus, Send } from 'lucide-react';
-import { CLAIM_LABEL, CLIENT_EDITABLE, SECTIONS, type Claim, type ClaimStatus, type ClaimType } from '../../data/claims';
+import { CLAIM_LABEL, CLAIM_SLA_HOURS, CLIENT_EDITABLE, SECTIONS, SLA_RUNNING, slaDeadline, type Claim, type ClaimStatus, type ClaimType } from '../../data/claims';
 import { SectionView } from './ClaimFields';
 import ClaimDocuments from './ClaimDocuments';
 import ClaimWizard from './ClaimWizard';
@@ -16,6 +16,7 @@ export const STATUS_STYLE: Record<ClaimStatus, string> = {
   Pagada: 'bg-teal-50 text-teal-800 border-teal-300',
   Rechazada: 'bg-rose-50 text-rose-700 border-rose-200',
 };
+const fmtDeadline = (c: Claim) => slaDeadline(c).toLocaleString('es-EC', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 const fmt = (v?: string) => (v ? new Date(v).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 export const StatusPill = ({ s }: { s: ClaimStatus }) => <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${STATUS_STYLE[s]}`}>{s}</span>;
 
@@ -52,6 +53,7 @@ export default function ClaimsPanel({ type, profile, onChanged }: { type: ClaimT
               ? 'Llena el formulario, sube tus facturas y el formulario firmado por tu médico, y sigue el estado aquí mismo. Plazo máximo: 90 días desde la fecha del gasto.'
               : 'Solicita la autorización de tu cirugía u hospitalización programada con al menos 72 horas de anticipación.'}
           </p>
+          <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-800"><Clock className="h-3.5 w-3.5" />Revisamos cada solicitud en un máximo de {CLAIM_SLA_HOURS} horas y te avisamos por correo.</p>
         </div>
         <button onClick={() => setView({ mode: 'new' })} className="inline-flex items-center gap-1.5 rounded-xl bg-[#0C4169] px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-900 cursor-pointer"><Plus className="h-4 w-4" />Nueva solicitud</button>
       </div>
@@ -77,6 +79,7 @@ export default function ClaimsPanel({ type, profile, onChanged }: { type: ClaimT
                       {c.approvedAmount != null && (c.status === 'Aprobada' || c.status === 'Pagada') && <> · aprobado <b className="text-emerald-700">${c.approvedAmount.toFixed(2)}</b></>}
                       {' · '}{fmt(c.submittedAt || c.createdAt)}
                     </p>
+                    {SLA_RUNNING.includes(c.status) && <p className="text-[11px] font-semibold text-teal-700">Respuesta a más tardar el {fmtDeadline(c)}</p>}
                   </div>
                   <StatusPill s={c.status} />
                   <ChevronRight className="h-4 w-4 text-slate-300" />
@@ -111,6 +114,12 @@ function ClaimDetail({ claim, onBack, onChange }: { claim: Claim; onBack: () => 
         </div>
         <StatusPill s={claim.status} />
       </div>
+      {SLA_RUNNING.includes(claim.status) && (
+        <div className="flex items-start gap-2 rounded-2xl border border-teal-200 bg-teal-50 p-4 text-xs text-teal-900">
+          <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Tu solicitud está siendo revisada. Te responderemos en un máximo de {CLAIM_SLA_HOURS} horas, <b>a más tardar el {fmtDeadline(claim)}</b>, y te avisaremos por correo.</span>
+        </div>
+      )}
 
       {claim.adminComment && (claim.status === 'Documentos pendientes' || claim.status === 'Rechazada' || claim.status === 'Aprobada') && (
         <div className={`rounded-2xl border p-4 text-xs ${claim.status === 'Documentos pendientes' ? 'border-amber-300 bg-amber-50 text-amber-900' : claim.status === 'Rechazada' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>

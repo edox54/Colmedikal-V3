@@ -9,6 +9,8 @@ import type { AdminSharedProps } from '../adminTypes';
 import { AreaChart, FunnelChart, HBars } from './charts';
 import { useCrmUI } from './CrmProvider';
 import { Card, StageBadge, cx, isOverdue, money, timeAgo } from './ui';
+import { CLAIM_SLA_HOURS, SLA_RUNNING, openHours, slaLight, type Claim } from '../../../data/claims';
+import { SlaBadge } from '../sections/ClaimsSection';
 
 type Props = Pick<AdminSharedProps, 'leads' | 'resolvePlanName'>;
 const DAY = 86_400_000;
@@ -31,7 +33,10 @@ function Delta({ cur, prev }: { cur: number; prev: number }) {
 }
 
 export default function CrmDashboard({ leads, resolvePlanName }: Props) {
-  const { crm } = useColmedikal();
+  const { crm, claims } = useColmedikal();
+  // Open reembolsos / preautorizaciones by SLA light (KPI: answer within CLAIM_SLA_HOURS)
+  const openClaims = (claims as Claim[]).filter(c => SLA_RUNNING.includes(c.status)).sort((a, b) => openHours(b) - openHours(a));
+  const lightCount = (l: 'verde' | 'amarillo' | 'rojo') => openClaims.filter(c => slaLight(c) === l).length;
   const { openLead } = useCrmUI();
   const [days, setDays] = useState(30);
 
@@ -114,6 +119,26 @@ export default function CrmDashboard({ leads, resolvePlanName }: Props) {
         <Card title="Plan elegido"><HBars items={s.byPlan} total={s.cur.length} /></Card>
         <Card title="Motivos de pérdida"><HBars items={s.lost} empty="Sin leads perdidos en este periodo." /></Card>
       </div>
+
+      <Card title={`Reembolsos y preautorizaciones abiertos · semáforo ${CLAIM_SLA_HOURS} h`}>
+        <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" /><b>{lightCount('verde')}</b> en tiempo (&lt; 48 h)</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" aria-hidden="true" /><b>{lightCount('amarillo')}</b> por vencer (48–{CLAIM_SLA_HOURS} h)</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-600" aria-hidden="true" /><b>{lightCount('rojo')}</b> vencidas</span>
+        </div>
+        {openClaims.length === 0 ? <p className="text-xs text-slate-500">No hay solicitudes abiertas.</p> : (
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {openClaims.slice(0, 10).map(c => (
+              <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-xs">
+                <SlaBadge c={c} />
+                <span className="font-mono font-bold text-[#0C4169] dark:text-sky-300">{c.id}</span>
+                <button onClick={() => openLead(c.leadId)} className="min-w-0 flex-1 truncate text-left font-bold text-slate-900 dark:text-white hover:underline cursor-pointer">{c.form.paciente || c.form.titular}</button>
+                <span className="text-slate-500">{c.status}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       {s.overdue.length > 0 && (
         <Card title="Seguimientos vencidos">

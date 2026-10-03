@@ -24,7 +24,7 @@ export function roleDefaults(role: string): AdminPermissions {
   switch (role) {
     case 'Super Admin': return { modules: [...ALL], deleteLeads: true };
     case 'Mid Admin': return { modules: [...ALL], deleteLeads: true };
-    case 'Equipo Comercial': return { modules: ['kpis', 'leads', 'auths', 'clientes'], deleteLeads: false };
+    case 'Equipo Comercial': return { modules: ['kpis', 'refunds', 'leads', 'auths', 'clientes'], deleteLeads: false }; // refunds: they file them manually
     case 'Auditor': return { modules: ['refunds'], deleteLeads: false };
     default: return { modules: [], deleteLeads: false };
   }

@@ -4,14 +4,17 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import assert from 'assert';
-import { registerClaimRoutes } from '../src/server/claims';
+import { registerClaimRoutes, checkSla } from '../src/server/claims';
+import { slaLight } from '../src/data/claims';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claims-'));
 const app = express();
 registerClaimRoutes(app, {
   dataDir: dir,
   verifyPortalToken: (req, res, next) => { const t = req.headers.authorization?.split(' ')[1]; if (!t?.startsWith('lead')) return res.status(401).end(); (req as any).leadId = t.slice(4); next(); },
-  requireAdmin: (req, res, next) => (req.headers.authorization === 'Bearer admin' ? next() : res.status(403).end()),
+  requireAdmin: (req, res, next) => (req.headers.authorization?.startsWith('Bearer admin') ? next() : res.status(403).end()),
+  leadExists: async id => id === '7' || id === '9',
+  commercialEmails: async () => ['comercial@x.co'],
 });
 const srv = app.listen(0);
 const base = `http://127.0.0.1:${(srv.address() as any).port}`;
@@ -55,6 +58,35 @@ const PDF = Buffer.from('%PDF-1.4\n%fake\n');
   await j('/api/admin/legacy-hidden', 'admin', { id: 'RMB-587285' });
   assert.deepEqual((await j('/api/admin/legacy-hidden', 'admin')).b.data, ['RMB-587285']);
   assert.equal((await j('/api/admin/legacy-hidden', 'lead7', { id: 'X' })).s, 403, 'clients cannot hide');
+  // staff files a request on behalf of client 9 (same rules as the client)
+  const STAFF = `admin.${Buffer.from(JSON.stringify({ name: 'Alejandra Cruz' })).toString('base64url')}.sig`;
+  assert.equal((await j('/api/admin/claims-for/404/', STAFF, { type: 'reembolso', form })).s, 404, 'unknown client');
+  assert.equal((await j('/api/admin/claims-for/9', 'lead9', { type: 'reembolso', form })).s, 403, 'clients cannot use staff route');
+  const st = (await j('/api/admin/claims-for/9', STAFF, { type: 'reembolso', form, invoices: [{ numero: '9', valor: 10 }], declarationAccepted: true })).b.data;
+  assert.equal(st.leadId, '9');
+  const upStaff = (kind: string) => fetch(`${base}/api/admin/claims-for/9/${st.id}/files`, { method: 'POST', headers: { Authorization: `Bearer ${STAFF}`, 'Content-Type': 'application/octet-stream', 'X-File-Kind': kind }, body: PDF }).then(r => r.json());
+  assert.equal((await upStaff('formulario')).data.by, 'admin');
+  await upStaff('factura');
+  const stSub = (await j(`/api/admin/claims-for/9/${st.id}/submit`, STAFF, {})).b.data;
+  assert.equal(stSub.status, 'Recibida');
+  assert.ok(stSub.history.every((h: any) => h.by === 'Colmedikal'), 'client sees staff entries as Colmedikal');
+  assert.equal((await j('/api/portal/claims', 'lead9')).b.data.length, 1, 'client sees the request filed for them');
+  assert.equal((await j(`/api/admin/claims-for/7/${st.id}/submit`, STAFF, {})).s, 404, 'lead in URL must own the claim');
+
+  // SLA traffic light + alerts (once per threshold)
+  const sub0 = { status: 'Recibida' as const, createdAt: '', submittedAt: new Date(0).toISOString() };
+  assert.equal(slaLight(sub0, 47 * 3600_000), 'verde');
+  assert.equal(slaLight(sub0, 50 * 3600_000), 'amarillo');
+  assert.equal(slaLight(sub0, 72 * 3600_000), 'rojo');
+  assert.equal(slaLight({ ...sub0, status: 'Documentos pendientes' }, 99 * 3600_000), null, 'paused while waiting on client');
+  const later = new Date(stSub.submittedAt).getTime() + 49 * 3600_000;
+  await checkSla(async () => ['comercial@x.co'], later);
+  const alerted = () => (JSON.parse(fs.readFileSync(path.join(dir, 'claims.json'), 'utf8')) as any[]).find(c => c.id === st.id).slaAlerts;
+  assert.deepEqual(alerted(), [24, 48]);
+  await checkSla(async () => [], later + 3600_000);
+  assert.deepEqual(alerted(), [24, 48], 'no repeat alert');
+  await checkSla(async () => [], later + 24 * 3600_000);
+  assert.deepEqual(alerted(), [24, 48, 72]);
   console.log('claims.check OK');
   srv.close();
 })().catch(e => { console.error(e); process.exit(1); });

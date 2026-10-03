@@ -5,7 +5,7 @@ import { registerPortalPasswordRoutes } from '../src/server/portalPassword';
 import crypto from 'crypto';
 const app = express();
 const auth = (req: any, res: any, next: any) => (req.headers.authorization === 'Bearer demo' ? ((req.leadId = '77'), next()) : res.status(401).json({ success: false }));
-registerClaimRoutes(app, { dataDir: '/private/tmp/claude-501/-Users-edox54/ff1f1089-867e-48e0-a88e-833dc7489f6e/scratchpad/harness-data', verifyPortalToken: auth, requireAdmin: (_q: any, _r: any, n: any) => n() });
+registerClaimRoutes(app, { dataDir: '/private/tmp/claude-501/-Users-edox54/ff1f1089-867e-48e0-a88e-833dc7489f6e/scratchpad/harness-data', verifyPortalToken: auth, requireAdmin: (_q: any, _r: any, n: any) => n(), leadExists: async () => true, commercialEmails: async () => [] });
 const h=(p:string,salt=crypto.randomBytes(8).toString('hex'))=>({hash:crypto.createHash('sha256').update(salt+p).digest('hex'),salt});
 let creds:any={'77':{docNumber:'1712345678',...h('Vieja1234'),updatedAt:1}};
 registerPortalPasswordRoutes(app,{dataDir:'/private/tmp/claude-501/-Users-edox54/ff1f1089-867e-48e0-a88e-833dc7489f6e/scratchpad/pp',verifyPortalToken:auth,loadPortalCreds:()=>creds,savePortalCreds:(c:any)=>{creds=c},hashPortalPassword:(p:string)=>h(p),verifyPortalPassword:(p:string,x:string,s:string)=>h(p,s).hash===x,getContact:async()=>({email:'a@b.co',fullName:'Ana'})});

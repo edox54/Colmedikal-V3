@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import { CheckCircle2, FileText, Loader2, Paperclip, Trash2, Upload } from 'lucide-react';
 import { FILE_KINDS, type Claim } from '../../data/claims';
-import { ACCEPT, MAX_UPLOAD_MB, openFile, removeFile, uploadFile } from './claimsApi';
+import { ACCEPT, MAX_UPLOAD_MB, claimFileUrl, openFile, removeFile, uploadFile } from './claimsApi';
 
 export default function ClaimDocuments({ claim, onChange, canUpload, canRemove }: { claim: Claim; onChange: (c: Claim) => void; canUpload: boolean; canRemove: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
@@ -52,7 +52,7 @@ export default function ClaimDocuments({ claim, onChange, canUpload, canRemove }
               <ul className="mt-2 space-y-1">
                 {files.map(f => (
                   <li key={f.id} className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 text-[11px]">
-                    <button type="button" onClick={() => openFile(`/api/portal/claims/${claim.id}/files/${f.id}`)} className="flex min-w-0 items-center gap-1.5 text-left text-slate-700 hover:text-teal-700 hover:underline cursor-pointer">
+                    <button type="button" onClick={() => openFile(claimFileUrl(claim.id, f.id))} className="flex min-w-0 items-center gap-1.5 text-left text-slate-700 hover:text-teal-700 hover:underline cursor-pointer">
                       <FileText className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{f.name}</span><span className="shrink-0 text-slate-400">({(f.size / 1024 / 1024).toFixed(1)} MB)</span>
                     </button>
                     {canRemove && <button type="button" onClick={() => del(f.id)} className="rounded p-1 text-slate-400 hover:text-rose-600 cursor-pointer" aria-label={`Quitar ${f.name}`}><Trash2 className="h-3.5 w-3.5" /></button>}

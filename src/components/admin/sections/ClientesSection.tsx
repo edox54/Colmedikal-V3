@@ -42,6 +42,9 @@ import { createPortal } from 'react-dom';
 import { AdminSharedProps } from '../adminTypes';
 import { useColmedikal } from '../../../context/ColmedikalContext';
 import { useCrmUI } from '../crm/CrmProvider';
+import NewClientDialog from '../crm/NewClientDialog';
+import { toast } from '../crm/ui';
+import { useState } from 'react';
 
 type Props = Pick<AdminSharedProps, 'leads' | 'updateClientPaymentStatus' | 'setClientContractNumber' | 'setClientPassword' | 'refreshData' | 'clientSearchFilter' | 'setClientSearchFilter' | 'passwordModalLeadId' | 'setPasswordModalLeadId' | 'newPasswordInput' | 'setNewPasswordInput' | 'passwordFieldVisible' | 'setPasswordFieldVisible' | 'passwordSaveLoading' | 'setPasswordSaveLoading' | 'passwordSaveError' | 'setPasswordSaveError' | 'passwordSaveSuccess' | 'setPasswordSaveSuccess' | 'contractEditId' | 'setContractEditId' | 'contractNumberInput' | 'setContractNumberInput' | 'resolvePlanName' | 'PLAN_CATALOG' | 'handlePlanChange'>;
 
@@ -49,6 +52,7 @@ export default function ClientesSection(props: Props) {
   const { leads, updateClientPaymentStatus, setClientContractNumber, setClientPassword, refreshData, clientSearchFilter, setClientSearchFilter, passwordModalLeadId, setPasswordModalLeadId, newPasswordInput, setNewPasswordInput, passwordFieldVisible, setPasswordFieldVisible, passwordSaveLoading, setPasswordSaveLoading, passwordSaveError, setPasswordSaveError, passwordSaveSuccess, setPasswordSaveSuccess, contractEditId, setContractEditId, contractNumberInput, setContractNumberInput, resolvePlanName, PLAN_CATALOG, handlePlanChange } = props;
   const { crm } = useColmedikal();
   const { openLead } = useCrmUI();
+  const [newClientOpen, setNewClientOpen] = useState(false);
   // Portal access truth = server credential store (quote_data's hash often doesn't persist)
   const portalOf = (c: { id: string; quoteData?: { portalPasswordHash?: string } }) => !!crm.portal[String(c.id)]?.hasPassword || !!c.quoteData?.portalPasswordHash;
         const clients = leads.filter(l => l.status === 'Cierre Efectivo');
@@ -100,10 +104,16 @@ export default function ClientesSection(props: Props) {
                 Afiliados que cerraron un plan exitosamente. Gestiona su estado de pago y su acceso al Portal de Afiliados.
               </p>
             </div>
-            <button onClick={() => refreshData()} className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 text-[11px] font-bold rounded-xl transition cursor-pointer">
-              <RefreshCw className="w-3.5 h-3.5" /><span>Actualizar</span>
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setNewClientOpen(true)} className="flex items-center gap-1.5 px-3 py-2 bg-[#0C4169] hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition cursor-pointer">
+                <span aria-hidden="true">+</span><span>Nuevo cliente</span>
+              </button>
+              <button onClick={() => refreshData()} className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 text-[11px] font-bold rounded-xl transition cursor-pointer">
+                <RefreshCw className="w-3.5 h-3.5" /><span>Actualizar</span>
+              </button>
+            </div>
           </div>
+          {newClientOpen && <NewClientDialog onClose={() => setNewClientOpen(false)} onCreated={async (_id, msg) => { setNewClientOpen(false); toast(msg); await refreshData(); }} />}
 
           {/* Stats bar */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">

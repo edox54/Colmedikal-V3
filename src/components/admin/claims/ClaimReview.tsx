@@ -97,7 +97,7 @@ export default function ClaimReview({ claim, onClose }: { claim: Claim; onClose:
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {!final && <>
-                    <Action status="En revisión" label="Tomar en revisión" cls={btn.secondary} />
+                    <Action status="En revisión" label="En revisión" cls={btn.secondary} />
                     <Action status="Documentos pendientes" label="Pedir documentos" cls={cx(btn.secondary, '!border-amber-300 !text-amber-800')} />
                     <Action status="Aprobada" label="Aprobar" cls={btn.teal} />
                     <Action status="Rechazada" label="Rechazar" cls={btn.danger} />

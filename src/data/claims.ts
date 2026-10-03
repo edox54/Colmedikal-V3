@@ -177,6 +177,8 @@ export interface Claim {
   totalRequested: number;
   approvedAmount?: number;
   adminComment?: string;
+  /** SLA thresholds (hours) already alerted to the commercial team. */
+  slaAlerts?: number[];
 }
 
 /** Sum of invoices (reembolso) or budget lines (preautorización). */
@@ -197,4 +199,22 @@ export function missingForSubmit(c: Pick<Claim, 'type' | 'form' | 'invoices' | '
   for (const k of FILE_KINDS[c.type]) if (k.required && !c.files.some(f => f.kind === k.kind)) out.push(`Documento: ${k.label}`);
   if (!c.declarationAccepted) out.push('Aceptar la autorización y declaración');
   return out;
+}
+
+// ---------- review SLA (KPI del equipo comercial) ----------
+/** Colmedikal commits to answer a submitted request within this many hours. */
+export const CLAIM_SLA_HOURS = 72;
+/** Statuses where the clock runs (Documentos pendientes waits on the client, so it's paused). */
+export const SLA_RUNNING: ClaimStatus[] = ['Recibida', 'En revisión'];
+// ponytail: clock runs from submittedAt and ignores time spent in "Documentos pendientes";
+//           track pause intervals in history if the KPI must exclude it exactly.
+export const openHours = (c: Pick<Claim, 'submittedAt' | 'createdAt'>, at = Date.now()) =>
+  Math.max(0, (at - new Date(c.submittedAt || c.createdAt).getTime()) / 3_600_000);
+export const slaDeadline = (c: Pick<Claim, 'submittedAt' | 'createdAt'>) =>
+  new Date(new Date(c.submittedAt || c.createdAt).getTime() + CLAIM_SLA_HOURS * 3_600_000);
+/** Traffic light: verde < 48 h, amarillo 48–72 h, rojo ≥ 72 h (SLA vencido). null when the clock isn't running. */
+export function slaLight(c: Pick<Claim, 'status' | 'submittedAt' | 'createdAt'>, at = Date.now()): 'verde' | 'amarillo' | 'rojo' | null {
+  if (!SLA_RUNNING.includes(c.status)) return null;
+  const h = openHours(c, at);
+  return h >= CLAIM_SLA_HOURS ? 'rojo' : h >= 48 ? 'amarillo' : 'verde';
 }

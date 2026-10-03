@@ -436,7 +436,7 @@ function MemberPermissionsDialog({ target, current, onSave, onClose }: {
                 Eliminar cotizaciones
               </label>
             </fieldset>
-            <p className="text-[11px] text-slate-400">Los cambios se aplican la próxima vez que la persona recargue el panel. Configuración del sitio y SEO quedan solo para el Super Admin.</p>
+            <p className="text-[11px] text-slate-400">Los cambios se aplican en el panel de la persona en menos de un minuto. Configuración del sitio y SEO quedan solo para el Super Admin.</p>
             <div className="flex flex-col sm:flex-row gap-2">
               <button type="button" onClick={applyRole} disabled={busy} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer">Usar permisos del rol</button>
               <button type="button" onClick={() => run({ modules, deleteLeads: deleteLeads && modules.includes('leads') })} disabled={busy} className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold cursor-pointer">{busy ? 'Guardando…' : 'Guardar permisos'}</button>
