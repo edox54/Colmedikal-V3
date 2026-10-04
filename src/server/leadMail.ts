@@ -2,6 +2,7 @@
 // SMTP through the cPanel mailbox. nodemailer is pure JS — no fetch/undici/WASM,
 // so it's safe under the CloudLinux LVE memory limits (see httpsGetJson in server.ts).
 import nodemailer from 'nodemailer';
+import type { SendMailOptions } from 'nodemailer';
 import { PLANS } from '../data/plans';
 import { generateQuotePDF } from '../utils/pdfGenerator';
 
@@ -19,6 +20,20 @@ export const MAIL_FROM = process.env.MAIL_FROM || `Colmedikal <${process.env.SMT
 // Team inbox: receives new-lead alerts AND the customer's replies (Reply-To on the quote email).
 export const LEAD_NOTIFY_TO = (process.env.LEAD_NOTIFY_TO || 'colnexos2@gmail.com,contabilidad@grupocolnexos.com,info@colmedikal.com')
   .split(',').map(s => s.trim()).filter(Boolean);
+/** Reply-To on every email a CLIENT receives: one public address, never the internal team list. */
+export const CLIENT_REPLY_TO = process.env.CLIENT_REPLY_TO || 'info@colmedikal.com';
+
+/** Team emails: one message per recipient, so nobody sees who else got it.
+ *  Rejects only if every send failed (partial failures are logged). */
+export async function sendEach(to: string[], mail: Omit<SendMailOptions, 'to' | 'cc' | 'bcc'>) {
+  if (!mailer) return;
+  const list = [...new Set(to.map(t => t.trim().toLowerCase()).filter(Boolean))];
+  const r = await Promise.allSettled(list.map(t => mailer.sendMail({ ...mail, to: t })));
+  const failed = r.filter((x): x is PromiseRejectedResult => x.status === 'rejected');
+  failed.forEach(f => console.error('[mail]', f.reason?.message || f.reason));
+  if (list.length && failed.length === list.length) throw failed[0].reason;
+}
+
 /** Reembolsos / preautorizaciones go to liquidaciones on top of the lead team. */
 export const CLAIMS_NOTIFY_TO = (process.env.CLAIMS_NOTIFY_TO || 'liquidaciones@colmedikal.com')
   .split(',').map(s => s.trim()).filter(Boolean);

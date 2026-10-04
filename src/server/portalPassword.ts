@@ -8,7 +8,7 @@ import path from 'path';
 import crypto from 'crypto';
 import express from 'express';
 import type { Express, RequestHandler } from 'express';
-import { LEAD_NOTIFY_TO, MAIL_FROM, esc, layout, mailer } from './leadMail';
+import { CLIENT_REPLY_TO, MAIL_FROM, esc, layout, mailer } from './leadMail';
 import { logActivity } from './crm';
 import { passwordProblem } from '../data/password';
 
@@ -70,7 +70,7 @@ export function registerPortalPasswordRoutes(app: Express, deps: {
     const title = 'Tu contraseña de Mi Colmedikal cambió';
     const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(c.fullName.split(' ')[0])}, la contraseña de tu cuenta en Mi Colmedikal se cambió ${esc(how)} el ${esc(new Date().toLocaleString('es-EC', { timeZone: 'America/Guayaquil', dateStyle: 'long', timeStyle: 'short' }))}.</p>
 <p style="font-size:14px;color:#334155;line-height:1.6">Si fuiste tú, no necesitas hacer nada. <b>Si no reconoces este cambio</b>, restablece tu contraseña de inmediato desde <a href="${PORTAL_URL}" style="color:#0d9488">Mi Colmedikal</a> y escríbenos por WhatsApp al 098 702 8756.</p>`;
-    await mailer.sendMail({ from: MAIL_FROM, to: c.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+    await mailer.sendMail({ from: MAIL_FROM, to: c.email, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
   };
 
   /** One live link per account; returns the URL to email. */
@@ -120,7 +120,7 @@ export function registerPortalPasswordRoutes(app: Express, deps: {
 <p style="text-align:center;margin:28px 0"><a href="${link}" style="background:#0C4169;color:#fff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:bold;font-size:14px">Crear nueva contraseña</a></p>
 <p style="font-size:12px;color:#64748b;line-height:1.6">El enlace vence en 30 minutos y sirve una sola vez. Si no solicitaste este cambio, ignora este correo: tu contraseña actual sigue funcionando.</p>
 <p style="font-size:11px;color:#94a3b8;word-break:break-all">Si el botón no funciona, copia este enlace en tu navegador:<br>${esc(link)}</p>`;
-      await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+      await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
       console.log('[portal-forgot] reset link sent, lead', leadId);
       logActivity(leadId, 'sistema', 'El cliente solicitó restablecer su contraseña del portal', 'Cliente');
       res.json(generic);
@@ -192,7 +192,7 @@ export function registerPortalPasswordRoutes(app: Express, deps: {
 <p style="text-align:center;margin:28px 0"><a href="${link}" style="background:#0C4169;color:#fff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:bold;font-size:14px">Crear mi contraseña</a></p>
 <p style="font-size:12px;color:#64748b;line-height:1.6">El enlace vence en 72 horas. Si vence, usa “¿Olvidaste tu contraseña?” en Mi Colmedikal.</p>
 <p style="font-size:11px;color:#94a3b8;word-break:break-all">Si el botón no funciona, copia este enlace en tu navegador:<br>${esc(link)}</p>`;
-    await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+    await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
     logActivity(leadId, 'email', 'Correo de bienvenida a Mi Colmedikal enviado (crear contraseña)', 'Sistema');
     return true;
   };

@@ -13,7 +13,7 @@ import {
   CLAIM_LABEL, CLAIM_STATUSES, CLIENT_EDITABLE, FILE_KINDS, SECTIONS,
   CLAIM_SLA_HOURS, SLA_RUNNING, claimTotal, missingForSubmit, openHours, slaDeadline, slaLight, type Claim, type ClaimStatus, type ClaimType, type InvoiceRow,
 } from '../data/claims';
-import { CLAIMS_NOTIFY_TO, LEAD_NOTIFY_TO, MAIL_FROM, esc, layout, mailer, rows } from './leadMail';
+import { CLAIMS_NOTIFY_TO, CLIENT_REPLY_TO, LEAD_NOTIFY_TO, MAIL_FROM, esc, layout, mailer, rows, sendEach } from './leadMail';
 import { logActivity } from './crm';
 
 const MAX_FILE = 10 * 1024 * 1024; // 10 MB per document
@@ -283,7 +283,7 @@ async function notifyTeam(c: Claim) {
     ...(c.type === 'preautorizacion' ? [['Hospital', c.form.hospital], ['Fecha probable de ingreso', c.form.fechaIngreso]] as [string, string][] : []),
     ['Documentos', c.files.length],
   ])}</table><p style="text-align:center"><a href="https://colmedikal.com/admin" style="background:#0C4169;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Revisar en el panel</a></p>`;
-  await mailer.sendMail({ from: MAIL_FROM, to: TEAM_TO(), replyTo: c.form.correo || undefined, subject: title, html: layout(title, body) });
+  await sendEach(TEAM_TO(), { from: MAIL_FROM, replyTo: c.form.correo || undefined, subject: title, html: layout(title, body) });
 }
 
 const STATUS_COPY: Partial<Record<ClaimStatus, string>> = {
@@ -308,7 +308,7 @@ async function notifyClient(c: Claim, comment: string) {
   ])}</table>
 ${comment ? `<p style="font-size:14px;color:#334155;line-height:1.6;background:#f8fafc;border-left:3px solid #0d9488;padding:10px 12px"><b>Comentario de Colmedikal:</b><br>${esc(comment).replace(/\n/g, '<br>')}</p>` : ''}
 <p style="text-align:center;margin:24px 0"><a href="https://colmedikal.com/mi-colmedikal" style="background:#0d9488;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Ver mi solicitud</a></p>`;
-  await mailer.sendMail({ from: MAIL_FROM, to, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+  await mailer.sendMail({ from: MAIL_FROM, to, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
 }
 
 // ---------- SLA alerts to the commercial team ----------
@@ -337,7 +337,7 @@ export async function checkSla(commercialEmails: () => Promise<string[]>, at = D
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 20px">${running.sort((a, b) => openHours(b, at) - openHours(a, at)).map(row).join('')}</table>
 <p style="font-size:12px;color:#64748b">● verde &lt; 48 h · ● amarillo 48–${CLAIM_SLA_HOURS} h · ● rojo ≥ ${CLAIM_SLA_HOURS} h</p>
 <p style="text-align:center"><a href="https://colmedikal.com/admin" style="background:#0C4169;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Abrir el panel</a></p>`;
-    await mailer.sendMail({ from: MAIL_FROM, to, subject: title, html: layout(title, body) });
+    await sendEach(to, { from: MAIL_FROM, subject: title, html: layout(title, body) });
   }
   // Mark as alerted even without SMTP, so a later SMTP fix doesn't send a burst of stale alerts.
   for (const c of due) c.slaAlerts = SLA_THRESHOLDS.filter(t => openHours(c, at) >= t);

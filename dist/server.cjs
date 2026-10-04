@@ -676,6 +676,15 @@ var mailer = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_
 }) : null;
 var MAIL_FROM = process.env.MAIL_FROM || `Colmedikal <${process.env.SMTP_USER}>`;
 var LEAD_NOTIFY_TO = (process.env.LEAD_NOTIFY_TO || "colnexos2@gmail.com,contabilidad@grupocolnexos.com,info@colmedikal.com").split(",").map((s) => s.trim()).filter(Boolean);
+var CLIENT_REPLY_TO = process.env.CLIENT_REPLY_TO || "info@colmedikal.com";
+async function sendEach(to, mail) {
+  if (!mailer) return;
+  const list = [...new Set(to.map((t) => t.trim().toLowerCase()).filter(Boolean))];
+  const r = await Promise.allSettled(list.map((t) => mailer.sendMail({ ...mail, to: t })));
+  const failed = r.filter((x) => x.status === "rejected");
+  failed.forEach((f) => console.error("[mail]", f.reason?.message || f.reason));
+  if (list.length && failed.length === list.length) throw failed[0].reason;
+}
 var CLAIMS_NOTIFY_TO = (process.env.CLAIMS_NOTIFY_TO || "liquidaciones@colmedikal.com").split(",").map((s) => s.trim()).filter(Boolean);
 var WHATSAPP = "098 702 8756";
 var LOGO_URL = "https://colmedikal.com/brand/colmedikal-logo.png";
@@ -1020,7 +1029,7 @@ async function notifyTeam(c) {
     ...c.type === "preautorizacion" ? [["Hospital", c.form.hospital], ["Fecha probable de ingreso", c.form.fechaIngreso]] : [],
     ["Documentos", c.files.length]
   ])}</table><p style="text-align:center"><a href="https://colmedikal.com/admin" style="background:#0C4169;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Revisar en el panel</a></p>`;
-  await mailer.sendMail({ from: MAIL_FROM, to: TEAM_TO(), replyTo: c.form.correo || void 0, subject: title, html: layout(title, body) });
+  await sendEach(TEAM_TO(), { from: MAIL_FROM, replyTo: c.form.correo || void 0, subject: title, html: layout(title, body) });
 }
 var STATUS_COPY = {
   Recibida: `recibimos tu solicitud. Nuestro equipo la revisar\xE1 y te responder\xE1 en un m\xE1ximo de ${CLAIM_SLA_HOURS} horas.`,
@@ -1044,7 +1053,7 @@ async function notifyClient(c, comment) {
   ])}</table>
 ${comment ? `<p style="font-size:14px;color:#334155;line-height:1.6;background:#f8fafc;border-left:3px solid #0d9488;padding:10px 12px"><b>Comentario de Colmedikal:</b><br>${esc(comment).replace(/\n/g, "<br>")}</p>` : ""}
 <p style="text-align:center;margin:24px 0"><a href="https://colmedikal.com/mi-colmedikal" style="background:#0d9488;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Ver mi solicitud</a></p>`;
-  await mailer.sendMail({ from: MAIL_FROM, to, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+  await mailer.sendMail({ from: MAIL_FROM, to, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
 }
 var SLA_THRESHOLDS = [24, 48, CLAIM_SLA_HOURS];
 var LIGHT_COLOR = { verde: "#16a34a", amarillo: "#d97706", rojo: "#dc2626" };
@@ -1070,7 +1079,7 @@ async function checkSla(commercialEmails, at = Date.now()) {
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 20px">${running.sort((a, b) => openHours(b, at) - openHours(a, at)).map(row).join("")}</table>
 <p style="font-size:12px;color:#64748b">\u25CF verde &lt; 48 h \xB7 \u25CF amarillo 48\u2013${CLAIM_SLA_HOURS} h \xB7 \u25CF rojo \u2265 ${CLAIM_SLA_HOURS} h</p>
 <p style="text-align:center"><a href="https://colmedikal.com/admin" style="background:#0C4169;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Abrir el panel</a></p>`;
-    await mailer.sendMail({ from: MAIL_FROM, to, subject: title, html: layout(title, body) });
+    await sendEach(to, { from: MAIL_FROM, subject: title, html: layout(title, body) });
   }
   for (const c of due) c.slaAlerts = SLA_THRESHOLDS.filter((t) => openHours(c, at) >= t);
   save2(list);
@@ -1135,7 +1144,7 @@ function registerPortalPasswordRoutes(app, deps) {
     const title = "Tu contrase\xF1a de Mi Colmedikal cambi\xF3";
     const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(c.fullName.split(" ")[0])}, la contrase\xF1a de tu cuenta en Mi Colmedikal se cambi\xF3 ${esc(how)} el ${esc((/* @__PURE__ */ new Date()).toLocaleString("es-EC", { timeZone: "America/Guayaquil", dateStyle: "long", timeStyle: "short" }))}.</p>
 <p style="font-size:14px;color:#334155;line-height:1.6">Si fuiste t\xFA, no necesitas hacer nada. <b>Si no reconoces este cambio</b>, restablece tu contrase\xF1a de inmediato desde <a href="${PORTAL_URL}" style="color:#0d9488">Mi Colmedikal</a> y escr\xEDbenos por WhatsApp al 098 702 8756.</p>`;
-    await mailer.sendMail({ from: MAIL_FROM, to: c.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+    await mailer.sendMail({ from: MAIL_FROM, to: c.email, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
   };
   const issueLink = (leadId, ttl) => {
     const token = import_crypto3.default.randomBytes(32).toString("base64url");
@@ -1188,7 +1197,7 @@ function registerPortalPasswordRoutes(app, deps) {
 <p style="text-align:center;margin:28px 0"><a href="${link}" style="background:#0C4169;color:#fff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:bold;font-size:14px">Crear nueva contrase\xF1a</a></p>
 <p style="font-size:12px;color:#64748b;line-height:1.6">El enlace vence en 30 minutos y sirve una sola vez. Si no solicitaste este cambio, ignora este correo: tu contrase\xF1a actual sigue funcionando.</p>
 <p style="font-size:11px;color:#94a3b8;word-break:break-all">Si el bot\xF3n no funciona, copia este enlace en tu navegador:<br>${esc(link)}</p>`;
-      await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+      await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
       console.log("[portal-forgot] reset link sent, lead", leadId);
       logActivity(leadId, "sistema", "El cliente solicit\xF3 restablecer su contrase\xF1a del portal", "Cliente");
       res.json(generic);
@@ -1253,7 +1262,7 @@ function registerPortalPasswordRoutes(app, deps) {
 <p style="text-align:center;margin:28px 0"><a href="${link}" style="background:#0C4169;color:#fff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:bold;font-size:14px">Crear mi contrase\xF1a</a></p>
 <p style="font-size:12px;color:#64748b;line-height:1.6">El enlace vence en 72 horas. Si vence, usa \u201C\xBFOlvidaste tu contrase\xF1a?\u201D en Mi Colmedikal.</p>
 <p style="font-size:11px;color:#94a3b8;word-break:break-all">Si el bot\xF3n no funciona, copia este enlace en tu navegador:<br>${esc(link)}</p>`;
-    await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: LEAD_NOTIFY_TO, subject: title, html: layout(title, body) });
+    await mailer.sendMail({ from: MAIL_FROM, to: contact.email, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
     logActivity(leadId, "email", "Correo de bienvenida a Mi Colmedikal enviado (crear contrase\xF1a)", "Sistema");
     return true;
   };
@@ -2394,8 +2403,8 @@ async function startServer() {
       const client = clientMail(d);
       const team = teamMail(d, isNew);
       const results = await Promise.allSettled([
-        /\S+@\S+\.\S+/.test(d.email) ? mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...client, attachments: pdfFor(d) }) : Promise.reject(new Error("lead sin email v\xE1lido")),
-        LEAD_NOTIFY_TO.length ? mailer.sendMail({ from: MAIL_FROM, to: LEAD_NOTIFY_TO, replyTo: d.email || void 0, ...team }) : Promise.reject(new Error("LEAD_NOTIFY_TO vac\xEDo"))
+        /\S+@\S+\.\S+/.test(d.email) ? mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: CLIENT_REPLY_TO, ...client, attachments: pdfFor(d) }) : Promise.reject(new Error("lead sin email v\xE1lido")),
+        LEAD_NOTIFY_TO.length ? sendEach(LEAD_NOTIFY_TO, { from: MAIL_FROM, replyTo: d.email || void 0, ...team }) : Promise.reject(new Error("LEAD_NOTIFY_TO vac\xEDo"))
       ]);
       results.forEach((r, i) => {
         if (r.status === "rejected") console.error(`[lead-notify] ${i ? "team" : "client"} ${code}:`, r.reason?.message || r.reason);
@@ -2427,7 +2436,7 @@ async function startServer() {
       if (!lead) return res.status(404).json({ success: false, message: "Lead no encontrado" });
       const d = leadMailData(lead);
       if (!/\S+@\S+\.\S+/.test(d.email)) return res.status(400).json({ success: false, message: "El lead no tiene un correo v\xE1lido" });
-      await mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...clientMail(d), attachments: pdfFor(d) });
+      await mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: CLIENT_REPLY_TO, ...clientMail(d), attachments: pdfFor(d) });
       logActivity(String(lead.id), "email", `Cotizaci\xF3n enviada a ${d.email}${d.plan ? ` (${d.plan})` : ""}`, typeof req.body?.by === "string" ? req.body.by.slice(0, 80) : "Admin");
       res.json({ success: true, to: d.email });
     } catch (e) {

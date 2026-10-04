@@ -12,7 +12,7 @@ import { registerClaimRoutes, loadLegacyHidden, startSlaTimer } from './src/serv
 import { registerPortalPasswordRoutes } from './src/server/portalPassword';
 import { registerAdminAccessRoutes } from './src/server/adminAccess';
 import { registerClientRoutes } from './src/server/clients';
-import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
+import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, CLIENT_REPLY_TO, sendEach, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
 // WASM-based llhttp parser, which fails under CloudLinux LVE memory limits).
@@ -1013,10 +1013,10 @@ async function startServer() {
       const team = teamMail(d, isNew);
       const results = await Promise.allSettled([
         /\S+@\S+\.\S+/.test(d.email)
-          ? mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...client, attachments: pdfFor(d) })
+          ? mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: CLIENT_REPLY_TO, ...client, attachments: pdfFor(d) })
           : Promise.reject(new Error('lead sin email válido')),
         LEAD_NOTIFY_TO.length
-          ? mailer.sendMail({ from: MAIL_FROM, to: LEAD_NOTIFY_TO, replyTo: d.email || undefined, ...team })
+          ? sendEach(LEAD_NOTIFY_TO, { from: MAIL_FROM, replyTo: d.email || undefined, ...team })
           : Promise.reject(new Error('LEAD_NOTIFY_TO vacío')),
       ]);
       results.forEach((r, i) => { if (r.status === 'rejected') console.error(`[lead-notify] ${i ? 'team' : 'client'} ${code}:`, r.reason?.message || r.reason); });
@@ -1053,7 +1053,7 @@ async function startServer() {
       const d = leadMailData(lead);
       if (!/\S+@\S+\.\S+/.test(d.email)) return res.status(400).json({ success: false, message: 'El lead no tiene un correo válido' });
 
-      await mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: LEAD_NOTIFY_TO, ...clientMail(d), attachments: pdfFor(d) });
+      await mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: CLIENT_REPLY_TO, ...clientMail(d), attachments: pdfFor(d) });
       logActivity(String(lead.id), 'email', `Cotización enviada a ${d.email}${d.plan ? ` (${d.plan})` : ''}`, typeof req.body?.by === 'string' ? req.body.by.slice(0, 80) : 'Admin');
       res.json({ success: true, to: d.email });
     } catch (e: any) {
