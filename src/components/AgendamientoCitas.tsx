@@ -8,6 +8,7 @@ import {
   PhoneCall,
   Lock,
   LogOut,
+  MapPin,
   Video
 } from 'lucide-react';
 import { Page, Doctor } from '../types';
@@ -20,6 +21,8 @@ interface AgendamientoCitasProps {
   // Inicio" exits back to the marketing site — the portal is a clean, app-like
   // experience with no path back out.
   embedded?: boolean;
+  /** Called after a successful booking (the portal refreshes "Mis citas"). */
+  onBooked?: () => void;
 }
 
 // Same province groupings used by the Directorio Médico filter — kept in sync
@@ -85,7 +88,7 @@ const matchesSpecialtyToken = (d: Doctor, token: string): boolean => {
 
 // Network level + plan coverage rules live in src/data/network.ts (shared with DirectorioMedico).
 
-export default function AgendamientoCitas({ setCurrentPage, embedded }: AgendamientoCitasProps) {
+export default function AgendamientoCitas({ setCurrentPage, embedded, onBooked }: AgendamientoCitasProps) {
   const { addAppointment, seoSettings } = useColmedikal();
 
   // ==================== CLIENT AUTH GATE (same session as /mi-colmedikal) ====================
@@ -232,24 +235,15 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
     if (!facilitiesForSelection.includes(facility)) setFacility(facilitiesForSelection[0]);
   }, [facilitiesForSelection]);
 
-  // Same establishments but across ALL cities — used while the user is typing
-  // a facility search, so they can find a specialist outside their default city.
-  const facilitiesAllCitiesForSpecialty = useMemo(() => {
-    if (!specialty) return [];
-    const names = new Set<string>();
-    nivelDoctors.forEach(d => { if (matchesSpecialtyToken(d, specialty)) names.add(d.name); });
-    return [...names].sort((a, b) => a.localeCompare(b, 'es'));
-  }, [nivelDoctors, specialty]);
-
   const [facilitySearch, setFacilitySearch] = useState('');
   const [facilityOpen, setFacilityOpen] = useState(false);
   const [facilityEditing, setFacilityEditing] = useState(false);
 
+  // Only centers in the selected city: booking a Loja appointment at a Quito clinic made no sense.
   const filteredFacilities = useMemo(() => {
     const q = facilitySearch.toLowerCase();
-    if (!q) return facilitiesForSelection;
-    return facilitiesAllCitiesForSpecialty.filter((f) => f.toLowerCase().includes(q));
-  }, [facilitySearch, facilitiesForSelection, facilitiesAllCitiesForSpecialty]);
+    return q ? facilitiesForSelection.filter((f) => f.toLowerCase().includes(q)) : facilitiesForSelection;
+  }, [facilitySearch, facilitiesForSelection]);
 
   // The exact directory record behind the chosen establishment — used at submit
   // time so the appointment stores the REAL city/address, not just the province group.
@@ -267,6 +261,7 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
   const [success, setSuccess] = useState(false);
   const [ticketDetails, setTicketDetails] = useState<any>(null);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,12 +280,8 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
     }
 
     setIsSubmitting(true);
+    setSubmitError('');
 
-    let coordinatorName = 'Lcda. Carmen Falconí - Sede Quito';
-    if (cityGroup === 'guayaquil') coordinatorName = 'Ing. Christian Solórzano - Sede Guayaquil';
-    if (cityGroup === 'azuay') coordinatorName = 'Dra. Verónica Arizaga - Sede Austro';
-
-    const opportunityId = 'OP-APT-' + Math.floor(Math.random() * 90000 + 10000);
     // The real city/address from the chosen directory provider — more precise
     // than the province group used for filtering, and consistent with /directorio.
     const realCity = selectedDoctorRecord?.city || CITY_GROUPS.find(g => g.id === cityGroup)?.name || cityGroup;
@@ -312,21 +303,26 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
         status: 'Pendiente',
         notes: additionalNotes || '',
       });
-    } catch { /* continue even if API call fails */ }
+    } catch {
+      // Never show a confirmation for a request that wasn't saved
+      setSubmitError('No pudimos registrar tu solicitud. Intenta de nuevo en unos minutos o escríbenos por WhatsApp al 098 702 8756.');
+      setIsSubmitting(false);
+      return;
+    }
 
     setTicketDetails({
-      opportunityId,
       fullName: profile.fullName,
-      phone: profile.phone,
+      email: profile.email,
       city: realCity,
+      address: selectedDoctorRecord?.clinic || '',
       specialty,
       facility,
       preferredDate,
       preferredTimeRange,
-      coordinator: coordinatorName,
     });
     setIsSubmitting(false);
     setSuccess(true);
+    onBooked?.();
   };
 
   const handleReset = () => {
@@ -507,12 +503,21 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
                   <input
                     type="text"
                     value={facilityEditing ? facilitySearch : facility}
-                    placeholder="Buscar clínica u hospital..."
+                    placeholder="Buscar clínica u hospital en esta ciudad..."
                     onFocus={() => { setFacilityEditing(true); setFacilitySearch(''); setFacilityOpen(true); }}
                     onChange={(e) => { setFacilitySearch(e.target.value); setFacilityOpen(true); }}
                     onBlur={() => setTimeout(() => { setFacilityOpen(false); setFacilityEditing(false); setFacilitySearch(''); }, 150)}
                     className={`w-full px-3 py-2 bg-white border rounded-xl text-xs outline-none focus:border-[#4597CA] ${!facility ? 'border-slate-200' : 'border-emerald-300'}`}
                   />
+                  {selectedDoctorRecord && (
+                    <p className="text-[11px] text-slate-500 pt-1">
+                      <MapPin className="inline w-3 h-3 mr-1 -mt-0.5 text-teal-600" />
+                      {[selectedDoctorRecord.clinic, selectedDoctorRecord.city].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
+                  {facilityOpen && filteredFacilities.length === 0 && (
+                    <p className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg px-3 py-2 text-xs text-slate-500">No hay centros con ese nombre en esta ciudad.</p>
+                  )}
                   {facilityOpen && filteredFacilities.length > 0 && (
                     <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto text-xs">
                       {filteredFacilities.map((f) => (
@@ -520,9 +525,6 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
                           key={f}
                           onMouseDown={() => {
                             setFacility(f);
-                            const doc = nivelDoctors.find(d => d.name === f);
-                            const grp = doc && CITY_GROUPS.find(g => matchesCityGroup(doc.city, g.id));
-                            if (grp && grp.id !== cityGroup) setCityGroup(grp.id);
                             setFacilitySearch(''); setFacilityOpen(false); setFacilityEditing(false);
                           }}
                           className={`px-3 py-2 cursor-pointer hover:bg-[#4597CA]/10 hover:text-[#0C4169] ${f === facility ? 'bg-[#4597CA]/10 font-semibold text-[#0C4169]' : 'text-slate-700'}`}
@@ -613,6 +615,8 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
                 </label>
               </div>
 
+              {submitError && <p role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">{submitError}</p>}
+
               {/* Submit Buttons */}
               <button
                 type="submit"
@@ -646,19 +650,19 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
               <ul className="space-y-4 text-xs text-slate-350">
                 <li className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-[#4597CA] shrink-0">1</span>
-                  <span>Elige la especialidad y ciudad; el establecimiento se ajusta automáticamente a tu plan.</span>
+                  <span>Elige la especialidad y la ciudad. Solo verás centros de esa ciudad incluidos en tu plan.</span>
                 </li>
                 <li className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-[#4597CA] shrink-0">2</span>
-                  <span>El sistema crea instantáneamente tu solicitud de agendamiento y la enruta al asesor correspondiente.</span>
+                  <span>Tu solicitud llega al equipo de Colmedikal y aparece en “Mis citas” como pendiente.</span>
                 </li>
                 <li className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-[#4597CA] shrink-0">3</span>
-                  <span>El coordinador verifica disponibilidad de agendas clínicas e interactúa con el médico propuesto.</span>
+                  <span>Verificamos la disponibilidad con el centro médico y asignamos el médico.</span>
                 </li>
                 <li className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-[#4597CA] shrink-0">4</span>
-                  <span>Se realiza la confirmación oficial a su WhatsApp con los detalles e indicaciones de la suite médica.</span>
+                  <span>Te confirmamos fecha, hora y médico por correo y en “Mis citas”. Si algo cambia, también te avisamos.</span>
                 </li>
               </ul>
             </div>
@@ -694,17 +698,19 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
             </div>
 
             <div className="space-y-1">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
-                Oportunidad Registrada
-              </span>
-              <h2 className="text-2xl font-extrabold text-[#0C4169] tracking-tight">Solicitud de Cita Enviada</h2>
-              <p className="text-xs text-slate-500">
-                Código de Seguimiento: <strong className="text-slate-800 font-mono font-bold leading-none">{ticketDetails.opportunityId}</strong>
-              </p>
+              <h2 className="text-2xl font-extrabold text-[#0C4169] tracking-tight">Solicitud de cita enviada</h2>
+              <p className="text-xs text-slate-500">Estado: <strong className="text-amber-700">Pendiente de confirmación</strong></p>
             </div>
 
+            <dl className="max-w-md mx-auto text-left text-xs bg-slate-50 rounded-2xl p-4 grid grid-cols-[auto,1fr] gap-x-4 gap-y-1.5">
+              <dt className="text-slate-500">Especialidad</dt><dd className="font-bold text-slate-800">{ticketDetails.specialty}</dd>
+              <dt className="text-slate-500">Centro</dt><dd className="font-bold text-slate-800">{ticketDetails.facility}</dd>
+              <dt className="text-slate-500">Dirección</dt><dd className="text-slate-700">{[ticketDetails.address, ticketDetails.city].filter(Boolean).join(' · ')}</dd>
+              <dt className="text-slate-500">Fecha tentativa</dt><dd className="text-slate-700">{ticketDetails.preferredDate} · {ticketDetails.preferredTimeRange}</dd>
+            </dl>
+
             <p className="text-xs text-slate-600 max-w-lg mx-auto">
-              Muchas gracias, Sr(a). <strong>{ticketDetails.fullName}</strong>. Su requerimiento para una cita de <strong>{ticketDetails.specialty}</strong> en <strong>{ticketDetails.facility}</strong> ha sido recibido exitosamente por nuestro equipo de Colmedikal.
+              Nuestro equipo verificará la disponibilidad con el centro médico y te confirmará la fecha, la hora y el médico que te atenderá{ticketDetails.email ? <> por correo a <strong>{ticketDetails.email}</strong></> : ''}. También verás cada actualización en <strong>Mis citas</strong>.
             </p>
 
             <div className="pt-4 flex flex-wrap gap-3 justify-center">
@@ -725,67 +731,6 @@ export default function AgendamientoCitas({ setCurrentPage, embedded }: Agendami
               )}
             </div>
           </div>
-
-          {/* Pipeline and assignment visualization */}
-          <div className="bg-slate-950 text-slate-350 p-6 rounded-3xl shadow-xl space-y-5 border border-slate-800">
-            <div className="flex justify-between items-center border-b border-slate-850 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping shrink-0" />
-                <h4 className="text-xs font-bold text-teal-400 uppercase tracking-widest font-mono">
-                  Sincronización Automática de la Solicitud
-                </h4>
-              </div>
-              <span className="text-[9px] font-bold text-slate-500 font-mono">ESTADO: TRANSMITIDO</span>
-            </div>
-
-            <div className="space-y-4 text-xs font-mono">
-              <div className="grid grid-cols-2 gap-4 border-b border-white/5 pb-3">
-                <div>
-                  <span className="block text-[10px] text-slate-500">Oportunidad ID:</span>
-                  <span className="text-white font-bold">{ticketDetails.opportunityId}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] text-slate-500">Canal de Entrada:</span>
-                  <span className="text-white font-bold">Portal Web Agendamiento</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 border-b border-white/5 pb-3">
-                <div>
-                  <span className="block text-[10px] text-slate-500">Ejecutivo de Coordinación Asignado:</span>
-                  <span className="text-teal-400 font-bold">{ticketDetails.coordinator}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] text-slate-500">Plan Asignado Responsable:</span>
-                  <span className="text-white font-bold">Asignación Directa por Territorio</span>
-                </div>
-              </div>
-
-              <div className="space-y-2 select-none">
-                <span className="block text-[10px] text-slate-500">Historial de Eventos del Sistema:</span>
-                <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 font-sans space-y-2">
-                  <p className="flex items-center gap-2">
-                    <span className="text-emerald-400">● [19:19:07]</span>
-                    <span>Lead unificado creado con nombre direct-link de <strong>{ticketDetails.fullName}</strong>.</span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-emerald-400">● [19:19:08]</span>
-                    <span>Oportunidad <strong>{ticketDetails.opportunityId}</strong> instanciada en etapa "Pre-Agendamiento".</span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-emerald-400">● [19:19:08]</span>
-                    <span>Notificación webhook enviada con éxito al terminal del coordinador <strong>{ticketDetails.coordinator}</strong>.</span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-amber-400">● [Acción Próxima]</span>
-                    <span>Asesor contrastará la disponibilidad de suites del Hospital con la fecha del <strong>{ticketDetails.preferredDate}</strong> y confirmará al paciente al <strong>{ticketDetails.phone}</strong>.</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
         </div>
       )}
 

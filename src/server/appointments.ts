@@ -158,7 +158,7 @@ async function notifyPatient(apt: any, u: AptUpdate, client: { email: string; fu
   const title = `Tu cita de ${apt.specialty || 'consulta'}: ${u.status}`;
   const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(client.fullName.split(' ')[0])}, ${esc(COPY[u.status])}</p>
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0 16px">${rows([
-    ['Especialidad', apt.specialty], ['Médico', u.doctorName || apt.doctor_name || 'Por asignar'],
+    ['Especialidad', apt.specialty], ['Médico', u.doctorName || (apt.doctor_name !== 'Por Asignar' ? apt.doctor_name : '')],
     ['Centro', [apt.clinic, apt.city].filter(Boolean).join(' · ')],
     ['Fecha y hora', fmtDate(u.aptDate || String(apt.appointment_date || '').split('T')[0], u.aptTime || apt.appointment_time)],
     ['Estado', u.status],

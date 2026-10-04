@@ -758,7 +758,7 @@ async function startServer() {
             (phone && normId(a.patient_phone) === phone)
           ).map((a: any) => ({
             id: a.id,
-            doctorName: a.doctor_name || 'Por Asignar',
+            doctorName: a.doctor_name && a.doctor_name !== 'Por Asignar' ? a.doctor_name : '', // never show a placeholder to the patient
             specialty: a.specialty || '',
             aptDate: a.appointment_date ? String(a.appointment_date).split('T')[0] : '',
             aptTime: a.appointment_time || '',

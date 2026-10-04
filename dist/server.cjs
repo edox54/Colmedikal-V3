@@ -1717,7 +1717,7 @@ async function notifyPatient(apt, u, client) {
   const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(client.fullName.split(" ")[0])}, ${esc(COPY[u.status])}</p>
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0 16px">${rows([
     ["Especialidad", apt.specialty],
-    ["M\xE9dico", u.doctorName || apt.doctor_name || "Por asignar"],
+    ["M\xE9dico", u.doctorName || (apt.doctor_name !== "Por Asignar" ? apt.doctor_name : "")],
     ["Centro", [apt.clinic, apt.city].filter(Boolean).join(" \xB7 ")],
     ["Fecha y hora", fmtDate(u.aptDate || String(apt.appointment_date || "").split("T")[0], u.aptTime || apt.appointment_time)],
     ["Estado", u.status]
@@ -2337,7 +2337,8 @@ async function startServer() {
             (a) => phone && normId2(a.patient_phone) === phone
           ).map((a) => ({
             id: a.id,
-            doctorName: a.doctor_name || "Por Asignar",
+            doctorName: a.doctor_name && a.doctor_name !== "Por Asignar" ? a.doctor_name : "",
+            // never show a placeholder to the patient
             specialty: a.specialty || "",
             aptDate: a.appointment_date ? String(a.appointment_date).split("T")[0] : "",
             aptTime: a.appointment_time || "",

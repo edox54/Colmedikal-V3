@@ -516,7 +516,7 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (appointmentsRes) {
         setAppointments((appointmentsRes.data || []).map((a: any) => ({
           id: a.id,
-          doctorName: a.doctor_name || 'Por Asignar',
+          doctorName: a.doctor_name && a.doctor_name !== 'Por Asignar' ? a.doctor_name : '',
           specialty: a.specialty || '',
           patientName: a.patient_name || '',
           patientId: a.patient_id || '',
@@ -776,22 +776,23 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // ==================== APPOINTMENTS ====================
   const addAppointment = async (appointment: Omit<AppointmentItem, 'id'>) => {
     if (!token) {
-      try {
-        await apiCall('/api/appointments', 'POST', {
-          patient_name: appointment.patientName,
-          patient_id: appointment.patientId,
-          patient_phone: appointment.patientPhone,
-          doctor_name: appointment.doctorName,
-          specialty: appointment.specialty,
-          apt_date: appointment.aptDate,
-          apt_time: appointment.aptTime,
-          modality: appointment.modality,
-          clinic: appointment.clinic,
-          city: appointment.city,
-          cost: appointment.cost || 0,
-          status: appointment.status || 'Pendiente',
-        });
-      } catch { /* silent fail */ }
+      // Errors propagate: the booking page must not confirm a request that wasn't saved
+      await apiCall('/api/appointments', 'POST', {
+        patient_name: appointment.patientName,
+        patient_id: appointment.patientId,
+        patient_phone: appointment.patientPhone,
+        doctor_name: appointment.doctorName,
+        specialty: appointment.specialty,
+        apt_date: appointment.aptDate,
+        apt_time: appointment.aptTime,
+        modality: appointment.modality,
+        clinic: appointment.clinic,
+        city: appointment.city,
+        cost: appointment.cost || 0,
+        status: appointment.status || 'Pendiente',
+        // ponytail: patient notes aren't sent — unverified whether the API has a `notes` column, and an
+        //           unknown column would now fail every booking. Send `notes` once that's confirmed.
+      });
       return;
     }
     setIsLoading(true);

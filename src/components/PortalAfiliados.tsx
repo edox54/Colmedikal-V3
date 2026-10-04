@@ -29,6 +29,7 @@ import {
 import { Page } from '../types';
 import { useColmedikal } from '../context/ColmedikalContext';
 import ClaimsPanel from './portal/ClaimsPanel';
+import AppointmentRow from './portal/AppointmentRow';
 import { ChangePassword, ForgotPassword, ResetPassword } from './portal/PasswordForms';
 import { listClaims } from './portal/claimsApi';
 import type { Claim } from '../data/claims';
@@ -376,6 +377,15 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
     if (h < 19) return 'Buenas tardes';
     return 'Buenas noches';
   }, []);
+
+  // Mis citas: upcoming active ones first (soonest first), then the rest (most recent first)
+  const sortedAppointments = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const upcoming = (a: any) => a.aptDate >= today && ['Pendiente', 'Confirmada', 'Reagendada'].includes(a.status);
+    return [...portalData.appointments].sort((a, b) =>
+      Number(upcoming(b)) - Number(upcoming(a)) ||
+      (upcoming(a) ? a.aptDate.localeCompare(b.aptDate) : b.aptDate.localeCompare(a.aptDate)));
+  }, [portalData.appointments]);
 
   // Soonest upcoming appointment, for the "próxima cita" banner
   const nextAppointment = useMemo(() => {
@@ -910,7 +920,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     <div className="flex-1 min-w-0">
                       <span className="text-[9px] font-bold uppercase tracking-widest text-teal-200 block">Tu próxima cita</span>
                       <p className="text-sm font-bold truncate">
-                        {nextAppointment.specialty} — {nextAppointment.doctorName}
+                        {nextAppointment.specialty}{nextAppointment.doctorName ? ` — ${nextAppointment.doctorName}` : ''}
                       </p>
                       <p className="text-[11px] text-teal-100">
                         {new Date(nextAppointment.aptDate + 'T00:00:00').toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -978,7 +988,7 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                     </div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Citas Agendadas</span>
                     <span className="block text-xl font-bold text-emerald-700">{portalData.appointments.length} Registradas</span>
-                    <p className="text-[10px] text-slate-500">Ver histórico en "Mis Datos y Plan".</p>
+                    <p className="text-[10px] text-slate-500">Ver “Mis citas” en Agendar Cita.</p>
                   </div>
                 </div>
 
@@ -1122,7 +1132,23 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                 authenticated and nivel-filtered for this same client. */}
             {activeTab === 'agendamiento' && (
               <div className="-m-6 sm:-m-8 animate-in fade-in duration-200" id="portal-panel-agendamiento">
-                <AgendamientoCitas setCurrentPage={setCurrentPage} embedded />
+                {/* Mis citas: always on top of the booking form, so the history never gets lost */}
+                <section className="px-6 sm:px-8 pt-6 sm:pt-8 space-y-3" aria-labelledby="mis-citas-title">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 id="mis-citas-title" className="text-base font-black text-[#0C4169]">Mis citas</h3>
+                    <span className="text-[11px] text-slate-400">{portalData.appointments.length} en total</span>
+                  </div>
+                  {portalData.appointments.length === 0 ? (
+                    <p className="text-xs text-slate-500 bg-slate-50 rounded-2xl p-4">Aún no has agendado citas. Solicita la primera con el formulario de abajo.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {sortedAppointments.map((apt) => (
+                        <AppointmentRow key={apt.id} apt={apt} portalToken={portalToken} onChanged={refreshPortalDashboard} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+                <AgendamientoCitas setCurrentPage={setCurrentPage} embedded onBooked={refreshPortalDashboard} />
               </div>
             )}
 
@@ -1227,20 +1253,6 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
                       </li>
                     ))}
                   </ul>
-                </div>
-
-                {/* Appointment history */}
-                <div className="space-y-3">
-                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Histórico de Citas Agendadas</span>
-                  {portalData.appointments.length === 0 ? (
-                    <p className="text-xs text-slate-400">Aún no has agendado citas médicas.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {portalData.appointments.map((apt) => (
-                        <PortalAppointmentRow key={apt.id} apt={apt} portalToken={portalToken} onChanged={refreshPortalDashboard} />
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 {/* Plan detail modal — same layout as Cotizador's, read-only.
@@ -1462,56 +1474,6 @@ export default function PortalAfiliados({ setCurrentPage }: PortalAfiliadosProps
       )}
 
     </div>
-    </div>
-  );
-}
-
-// One appointment in Mi Colmedikal: status, Colmedikal's message and self-service cancel.
-const APT_BADGE: Record<string, string> = {
-  Confirmada: 'text-emerald-800 bg-emerald-50 border-emerald-100',
-  Reagendada: 'text-sky-800 bg-sky-50 border-sky-100',
-  Completada: 'text-indigo-800 bg-indigo-50 border-indigo-100',
-  Cancelada: 'text-rose-800 bg-rose-50 border-rose-100',
-  'No asistió': 'text-slate-700 bg-slate-100 border-slate-200',
-};
-function PortalAppointmentRow({ apt, portalToken, onChanged }: { apt: any; portalToken: string | null; onChanged: () => void; key?: string | number }) {
-  const [step, setStep] = useState<'idle' | 'confirm' | 'busy'>('idle');
-  const [err, setErr] = useState('');
-  const cancellable = ['Pendiente', 'Confirmada', 'Reagendada'].includes(apt.status) && apt.aptDate >= new Date().toISOString().split('T')[0];
-  const cancel = async () => {
-    setStep('busy'); setErr('');
-    try {
-      const r = await fetch(`/api/portal/appointments/${encodeURIComponent(apt.id)}/cancel`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${portalToken}` }, body: '{}' });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok || !j.success) throw new Error(j.message || 'No se pudo cancelar');
-      onChanged();
-    } catch (e) { setErr(e instanceof Error ? e.message : 'No se pudo cancelar'); }
-    setStep('idle');
-  };
-  return (
-    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-      <div className="flex justify-between items-center gap-4">
-        <div>
-          <h4 className="text-xs font-bold text-slate-900">{apt.specialty} — {apt.doctorName}</h4>
-          <p className="text-[10px] text-slate-500">{apt.clinic} ({apt.city})</p>
-          <p className="text-[10px] text-slate-400 font-mono">{apt.aptDate} {apt.aptTime}</p>
-        </div>
-        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border shrink-0 ${APT_BADGE[apt.status] || 'text-amber-800 bg-amber-50 border-amber-100'}`}>{apt.status}</span>
-      </div>
-      {apt.note && <p className="text-[11px] text-teal-900 bg-teal-50 border-l-2 border-teal-500 px-3 py-2 rounded"><b>Colmedikal:</b> {apt.note}</p>}
-      {err && <p className="text-[11px] text-rose-600">{err}</p>}
-      {cancellable && (
-        <div className="flex justify-end gap-2">
-          {step === 'idle' && <button onClick={() => setStep('confirm')} className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer">Cancelar cita</button>}
-          {step !== 'idle' && (
-            <>
-              <span className="text-[11px] text-slate-500 self-center">¿Seguro que quieres cancelarla?</span>
-              <button onClick={() => setStep('idle')} disabled={step === 'busy'} className="px-2.5 py-1 rounded-lg bg-slate-100 text-[11px] font-bold text-slate-600 cursor-pointer">No</button>
-              <button onClick={cancel} disabled={step === 'busy'} className="px-2.5 py-1 rounded-lg bg-rose-600 text-[11px] font-bold text-white disabled:opacity-60 cursor-pointer">{step === 'busy' ? 'Cancelando…' : 'Sí, cancelar'}</button>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }

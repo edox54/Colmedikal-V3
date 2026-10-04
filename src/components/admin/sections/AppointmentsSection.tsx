@@ -127,7 +127,7 @@ export default function AppointmentsSection(props: Props) {
 
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{apt.doctorName}</span>
+                    {apt.doctorName ? <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{apt.doctorName}</span> : <span className="text-[11px] italic text-slate-400">Médico por asignar (al confirmar)</span>}
                     <span className="text-[9px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-bold uppercase">{apt.specialty}</span>
                   </div>
                   <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 gap-2">
@@ -198,7 +198,7 @@ const MODE: Record<Mode, { title: string; status?: AppointmentItem['status']; ct
 
 function AptActionDialog({ apt, mode, onSave, onClose }: { apt: AppointmentItem; mode: Mode; onSave: (c: AppointmentChange) => Promise<void>; onClose: () => void }) {
   const m = MODE[mode];
-  const [doctorName, setDoctorName] = useState(apt.doctorName === 'Por Asignar' ? '' : apt.doctorName);
+  const [doctorName, setDoctorName] = useState(apt.doctorName || '');
   const [aptDate, setAptDate] = useState(apt.aptDate);
   const [aptTime, setAptTime] = useState((apt.aptTime || '').slice(0, 5));
   const [note, setNote] = useState('');
