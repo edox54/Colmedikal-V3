@@ -24,9 +24,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 
 // server.ts
 var import_config = require("dotenv/config");
-var import_express6 = __toESM(require("express"), 1);
-var import_path5 = __toESM(require("path"), 1);
-var import_fs5 = __toESM(require("fs"), 1);
+var import_express7 = __toESM(require("express"), 1);
+var import_path6 = __toESM(require("path"), 1);
+var import_fs6 = __toESM(require("fs"), 1);
 var import_https = __toESM(require("https"), 1);
 var import_vite = require("vite");
 var import_jsonwebtoken = __toESM(require("jsonwebtoken"), 1);
@@ -1122,7 +1122,7 @@ function registerPortalPasswordRoutes(app, deps) {
     import_fs3.default.writeFileSync(TOKENS_FILE, JSON.stringify(t));
   };
   const sha = (s) => import_crypto3.default.createHash("sha256").update(s).digest("hex");
-  const normId = (s) => typeof s === "string" ? s.toLowerCase().replace(/\s/g, "").trim() : "";
+  const normId2 = (s) => typeof s === "string" ? s.toLowerCase().replace(/\s/g, "").trim() : "";
   const hits = /* @__PURE__ */ new Map();
   const throttled = (key, max, windowMs) => {
     const now2 = Date.now();
@@ -1157,13 +1157,13 @@ function registerPortalPasswordRoutes(app, deps) {
   app.post("/api/portal/forgot", import_express3.default.json(), async (req, res) => {
     const generic = { success: true, message: "Si la c\xE9dula tiene una cuenta activa, enviamos un enlace para restablecer la contrase\xF1a al correo registrado. Revisa tambi\xE9n la carpeta de spam." };
     try {
-      const doc = normId(req.body?.docNumber);
+      const doc = normId2(req.body?.docNumber);
       if (!/^[a-z0-9]{5,20}$/.test(doc)) return res.status(400).json({ success: false, message: "Ingresa tu n\xFAmero de c\xE9dula o pasaporte." });
       if (throttled(`ip:${clientIp(req)}`, 10, 60 * 6e4) || throttled(`doc:${doc}`, 3, 15 * 6e4)) {
         return res.status(429).json({ success: false, message: "Demasiadas solicitudes. Intenta de nuevo en unos minutos." });
       }
       const store = deps.loadPortalCreds();
-      const ids = Object.entries(store).filter(([, c]) => normId(c.docNumber) === doc).sort(([, x], [, y]) => (y.updatedAt || 0) - (x.updatedAt || 0)).map(([id]) => id);
+      const ids = Object.entries(store).filter(([, c]) => normId2(c.docNumber) === doc).sort(([, x], [, y]) => (y.updatedAt || 0) - (x.updatedAt || 0)).map(([id]) => id);
       let leadId = ids[0];
       if (!leadId) {
         const legacy = await deps.findLegacyAccount?.(doc).catch(() => null);
@@ -1251,7 +1251,7 @@ function registerPortalPasswordRoutes(app, deps) {
     const store = deps.loadPortalCreds();
     if (!store[leadId]) {
       const { hash, salt } = deps.hashPortalPassword(import_crypto3.default.randomBytes(24).toString("base64url"));
-      store[leadId] = { docNumber: normId(docNumber), hash, salt, updatedAt: Date.now() };
+      store[leadId] = { docNumber: normId2(docNumber), hash, salt, updatedAt: Date.now() };
       deps.savePortalCreds(store);
     }
     if (!mailer || !contact.email) return false;
@@ -1591,6 +1591,142 @@ function registerClientRoutes(app, deps) {
   });
 }
 
+// src/server/appointments.ts
+var import_fs5 = __toESM(require("fs"), 1);
+var import_path5 = __toESM(require("path"), 1);
+var import_express6 = __toESM(require("express"), 1);
+var APT_STATUSES = ["Pendiente", "Confirmada", "Reagendada", "Cancelada", "Completada", "No asisti\xF3"];
+var str4 = (v, max = 300) => typeof v === "string" ? v.trim().slice(0, max) : "";
+var normId = (s) => typeof s === "string" ? s.toLowerCase().replace(/[\s-]/g, "") : "";
+var fmtDate = (d, t) => {
+  if (!d) return "";
+  const [y, m, day] = d.split("-").map(Number);
+  const date = new Date(y, (m || 1) - 1, day || 1).toLocaleDateString("es-EC", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  return t ? `${date}, ${t.slice(0, 5)}` : date;
+};
+function mergeAppointment(a, store) {
+  const u = store[String(a.id)];
+  if (!u) return a;
+  return { ...a, status: u.status, doctorName: u.doctorName || a.doctorName, aptDate: u.aptDate || a.aptDate, aptTime: u.aptTime || a.aptTime, note: u.note, history: u.history };
+}
+function registerAppointmentRoutes(app, deps) {
+  const FILE3 = import_path5.default.join(deps.dataDir, "appointment-updates.json");
+  const load3 = () => {
+    try {
+      return JSON.parse(import_fs5.default.readFileSync(FILE3, "utf8"));
+    } catch {
+      return {};
+    }
+  };
+  const save3 = (s) => {
+    import_fs5.default.mkdirSync(deps.dataDir, { recursive: true });
+    import_fs5.default.writeFileSync(FILE3, JSON.stringify(s));
+  };
+  const staffName = (req) => {
+    try {
+      const p = JSON.parse(Buffer.from(String(req.headers.authorization || "").split(" ")[1].split(".")[1], "base64url").toString("utf8"));
+      return str4(p.name || p.email, 80) || "Equipo Colmedikal";
+    } catch {
+      return "Equipo Colmedikal";
+    }
+  };
+  const findApt = async (id) => (await deps.listAppointments()).find((a) => String(a.id) === id);
+  app.get("/api/admin/appointment-updates", deps.requireAdmin, (_req, res) => res.json({ success: true, data: load3() }));
+  app.post("/api/admin/appointments/:id/update", deps.requireAdmin, import_express6.default.json(), async (req, res) => {
+    try {
+      const id = str4(req.params.id, 80);
+      const status = req.body?.status;
+      const note = str4(req.body?.note, 1e3);
+      const doctorName = str4(req.body?.doctorName, 120);
+      const aptDate = str4(req.body?.aptDate, 10);
+      const aptTime = str4(req.body?.aptTime, 8);
+      const silent = req.body?.silent === true;
+      if (!APT_STATUSES.includes(status)) return res.status(400).json({ success: false, message: "Estado inv\xE1lido" });
+      if (aptDate && !/^\d{4}-\d{2}-\d{2}$/.test(aptDate)) return res.status(400).json({ success: false, message: "Fecha inv\xE1lida" });
+      if (aptTime && !/^\d{2}:\d{2}(:\d{2})?$/.test(aptTime)) return res.status(400).json({ success: false, message: "Hora inv\xE1lida" });
+      if (status === "Reagendada" && (!aptDate || !aptTime)) return res.status(400).json({ success: false, message: "Indica la nueva fecha y hora" });
+      if (status === "Cancelada" && !note && !silent) return res.status(400).json({ success: false, message: "Indica el motivo de la cancelaci\xF3n para el paciente" });
+      const apt = await findApt(id);
+      if (!apt) return res.status(404).json({ success: false, message: "Cita no encontrada" });
+      const store = load3();
+      const prev = store[id];
+      const by = staffName(req);
+      const u = {
+        status,
+        doctorName: doctorName || prev?.doctorName,
+        aptDate: aptDate || prev?.aptDate,
+        aptTime: aptTime || prev?.aptTime,
+        note: note || (prev?.status === status ? prev?.note : void 0),
+        history: [...prev?.history || [], { at: (/* @__PURE__ */ new Date()).toISOString(), by, action: prev?.status === status ? "Mensaje al paciente" : `${prev?.status || apt.status || "Pendiente"} \u2192 ${status}`, note: note || void 0 }]
+      };
+      store[id] = u;
+      save3(store);
+      const tok = req.headers.authorization.split(" ")[1];
+      deps.httpsJson(`https://api.colmedikal.com/api/admin/appointments/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ status: u.status, ...u.doctorName ? { doctor_name: u.doctorName } : {}, ...u.aptDate ? { appointment_date: u.aptDate } : {}, ...u.aptTime ? { appointment_time: u.aptTime } : {} })
+      }).catch((e) => console.warn("[appointments] API PUT failed (kept locally):", id, e?.status || "", JSON.stringify(e?.json || e?.message || "")));
+      const client = await deps.findClient(apt).catch(() => null);
+      if (client) logActivity(client.leadId, "sistema", `Cita ${apt.specialty || ""} (${u.aptDate || ""}): ${u.history[u.history.length - 1].action}${note ? ` \u2014 ${note}` : ""}`, by);
+      if (!silent && client?.email) notifyPatient(apt, u, client).catch((e) => console.error("[appointments-mail]", e?.message || e));
+      res.json({ success: true, data: u, emailed: !silent && !!client?.email });
+    } catch (e) {
+      console.error("[appointments-update]", e?.message || e);
+      res.status(500).json({ success: false, message: "No se pudo actualizar la cita" });
+    }
+  });
+  app.post("/api/portal/appointments/:id/cancel", deps.verifyPortalToken, import_express6.default.json(), async (req, res) => {
+    try {
+      const id = str4(req.params.id, 80);
+      const leadId = String(req.leadId);
+      const [apt, me] = await Promise.all([findApt(id), deps.portalContact(leadId)]);
+      const owns = apt && me && (me.phone && normId(apt.patient_phone) === normId(me.phone) || me.email && normId(apt.user_email) === normId(me.email));
+      if (!owns) return res.status(404).json({ success: false, message: "Cita no encontrada" });
+      const store = load3();
+      const current = store[id]?.status || apt.status || "Pendiente";
+      if (!["Pendiente", "Confirmada", "Reagendada"].includes(current)) return res.status(409).json({ success: false, message: "Esta cita ya no se puede cancelar" });
+      const reason = str4(req.body?.reason, 500);
+      store[id] = { ...store[id] || { history: [] }, status: "Cancelada", note: "Cancelada por ti desde Mi Colmedikal.", history: [...store[id]?.history || [], { at: (/* @__PURE__ */ new Date()).toISOString(), by: "Paciente", action: `${current} \u2192 Cancelada`, note: reason || void 0 }] };
+      save3(store);
+      logActivity(leadId, "sistema", `El paciente cancel\xF3 su cita ${apt.specialty || ""} (${store[id].aptDate || String(apt.appointment_date || "").split("T")[0]})${reason ? ` \u2014 ${reason}` : ""}`, "Cliente");
+      if (mailer) {
+        const title = `Cita cancelada por el paciente \xB7 ${apt.patient_name || ""}`;
+        const body = `<table width="100%" cellpadding="0" cellspacing="0">${rows([["Paciente", apt.patient_name], ["Tel\xE9fono", apt.patient_phone], ["Especialidad", apt.specialty], ["Centro", apt.clinic], ["Fecha", fmtDate(store[id].aptDate || String(apt.appointment_date || "").split("T")[0], store[id].aptTime || apt.appointment_time)], ["Motivo", reason || "\u2014"]])}</table>`;
+        sendEach(LEAD_NOTIFY_TO, { from: MAIL_FROM, subject: title, html: layout(title, body) }).catch((e) => console.error("[appointments-mail-team]", e?.message || e));
+      }
+      res.json({ success: true });
+    } catch (e) {
+      console.error("[portal-apt-cancel]", e?.message || e);
+      res.status(500).json({ success: false, message: "No se pudo cancelar la cita" });
+    }
+  });
+  return { load: load3 };
+}
+var COPY = {
+  Pendiente: "tu cita est\xE1 pendiente de confirmaci\xF3n.",
+  Confirmada: "tu cita fue confirmada.",
+  Reagendada: "tu cita fue reagendada. Revisa la nueva fecha y hora.",
+  Cancelada: "tu cita fue cancelada.",
+  Completada: "gracias por asistir a tu cita.",
+  "No asisti\xF3": "registramos que no pudiste asistir a tu cita. Si necesitas una nueva, ag\xE9ndala desde Mi Colmedikal."
+};
+async function notifyPatient(apt, u, client) {
+  if (!mailer) return;
+  const title = `Tu cita de ${apt.specialty || "consulta"}: ${u.status}`;
+  const body = `<p style="font-size:14px;color:#334155;line-height:1.6">Hola ${esc(client.fullName.split(" ")[0])}, ${esc(COPY[u.status])}</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0 16px">${rows([
+    ["Especialidad", apt.specialty],
+    ["M\xE9dico", u.doctorName || apt.doctor_name || "Por asignar"],
+    ["Centro", [apt.clinic, apt.city].filter(Boolean).join(" \xB7 ")],
+    ["Fecha y hora", fmtDate(u.aptDate || String(apt.appointment_date || "").split("T")[0], u.aptTime || apt.appointment_time)],
+    ["Estado", u.status]
+  ])}</table>
+${u.note ? `<p style="font-size:14px;color:#334155;line-height:1.6;background:#f8fafc;border-left:3px solid #0d9488;padding:10px 12px"><b>Mensaje de Colmedikal:</b><br>${esc(u.note).replace(/\n/g, "<br>")}</p>` : ""}
+<p style="text-align:center;margin:24px 0"><a href="https://colmedikal.com/mi-colmedikal" style="background:#0d9488;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px">Ver mis citas</a></p>`;
+  await mailer.sendMail({ from: MAIL_FROM, to: client.email, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
+}
+
 // server.ts
 function httpsGetJson(url, timeoutMs = 4e3) {
   return new Promise((resolve, reject) => {
@@ -1637,7 +1773,7 @@ function verifyToken(req, res, next) {
   }
 }
 async function startServer() {
-  const app = (0, import_express6.default)();
+  const app = (0, import_express7.default)();
   const PORT = Number(process.env.PORT) || 3e3;
   app.use((req, res, next) => {
     if (req.hostname === "www.colmedikal.com") {
@@ -1668,7 +1804,7 @@ async function startServer() {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     next();
   });
-  app.post("/api/auth/login", import_express6.default.json(), async (req, res) => {
+  app.post("/api/auth/login", import_express7.default.json(), async (req, res) => {
     try {
       const { password } = req.body;
       if (!password || typeof password !== "string") {
@@ -1710,7 +1846,7 @@ async function startServer() {
   app.get("/api/version", (req, res) => {
     try {
       const { execSync } = require("child_process");
-      const metaRaw = import_fs5.default.readFileSync(import_path5.default.join(process.cwd(), "metadata.json"), "utf-8");
+      const metaRaw = import_fs6.default.readFileSync(import_path6.default.join(process.cwd(), "metadata.json"), "utf-8");
       const meta = JSON.parse(metaRaw);
       const deployVersion = meta.deployVersion || "1.0";
       const gitCommit = execSync("git rev-parse --short HEAD", { encoding: "utf-8", cwd: process.cwd() }).trim();
@@ -1728,7 +1864,7 @@ async function startServer() {
       });
     }
   });
-  app.post("/api/forms/submit", import_express6.default.json(), async (req, res) => {
+  app.post("/api/forms/submit", import_express7.default.json(), async (req, res) => {
     try {
       const { type, data } = req.body;
       if (!type || !["contact", "quote", "reimbursement"].includes(type)) {
@@ -1749,7 +1885,7 @@ async function startServer() {
   });
   const API_ADMIN_EMAIL = process.env.API_ADMIN_EMAIL;
   const API_ADMIN_PASSWORD = process.env.API_ADMIN_PASSWORD;
-  const normId = (s) => typeof s === "string" ? s.toLowerCase().replace(/\s/g, "").trim() : "";
+  const normId2 = (s) => typeof s === "string" ? s.toLowerCase().replace(/\s/g, "").trim() : "";
   const httpsJson = (url, opts = {}) => new Promise((resolve, reject) => {
     const u = new URL(url);
     const req = import_https.default.request(u, { method: opts.method || "GET", headers: opts.headers }, (res) => {
@@ -1819,12 +1955,12 @@ async function startServer() {
       return null;
     }
   };
-  app.post("/api/leads/lookup", import_express6.default.json(), async (req, res) => {
+  app.post("/api/leads/lookup", import_express7.default.json(), async (req, res) => {
     try {
       if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
         return res.json({ isDuplicate: false, codes: [], configured: false });
       }
-      const nEmail = normId(req.body?.email), nPhone = normId(req.body?.phone), nDoc = normId(req.body?.docNumber);
+      const nEmail = normId2(req.body?.email), nPhone = normId2(req.body?.phone), nDoc = normId2(req.body?.docNumber);
       if (!nEmail && !nPhone && !nDoc) return res.json({ isDuplicate: false, codes: [] });
       const leads = await getLeads(true);
       const deleted = loadDeletedLeads();
@@ -1841,7 +1977,7 @@ async function startServer() {
           }
         }
         qd = qd || {};
-        const e = normId(qd.email), p = normId(qd.phone), d = normId(qd.docNumber);
+        const e = normId2(qd.email), p = normId2(qd.phone), d = normId2(qd.docNumber);
         if (nEmail && e && e === nEmail || nPhone && p && p === nPhone || nDoc && d && d === nDoc) {
           matched = true;
           if (qd.leadCode) codes.add(qd.leadCode);
@@ -1856,44 +1992,44 @@ async function startServer() {
   const PORTAL_HASH_ITERATIONS = 21e4;
   const PORTAL_HASH_KEYLEN = 32;
   const PORTAL_HASH_DIGEST = "sha256";
-  const PORTAL_DATA_DIR = import_path5.default.join(process.cwd(), "data");
-  const PORTAL_CREDS_FILE = import_path5.default.join(PORTAL_DATA_DIR, "portal-credentials.json");
-  const PAYMENT_OVERRIDES_FILE = import_path5.default.join(PORTAL_DATA_DIR, "payment-status-overrides.json");
+  const PORTAL_DATA_DIR = import_path6.default.join(process.cwd(), "data");
+  const PORTAL_CREDS_FILE = import_path6.default.join(PORTAL_DATA_DIR, "portal-credentials.json");
+  const PAYMENT_OVERRIDES_FILE = import_path6.default.join(PORTAL_DATA_DIR, "payment-status-overrides.json");
   function loadPaymentOverrides() {
     try {
-      return JSON.parse(import_fs5.default.readFileSync(PAYMENT_OVERRIDES_FILE, "utf8"));
+      return JSON.parse(import_fs6.default.readFileSync(PAYMENT_OVERRIDES_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function savePaymentOverrides(store) {
-    import_fs5.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs5.default.writeFileSync(PAYMENT_OVERRIDES_FILE, JSON.stringify(store));
+    import_fs6.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs6.default.writeFileSync(PAYMENT_OVERRIDES_FILE, JSON.stringify(store));
   }
   function loadPortalCreds() {
     try {
-      return JSON.parse(import_fs5.default.readFileSync(PORTAL_CREDS_FILE, "utf8"));
+      return JSON.parse(import_fs6.default.readFileSync(PORTAL_CREDS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function savePortalCreds(store) {
-    import_fs5.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs5.default.writeFileSync(PORTAL_CREDS_FILE, JSON.stringify(store));
+    import_fs6.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs6.default.writeFileSync(PORTAL_CREDS_FILE, JSON.stringify(store));
   }
-  const CLIENT_ADDRESS_FILE = import_path5.default.join(PORTAL_DATA_DIR, "client-address-overrides.json");
+  const CLIENT_ADDRESS_FILE = import_path6.default.join(PORTAL_DATA_DIR, "client-address-overrides.json");
   function loadClientAddresses() {
     try {
-      return JSON.parse(import_fs5.default.readFileSync(CLIENT_ADDRESS_FILE, "utf8"));
+      return JSON.parse(import_fs6.default.readFileSync(CLIENT_ADDRESS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveClientAddresses(store) {
-    import_fs5.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs5.default.writeFileSync(CLIENT_ADDRESS_FILE, JSON.stringify(store));
+    import_fs6.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs6.default.writeFileSync(CLIENT_ADDRESS_FILE, JSON.stringify(store));
   }
-  const LEAD_PLAN_FILE = import_path5.default.join(PORTAL_DATA_DIR, "lead-plan-overrides.json");
+  const LEAD_PLAN_FILE = import_path6.default.join(PORTAL_DATA_DIR, "lead-plan-overrides.json");
   const PLAN_CATALOG = {
     inicio: { name: "Plan Inicio 2K", basePrice: 8 },
     proteccion: { name: "Plan Protecci\xF3n 3K", basePrice: 12 },
@@ -1901,38 +2037,38 @@ async function startServer() {
   };
   function loadLeadPlanOverrides() {
     try {
-      return JSON.parse(import_fs5.default.readFileSync(LEAD_PLAN_FILE, "utf8"));
+      return JSON.parse(import_fs6.default.readFileSync(LEAD_PLAN_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveLeadPlanOverrides(store) {
-    import_fs5.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs5.default.writeFileSync(LEAD_PLAN_FILE, JSON.stringify(store));
+    import_fs6.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs6.default.writeFileSync(LEAD_PLAN_FILE, JSON.stringify(store));
   }
-  const CONTRACT_NUMBERS_FILE = import_path5.default.join(PORTAL_DATA_DIR, "client-contract-numbers.json");
+  const CONTRACT_NUMBERS_FILE = import_path6.default.join(PORTAL_DATA_DIR, "client-contract-numbers.json");
   function loadContractNumbers() {
     try {
-      return JSON.parse(import_fs5.default.readFileSync(CONTRACT_NUMBERS_FILE, "utf8"));
+      return JSON.parse(import_fs6.default.readFileSync(CONTRACT_NUMBERS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveContractNumbers(store) {
-    import_fs5.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs5.default.writeFileSync(CONTRACT_NUMBERS_FILE, JSON.stringify(store));
+    import_fs6.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs6.default.writeFileSync(CONTRACT_NUMBERS_FILE, JSON.stringify(store));
   }
-  const DELETED_LEADS_FILE = import_path5.default.join(PORTAL_DATA_DIR, "deleted-lead-ids.json");
+  const DELETED_LEADS_FILE = import_path6.default.join(PORTAL_DATA_DIR, "deleted-lead-ids.json");
   function loadDeletedLeads() {
     try {
-      return JSON.parse(import_fs5.default.readFileSync(DELETED_LEADS_FILE, "utf8"));
+      return JSON.parse(import_fs6.default.readFileSync(DELETED_LEADS_FILE, "utf8"));
     } catch {
       return {};
     }
   }
   function saveDeletedLeads(store) {
-    import_fs5.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-    import_fs5.default.writeFileSync(DELETED_LEADS_FILE, JSON.stringify(store));
+    import_fs6.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+    import_fs6.default.writeFileSync(DELETED_LEADS_FILE, JSON.stringify(store));
   }
   function hashPortalPassword(password, saltHex) {
     const salt = saltHex || import_crypto6.default.randomBytes(16).toString("hex");
@@ -2031,17 +2167,35 @@ async function startServer() {
     },
     findLegacyAccount: async (doc) => {
       const leads = await getLeads(true).catch(() => []);
-      const hit = leads.map((l) => ({ l, qd: parseQuoteData(l) })).filter(({ qd }) => normId(qd.docNumber) === doc && qd.portalPasswordHash && qd.portalPasswordSalt).sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime())[0];
+      const hit = leads.map((l) => ({ l, qd: parseQuoteData(l) })).filter(({ qd }) => normId2(qd.docNumber) === doc && qd.portalPasswordHash && qd.portalPasswordSalt).sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime())[0];
       return hit ? { leadId: String(hit.l.id), hash: hit.qd.portalPasswordHash, salt: hit.qd.portalPasswordSalt } : null;
     }
   });
   registerClientRoutes(app, { requireAdmin: makeRequireAdmin(httpsJson), httpsJson, getLeads, parseQuoteData, sendWelcome: portalPw.sendWelcome });
-  app.post("/api/portal/login", import_express6.default.json(), async (req, res) => {
+  const aptStore = registerAppointmentRoutes(app, {
+    dataDir: PORTAL_DATA_DIR,
+    requireAdmin: makeRequireAdmin(httpsJson),
+    verifyPortalToken,
+    httpsJson,
+    listAppointments: () => getAdminList("appointments"),
+    findClient: async (apt) => {
+      const phone = normId2(apt.patient_phone).replace(/-/g, ""), email = normId2(apt.user_email);
+      const hit = (await getLeads()).map((l) => ({ l, qd: parseQuoteData(l) })).find(({ qd }) => phone && normId2(qd.phone).replace(/-/g, "") === phone || email && normId2(qd.email) === email);
+      return hit ? { leadId: String(hit.l.id), email: String(hit.qd.email || ""), fullName: String(hit.qd.fullName || apt.patient_name || "") } : null;
+    },
+    portalContact: async (leadId) => {
+      const lead = await getLeadById(leadId) || (await getLeads()).find((l) => String(l.id) === leadId);
+      if (!lead) return null;
+      const qd = parseQuoteData(lead);
+      return { email: String(qd.email || ""), phone: String(qd.phone || "") };
+    }
+  });
+  app.post("/api/portal/login", import_express7.default.json(), async (req, res) => {
     try {
       if (!API_ADMIN_EMAIL || !API_ADMIN_PASSWORD) {
         return res.status(503).json({ success: false, message: "Portal no disponible por el momento" });
       }
-      const docNumber = normId(req.body?.docNumber);
+      const docNumber = normId2(req.body?.docNumber);
       const password = typeof req.body?.password === "string" ? req.body.password : "";
       if (!docNumber || !password) {
         return res.status(400).json({ success: false, message: "C\xE9dula y contrase\xF1a son requeridas" });
@@ -2063,7 +2217,7 @@ async function startServer() {
       }
       if (!matchedLeadId) {
         const leads = await getLeads(true).catch(() => []);
-        const candidates = leads.map((l) => ({ l, qd: parseQuoteData(l) })).filter(({ l, qd }) => !credsStore[String(l.id)] && normId(qd.docNumber) === docNumber && qd.portalPasswordHash && qd.portalPasswordSalt).sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime());
+        const candidates = leads.map((l) => ({ l, qd: parseQuoteData(l) })).filter(({ l, qd }) => !credsStore[String(l.id)] && normId2(qd.docNumber) === docNumber && qd.portalPasswordHash && qd.portalPasswordSalt).sort((a, b) => new Date(b.l.timestamp || 0).getTime() - new Date(a.l.timestamp || 0).getTime());
         const match = candidates.find(({ qd }) => verifyPortalPassword(password, qd.portalPasswordHash, qd.portalPasswordSalt));
         if (match) {
           matchedLeadId = String(match.l.id);
@@ -2148,14 +2302,15 @@ async function startServer() {
       }
       if (!lead) return res.status(404).json({ success: false, message: "Cliente no encontrado" });
       const qd = parseQuoteData(lead);
-      const email = normId(qd.email), phone = normId(qd.phone);
+      const email = normId2(qd.email), phone = normId2(qd.phone);
       const [refundsRaw, authsRaw, aptsRaw] = await Promise.all([
         getAdminList("refunds"),
         getAdminList("authorizations"),
         getAdminList("appointments")
       ]);
       const hidden = new Set(loadLegacyHidden());
-      const mine = (r) => !hidden.has(String(r.id)) && (email && normId(r.user_email) === email || phone && normId(r.user_phone) === phone);
+      const aptUpdates = aptStore.load();
+      const mine = (r) => !hidden.has(String(r.id)) && (email && normId2(r.user_email) === email || phone && normId2(r.user_phone) === phone);
       res.json({
         success: true,
         data: {
@@ -2179,7 +2334,7 @@ async function startServer() {
             adminComment: a.admin_comment || a.adminComment
           })),
           appointments: aptsRaw.filter(
-            (a) => phone && normId(a.patient_phone) === phone
+            (a) => phone && normId2(a.patient_phone) === phone
           ).map((a) => ({
             id: a.id,
             doctorName: a.doctor_name || "Por Asignar",
@@ -2190,7 +2345,7 @@ async function startServer() {
             clinic: a.clinic || "",
             city: a.city || "",
             status: a.status || "Pendiente"
-          }))
+          })).map((a) => mergeAppointment(a, aptUpdates))
         }
       });
     } catch (e) {
@@ -2198,7 +2353,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/portal/set-password", import_express6.default.json(), async (req, res) => {
+  app.post("/api/portal/set-password", import_express7.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -2219,7 +2374,7 @@ async function startServer() {
       const lead = (current?.data || []).find((l) => String(l.id) === String(leadId));
       if (!lead) return res.status(404).json({ success: false, message: "Cliente no encontrado" });
       const qd = parseQuoteData(lead);
-      const docNumber = normId(qd.docNumber);
+      const docNumber = normId2(qd.docNumber);
       if (!docNumber) return res.status(400).json({ success: false, message: "Este lead no tiene c\xE9dula registrada" });
       const { hash, salt } = hashPortalPassword(newPassword);
       const store = loadPortalCreds();
@@ -2243,7 +2398,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/set-payment-status", import_express6.default.json(), async (req, res) => {
+  app.post("/api/admin/set-payment-status", import_express7.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -2269,15 +2424,15 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/portal/address", verifyPortalToken, import_express6.default.json(), async (req, res) => {
+  app.post("/api/portal/address", verifyPortalToken, import_express7.default.json(), async (req, res) => {
     try {
       const leadId = req.leadId;
-      const str4 = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
-      const province = str4(req.body?.province, 100);
-      const city = str4(req.body?.city, 100);
-      const address1 = str4(req.body?.address1, 200);
-      const address2 = str4(req.body?.address2, 200);
-      const postalCode = str4(req.body?.postalCode, 20);
+      const str5 = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
+      const province = str5(req.body?.province, 100);
+      const city = str5(req.body?.city, 100);
+      const address1 = str5(req.body?.address1, 200);
+      const address2 = str5(req.body?.address2, 200);
+      const postalCode = str5(req.body?.postalCode, 20);
       if (!province || !city || !address1 || !postalCode) {
         return res.status(400).json({ success: false, message: "Provincia, ciudad, Direcci\xF3n 1 y c\xF3digo postal son obligatorios" });
       }
@@ -2313,19 +2468,19 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/leads/plan-override", import_express6.default.json(), async (req, res) => {
+  app.post("/api/leads/plan-override", import_express7.default.json(), async (req, res) => {
     try {
       const leadId = req.body?.leadId;
       const selectedPlanName = typeof req.body?.selectedPlanName === "string" ? req.body.selectedPlanName.trim().slice(0, 200) : "";
       const basePlanId = typeof req.body?.basePlanId === "string" ? req.body.basePlanId.trim().slice(0, 50) : void 0;
       const estimatedPrice = Number(req.body?.estimatedPrice);
       if (!leadId || !selectedPlanName) return res.status(400).json({ success: false, message: "Datos inv\xE1lidos" });
-      const email = normId(req.body?.email), phone = normId(req.body?.phone), docNumber = normId(req.body?.docNumber);
+      const email = normId2(req.body?.email), phone = normId2(req.body?.phone), docNumber = normId2(req.body?.docNumber);
       const leads = await getLeads();
       const lead = leads.find((l) => String(l.id) === String(leadId));
       if (!lead) return res.status(404).json({ success: false, message: "No encontrado" });
       const qd = parseQuoteData(lead);
-      const owns = email && normId(qd.email) === email || phone && normId(qd.phone) === phone || docNumber && normId(qd.docNumber) === docNumber;
+      const owns = email && normId2(qd.email) === email || phone && normId2(qd.phone) === phone || docNumber && normId2(qd.docNumber) === docNumber;
       if (!owns) return res.status(403).json({ success: false, message: "No autorizado" });
       const store = loadLeadPlanOverrides();
       store[String(leadId)] = { ...store[String(leadId)], selectedPlanName, basePlanId, estimatedPrice: Number.isFinite(estimatedPrice) ? estimatedPrice : void 0, updatedAt: Date.now() };
@@ -2336,7 +2491,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  const LEAD_MAIL_FILE = import_path5.default.join(PORTAL_DATA_DIR, "lead-mail-sent.json");
+  const LEAD_MAIL_FILE = import_path6.default.join(PORTAL_DATA_DIR, "lead-mail-sent.json");
   let leadsRefresh = null;
   const refreshLeadsShared = () => leadsRefresh ||= getLeads(true).finally(() => {
     leadsRefresh = null;
@@ -2371,7 +2526,7 @@ async function startServer() {
       createdAt: lead.created_at || lead.timestamp
     };
   };
-  app.post("/api/leads/notify", import_express6.default.json(), async (req, res) => {
+  app.post("/api/leads/notify", import_express7.default.json(), async (req, res) => {
     try {
       if (!mailer) return res.json({ success: false, configured: false });
       const code = typeof req.body?.leadCode === "string" ? req.body.leadCode.trim() : "";
@@ -2391,15 +2546,15 @@ async function startServer() {
       const { plan } = d;
       let sent = {};
       try {
-        sent = JSON.parse(import_fs5.default.readFileSync(LEAD_MAIL_FILE, "utf8"));
+        sent = JSON.parse(import_fs6.default.readFileSync(LEAD_MAIL_FILE, "utf8"));
       } catch {
       }
       const key = `${code}|${plan}`;
       if (sent[key]) return res.json({ success: true, skipped: true });
       const isNew = !Object.keys(sent).some((k) => k.startsWith(code + "|"));
       sent[key] = Date.now();
-      import_fs5.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
-      import_fs5.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
+      import_fs6.default.mkdirSync(PORTAL_DATA_DIR, { recursive: true });
+      import_fs6.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
       const client = clientMail(d);
       const team = teamMail(d, isNew);
       const results = await Promise.allSettled([
@@ -2411,7 +2566,7 @@ async function startServer() {
       });
       if (results.every((r) => r.status === "rejected")) {
         delete sent[key];
-        import_fs5.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
+        import_fs6.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
         return res.status(502).json({ success: false, message: "No se pudo enviar" });
       }
       if (results[0].status === "fulfilled") logActivity(String(lead.id), "email", `Cotizaci\xF3n enviada autom\xE1ticamente a ${d.email}${plan ? ` (${plan})` : ""}`);
@@ -2421,7 +2576,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/send-quote-email", import_express6.default.json(), async (req, res) => {
+  app.post("/api/admin/send-quote-email", import_express7.default.json(), async (req, res) => {
     try {
       const callerToken = req.headers.authorization?.split(" ")[1];
       if (!callerToken) return res.status(401).json({ success: false, message: "Token de administrador requerido" });
@@ -2444,7 +2599,7 @@ async function startServer() {
       res.status(502).json({ success: false, message: "No se pudo enviar el correo" });
     }
   });
-  app.post("/api/admin/set-lead-plan", import_express6.default.json(), async (req, res) => {
+  app.post("/api/admin/set-lead-plan", import_express7.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -2477,7 +2632,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/set-contract-number", import_express6.default.json(), async (req, res) => {
+  app.post("/api/admin/set-contract-number", import_express7.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -2531,7 +2686,7 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  app.post("/api/admin/delete-lead", import_express6.default.json(), async (req, res) => {
+  app.post("/api/admin/delete-lead", import_express7.default.json(), async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const callerToken = authHeader && authHeader.split(" ")[1];
@@ -2607,8 +2762,8 @@ async function startServer() {
       res.status(500).json({ success: false, message: "Error interno" });
     }
   });
-  const distPath = import_path5.default.join(process.cwd(), "dist");
-  const hasDist = import_fs5.default.existsSync(import_path5.default.join(distPath, "index.html"));
+  const distPath = import_path6.default.join(process.cwd(), "dist");
+  const hasDist = import_fs6.default.existsSync(import_path6.default.join(distPath, "index.html"));
   const isProd = process.env.NODE_ENV === "production" || hasDist;
   if (!isProd) {
     const vite = await (0, import_vite.createServer)({
@@ -2617,7 +2772,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(import_express6.default.static(distPath, { index: false }));
+    app.use(import_express7.default.static(distPath, { index: false }));
     const routes = {
       "/": {
         title: "Colmedikal | Medicina Prepagada en Ecuador \u2014 Planes Familia e Individual",
@@ -2782,7 +2937,7 @@ ${[...staticUrls, ...extraUrls, ...blogUrls].join("\n")}
         keywords: ov.keywords || base.keywords,
         og_image: base.og_image
       };
-      let html = import_fs5.default.readFileSync(import_path5.default.join(distPath, "index.html"), "utf8");
+      let html = import_fs6.default.readFileSync(import_path6.default.join(distPath, "index.html"), "utf8");
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc2(meta.title)}</title>`);
       const ogType = pathname.startsWith("/blog/") && pathname !== "/blog" ? "article" : "website";
       const inject = `

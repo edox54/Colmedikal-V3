@@ -12,6 +12,7 @@ import { registerClaimRoutes, loadLegacyHidden, startSlaTimer } from './src/serv
 import { registerPortalPasswordRoutes } from './src/server/portalPassword';
 import { registerAdminAccessRoutes } from './src/server/adminAccess';
 import { registerClientRoutes } from './src/server/clients';
+import { registerAppointmentRoutes, mergeAppointment } from './src/server/appointments';
 import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, CLIENT_REPLY_TO, sendEach, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
@@ -568,6 +569,22 @@ async function startServer() {
     },
   });
   registerClientRoutes(app, { requireAdmin: makeRequireAdmin(httpsJson), httpsJson, getLeads, parseQuoteData, sendWelcome: portalPw.sendWelcome });
+  const aptStore = registerAppointmentRoutes(app, {
+    dataDir: PORTAL_DATA_DIR, requireAdmin: makeRequireAdmin(httpsJson), verifyPortalToken, httpsJson,
+    listAppointments: () => getAdminList('appointments'),
+    findClient: async (apt) => {
+      const phone = normId(apt.patient_phone).replace(/-/g, ''), email = normId(apt.user_email);
+      const hit = (await getLeads()).map(l => ({ l, qd: parseQuoteData(l) }))
+        .find(({ qd }) => (phone && normId(qd.phone).replace(/-/g, '') === phone) || (email && normId(qd.email) === email));
+      return hit ? { leadId: String(hit.l.id), email: String(hit.qd.email || ''), fullName: String(hit.qd.fullName || apt.patient_name || '') } : null;
+    },
+    portalContact: async (leadId) => {
+      const lead = (await getLeadById(leadId)) || (await getLeads()).find(l => String(l.id) === leadId);
+      if (!lead) return null;
+      const qd = parseQuoteData(lead);
+      return { email: String(qd.email || ''), phone: String(qd.phone || '') };
+    },
+  });
 
   app.post('/api/portal/login', express.json(), async (req, res) => {
     try {
@@ -712,6 +729,7 @@ async function startServer() {
       ]);
 
       const hidden = new Set(loadLegacyHidden());
+      const aptUpdates = aptStore.load();
       const mine = (r: any) => !hidden.has(String(r.id)) && ((email && normId(r.user_email) === email) || (phone && normId(r.user_phone) === phone));
 
       res.json({
@@ -748,7 +766,7 @@ async function startServer() {
             clinic: a.clinic || '',
             city: a.city || '',
             status: a.status || 'Pendiente',
-          })),
+          })).map((a: any) => mergeAppointment(a, aptUpdates)),
         },
       });
     } catch (e) {

@@ -26,7 +26,7 @@ export interface AdminCtx {
   updateDoctor: (doctor: Doctor) => Promise<void>;
   updateRefundStatus: (id: string, status: RefundItem['status'], comment?: string) => Promise<void>;
   updateAuthorizationStatus: (id: string, status: AuthorizationItem['status'], comment?: string) => Promise<void>;
-  updateAppointmentStatus: (id: string, status: AppointmentItem['status']) => Promise<void>;
+  updateAppointmentStatus: (id: string, change: import('../../types').AppointmentChange) => Promise<{ emailed: boolean }>;
   updateLeadStatus: (id: string, status: LeadQuote['status']) => Promise<void>;
   updateClientPaymentStatus: (id: string, paymentStatus: NonNullable<QuoteState['paymentStatus']>) => Promise<void>;
   updateLeadPlan: (id: string, basePlanId: string, selectedPlanName: string, estimatedPrice: number) => Promise<void>;

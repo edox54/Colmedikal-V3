@@ -198,8 +198,19 @@ export interface AppointmentItem {
   clinic: string;
   city: string;
   cost: number;
-  status: 'Pendiente' | 'Confirmada' | 'Cancelada' | 'Completada';
+  status: 'Pendiente' | 'Confirmada' | 'Reagendada' | 'Cancelada' | 'Completada' | 'No asistió';
   notes?: string;
+  /** Last message to the patient + change log (server: src/server/appointments.ts) */
+  note?: string;
+  history?: { at: string; by: string; action: string; note?: string }[];
+}
+
+export interface AppointmentChange {
+  status: AppointmentItem['status'];
+  note?: string;
+  doctorName?: string;
+  aptDate?: string;
+  aptTime?: string;
 }
 
 export interface AdminUser {

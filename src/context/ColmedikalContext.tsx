@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { Claim, ClaimStatus } from '../data/claims';
-import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, LeadQuote, LeadNote, QuoteState, AdminUser, ClientAddress, CrmState, CrmEntry, CrmActivity } from '../types';
+import { Doctor, RefundItem, AuthorizationItem, AppointmentItem, AppointmentChange, LeadQuote, LeadNote, QuoteState, AdminUser, ClientAddress, CrmState, CrmEntry, CrmActivity } from '../types';
 import { getStoredAttribution } from '../utils/attribution';
 
 interface ColmedikalContextType {
@@ -27,7 +27,7 @@ interface ColmedikalContextType {
   addAuthorization: (auth: Omit<AuthorizationItem, 'id' | 'requestDate'>) => Promise<void>;
   updateAuthorizationStatus: (id: string, status: AuthorizationItem['status'], comment?: string) => Promise<void>;
   addAppointment: (appointment: Omit<AppointmentItem, 'id'>) => Promise<void>;
-  updateAppointmentStatus: (id: string, status: AppointmentItem['status']) => Promise<void>;
+  updateAppointmentStatus: (id: string, change: AppointmentChange) => Promise<{ emailed: boolean }>;
   addLead: (quote: QuoteState, estimatedPrice: number) => Promise<any>;
   deleteLead: (id: string | number) => Promise<void>;
   updateLeadStatus: (id: string, status: LeadQuote['status']) => Promise<void>;
@@ -495,6 +495,24 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           userPhone: r.user_phone || undefined,
         })));
       }
+      // Team-wide appointment changes (server: src/server/appointments.ts)
+      let aptUpdates: Record<string, any> = {};
+      try {
+        const u = await fetch('/api/admin/appointment-updates', { headers: { Authorization: `Bearer ${authToken}` } }).then(r => r.json());
+        if (u?.success) aptUpdates = u.data || {};
+      } catch { /* show API values if the store can't be read */ }
+      // One-time move of old browser-only status changes to the shared store (no patient email)
+      const legacy = Object.entries(aptStatusOverrides.current).filter(([id]) => !aptUpdates[id]);
+      if (legacy.length) {
+        for (const [id, status] of legacy) {
+          try {
+            const r = await fetch(`/api/admin/appointments/${encodeURIComponent(id)}/update`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify({ status, silent: true }) }).then(x => x.json());
+            if (r?.success) aptUpdates[id] = r.data;
+          } catch { /* retry next load */ }
+        }
+        aptStatusOverrides.current = Object.fromEntries(Object.entries(aptStatusOverrides.current).filter(([id]) => !aptUpdates[id]));
+        persistOverride('colmedikal_apt_overrides', aptStatusOverrides.current);
+      }
       if (appointmentsRes) {
         setAppointments((appointmentsRes.data || []).map((a: any) => ({
           id: a.id,
@@ -509,10 +527,12 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           clinic: a.clinic || '',
           city: a.city || '',
           cost: Number(a.cost || 0),
-          // Apply local status override if the backend didn't persist the change
-          status: aptStatusOverrides.current[a.id] || a.status || 'Pendiente',
+          status: a.status || 'Pendiente',
           notes: a.notes || '',
-        })));
+        })).map((a: AppointmentItem) => {
+          const u = aptUpdates[String(a.id)];
+          return u ? { ...a, status: u.status, doctorName: u.doctorName || a.doctorName, aptDate: u.aptDate || a.aptDate, aptTime: u.aptTime || a.aptTime, note: u.note, history: u.history } : a;
+        }));
       }
       if (authorizationsRes) {
         setAuthorizations((authorizationsRes.data || []).filter((a: any) => !hiddenLegacy.has(String(a.id))).map((a: any) => ({
@@ -789,17 +809,21 @@ export const ColmedikalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const updateAppointmentStatus = async (id: string, status: AppointmentItem['status']) => {
-    // Optimistic update + persist override so the 10s poll doesn't revert it
-    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
-    aptStatusOverrides.current[id] = status;
-    persistOverride('colmedikal_apt_overrides', aptStatusOverrides.current);
-    if (!token) return;
-    try {
-      await apiCall(`/api/admin/appointments/${id}`, 'PUT', { status }, token);
-    } catch {
-      // API may not support this endpoint yet — override layer keeps the change
-    }
+  // Saved on this site's server (shared with the team and the patient's portal); the patient is emailed.
+  const updateAppointmentStatus = async (id: string, change: AppointmentChange) => {
+    if (!token) throw new Error('Not authenticated');
+    const r = await fetch(`/api/admin/appointments/${encodeURIComponent(id)}/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(change),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.success) throw new Error(j.message || 'No se pudo actualizar la cita');
+    const u = j.data;
+    setAppointments(prev => prev.map(a => String(a.id) === String(id)
+      ? { ...a, status: u.status, doctorName: u.doctorName || a.doctorName, aptDate: u.aptDate || a.aptDate, aptTime: u.aptTime || a.aptTime, note: u.note, history: u.history }
+      : a));
+    return { emailed: !!j.emailed };
   };
 
   // ==================== LEADS ====================
