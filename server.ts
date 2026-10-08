@@ -428,9 +428,9 @@ async function startServer() {
   // (duplicated, same pattern as elsewhere). Used so admins can set a plan by id
   // and get a correct name+price without retyping them.
   const PLAN_CATALOG: Record<string, { name: string; basePrice: number }> = {
-    inicio: { name: 'Plan Inicio 2K', basePrice: 8 },
-    proteccion: { name: 'Plan Protección 3K', basePrice: 12 },
-    plus: { name: 'Plan Plus 5K', basePrice: 22 },
+    inicio: { name: 'Plan Inicio 2K', basePrice: 10 },
+    proteccion: { name: 'Plan Protección 3K', basePrice: 14 },
+    plus: { name: 'Plan Plus 5K', basePrice: 24 },
   };
   function loadLeadPlanOverrides(): LeadPlanStore {
     try { return JSON.parse(fs.readFileSync(LEAD_PLAN_FILE, 'utf8')); } catch { return {}; }
@@ -1310,13 +1310,13 @@ async function startServer() {
     const routes: Record<string, { title: string; description: string; keywords: string; og_image: string }> = {
       '/': {
         title: 'Colmedikal | Medicina Prepagada en Ecuador — Planes Familia e Individual',
-        description: 'Planes de medicina prepagada en Ecuador desde $8/mes. Acceso directo a especialistas y clinicas privadas.',
+        description: 'Planes de medicina prepagada en Ecuador desde $10/mes. Acceso directo a especialistas y clinicas privadas.',
         keywords: 'medicina prepagada Ecuador, seguro médico privado, plan médico familia, Colmedikal',
         og_image: 'https://colmedikal.com/og-image.jpg',
       },
       '/servicios': {
         title: 'Servicios de Medicina Prepagada | Colmedikal Ecuador',
-        description: 'Servicios Colmedikal: hospitalizacion, cirugias, maternidad y atencion ambulatoria. Planes desde $8/mes.',
+        description: 'Servicios Colmedikal: hospitalizacion, cirugias, maternidad y atencion ambulatoria. Planes desde $10/mes.',
         keywords: 'servicios medicina prepagada, hospitalización privada Ecuador, maternidad prepagada',
         og_image: 'https://colmedikal.com/og-image.jpg',
       },
@@ -1570,7 +1570,7 @@ async function startServer() {
           inLanguage: 'es-EC',
           mainEntity: [
             { '@type': 'Question', name: '¿Qué es la medicina prepagada en Ecuador?', acceptedAnswer: { '@type': 'Answer', text: 'La medicina prepagada es un sistema de salud privado en el que el afiliado paga una cuota mensual a cambio de cobertura médica inmediata: consultas con especialistas sin referencia, hospitalización en clínicas privadas, cirugías, maternidad y emergencias 24/7, todo sin depender del IESS.' } },
-            { '@type': 'Question', name: '¿Cuánto cuesta la medicina prepagada Colmedikal?', acceptedAnswer: { '@type': 'Answer', text: 'Colmedikal ofrece tres planes: Esencial desde $8 USD/mes por persona (cobertura $2,000/año), Recomendado desde $12 USD/mes ($3,000/año) y Platinum desde $22 USD/mes ($5,000/año). Los precios varían según edad y número de beneficiarios.' } },
+            { '@type': 'Question', name: '¿Cuánto cuesta la medicina prepagada Colmedikal?', acceptedAnswer: { '@type': 'Answer', text: 'Colmedikal ofrece tres planes: Plan Inicio 2K desde $10 USD/mes por persona (cobertura $2,000/año), Plan Protección 3K desde $14 USD/mes ($3,000/año) y Plan Plus 5K desde $24 USD/mes ($5,000/año). Los precios varían según edad y número de beneficiarios.' } },
             { '@type': 'Question', name: '¿Qué son los períodos de carencia?', acceptedAnswer: { '@type': 'Answer', text: 'El período de carencia es el tiempo de espera desde la afiliación antes de que se active cada cobertura. En Colmedikal: emergencias 24 horas, consultas ambulatorias 30 días, maternidad 60-90 días, hospitalización y cirugías 90 días, y preexistencias declaradas 730 días (24 meses).' } },
             { '@type': 'Question', name: '¿Cómo funcionan las preexistencias en Colmedikal?', acceptedAnswer: { '@type': 'Answer', text: 'Las enfermedades preexistentes declaradas al momento de la afiliación quedan cubiertas a partir del mes 25 de vigencia, hasta el límite anual contratado o 20 salarios básicos, conforme a la legislación ecuatoriana. Las preexistencias no declaradas quedan excluidas permanentemente.' } },
             { '@type': 'Question', name: '¿Cómo solicitar un reembolso médico en Colmedikal?', acceptedAnswer: { '@type': 'Answer', text: 'Ingresa a la sección de Trámites en Línea en colmedikal.com/tramites, sube la factura del médico particular, la historia clínica y la receta. El reembolso se procesa en un promedio de 5 días hábiles si la atención está dentro de las coberturas del plan.' } },

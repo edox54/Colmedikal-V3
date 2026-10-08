@@ -321,9 +321,9 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   // plans as Cotizador.tsx / server.ts's PLAN_CATALOG (duplicated, same
   // pattern used elsewhere in this codebase).
   const PLAN_CATALOG: Record<string, { name: string; basePrice: number }> = {
-    inicio: { name: 'Plan Inicio 2K', basePrice: 8 },
-    proteccion: { name: 'Plan Protección 3K', basePrice: 12 },
-    plus: { name: 'Plan Plus 5K', basePrice: 22 },
+    inicio: { name: 'Plan Inicio 2K', basePrice: 10 },
+    proteccion: { name: 'Plan Protección 3K', basePrice: 14 },
+    plus: { name: 'Plan Plus 5K', basePrice: 24 },
   };
   const handlePlanChange = (leadId: string, basePlanId: string) => {
     if (!basePlanId) return;

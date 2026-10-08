@@ -24,7 +24,7 @@ A diferencia del seguro social obligatorio, Colmedikal ofrece atención inmediat
 ## Planes de salud disponibles
 
 ### Plan 1 - Esencial
-- Precio base: $8 USD/mes por persona
+- Precio base: $10 USD/mes por persona
 - Límite anual de cobertura: $2.000 USD
 - Deducible de hospitalización: $40 USD/anual
 - Bono de maternidad: $250 USD
@@ -34,7 +34,7 @@ A diferencia del seguro social obligatorio, Colmedikal ofrece atención inmediat
 - Laboratorio e imágenes: $100 USD/año
 
 ### Plan 2 - Recomendado
-- Precio base: $12 USD/mes por persona
+- Precio base: $14 USD/mes por persona
 - Límite anual de cobertura: $3.000 USD
 - Deducible de hospitalización: $40 USD/anual
 - Bono de maternidad: $500 USD
@@ -44,7 +44,7 @@ A diferencia del seguro social obligatorio, Colmedikal ofrece atención inmediat
 - Laboratorio e imágenes: $100 USD/año
 
 ### Plan 3 Platinum
-- Precio base: $22 USD/mes por persona
+- Precio base: $24 USD/mes por persona
 - Límite anual de cobertura: $5.000 USD
 - Deducible de hospitalización: $40 USD/anual
 - Bono de maternidad: $700 USD

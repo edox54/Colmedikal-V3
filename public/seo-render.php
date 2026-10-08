@@ -9,13 +9,13 @@ if (preg_match('/^\/blog\//', $path)) $basePath = '/blog-detalle';
 $routes = [
   '/' => [
     'title'       => 'Colmedikal | Medicina Prepagada en Ecuador — Planes Familia e Individual',
-    'description' => 'Compara planes de medicina prepagada en Ecuador. Cobertura completa sin IESS obligatorio, acceso a médicos especialistas y clínicas privadas desde $35/mes.',
+    'description' => 'Compara planes de medicina prepagada en Ecuador. Cobertura completa sin IESS obligatorio, acceso a médicos especialistas y clínicas privadas desde $10/mes.',
     'keywords'    => 'medicina prepagada Ecuador, seguro médico privado, plan médico familia, Colmedikal',
     'og_image'    => 'https://colmedikal.com/og-image.png',
   ],
   '/servicios' => [
     'title'       => 'Servicios de Medicina Prepagada | Colmedikal Ecuador',
-    'description' => 'Conoce todos los servicios de Colmedikal: hospitalización, cirugías, maternidad, atención ambulatoria y más. Planes desde $35 al mes.',
+    'description' => 'Conoce todos los servicios de Colmedikal: hospitalización, cirugías, maternidad, atención ambulatoria y más. Planes desde $10 al mes.',
     'keywords'    => 'servicios medicina prepagada, hospitalización privada Ecuador, maternidad prepagada',
     'og_image'    => 'https://colmedikal.com/og-image.png',
   ],

@@ -354,7 +354,7 @@ var PLANS = [
   {
     id: "inicio",
     name: "Plan Inicio 2K",
-    basePrice: 8,
+    basePrice: 10,
     cobertura: "$2.000,00 USD Anual",
     dedHosp: "$40,00 USD Anual",
     maternidad: "$250,00 USD",
@@ -385,7 +385,7 @@ var PLANS = [
   {
     id: "proteccion",
     name: "Plan Protecci\xF3n 3K",
-    basePrice: 12,
+    basePrice: 14,
     cobertura: "$3.000,00 USD Anual",
     dedHosp: "$40,00 USD Anual",
     maternidad: "$500,00 USD",
@@ -417,7 +417,7 @@ var PLANS = [
   {
     id: "plus",
     name: "Plan Plus 5K",
-    basePrice: 22,
+    basePrice: 24,
     cobertura: "$5.000,00 USD Anual",
     dedHosp: "$40,00 USD Anual",
     maternidad: "$700,00 USD",
@@ -2031,9 +2031,9 @@ async function startServer() {
   }
   const LEAD_PLAN_FILE = import_path6.default.join(PORTAL_DATA_DIR, "lead-plan-overrides.json");
   const PLAN_CATALOG = {
-    inicio: { name: "Plan Inicio 2K", basePrice: 8 },
-    proteccion: { name: "Plan Protecci\xF3n 3K", basePrice: 12 },
-    plus: { name: "Plan Plus 5K", basePrice: 22 }
+    inicio: { name: "Plan Inicio 2K", basePrice: 10 },
+    proteccion: { name: "Plan Protecci\xF3n 3K", basePrice: 14 },
+    plus: { name: "Plan Plus 5K", basePrice: 24 }
   };
   function loadLeadPlanOverrides() {
     try {
@@ -2777,13 +2777,13 @@ async function startServer() {
     const routes = {
       "/": {
         title: "Colmedikal | Medicina Prepagada en Ecuador \u2014 Planes Familia e Individual",
-        description: "Planes de medicina prepagada en Ecuador desde $8/mes. Acceso directo a especialistas y clinicas privadas.",
+        description: "Planes de medicina prepagada en Ecuador desde $10/mes. Acceso directo a especialistas y clinicas privadas.",
         keywords: "medicina prepagada Ecuador, seguro m\xE9dico privado, plan m\xE9dico familia, Colmedikal",
         og_image: "https://colmedikal.com/og-image.jpg"
       },
       "/servicios": {
         title: "Servicios de Medicina Prepagada | Colmedikal Ecuador",
-        description: "Servicios Colmedikal: hospitalizacion, cirugias, maternidad y atencion ambulatoria. Planes desde $8/mes.",
+        description: "Servicios Colmedikal: hospitalizacion, cirugias, maternidad y atencion ambulatoria. Planes desde $10/mes.",
         keywords: "servicios medicina prepagada, hospitalizaci\xF3n privada Ecuador, maternidad prepagada",
         og_image: "https://colmedikal.com/og-image.jpg"
       },
@@ -3016,7 +3016,7 @@ ${[...staticUrls, ...extraUrls, ...blogUrls].join("\n")}
           inLanguage: "es-EC",
           mainEntity: [
             { "@type": "Question", name: "\xBFQu\xE9 es la medicina prepagada en Ecuador?", acceptedAnswer: { "@type": "Answer", text: "La medicina prepagada es un sistema de salud privado en el que el afiliado paga una cuota mensual a cambio de cobertura m\xE9dica inmediata: consultas con especialistas sin referencia, hospitalizaci\xF3n en cl\xEDnicas privadas, cirug\xEDas, maternidad y emergencias 24/7, todo sin depender del IESS." } },
-            { "@type": "Question", name: "\xBFCu\xE1nto cuesta la medicina prepagada Colmedikal?", acceptedAnswer: { "@type": "Answer", text: "Colmedikal ofrece tres planes: Esencial desde $8 USD/mes por persona (cobertura $2,000/a\xF1o), Recomendado desde $12 USD/mes ($3,000/a\xF1o) y Platinum desde $22 USD/mes ($5,000/a\xF1o). Los precios var\xEDan seg\xFAn edad y n\xFAmero de beneficiarios." } },
+            { "@type": "Question", name: "\xBFCu\xE1nto cuesta la medicina prepagada Colmedikal?", acceptedAnswer: { "@type": "Answer", text: "Colmedikal ofrece tres planes: Plan Inicio 2K desde $10 USD/mes por persona (cobertura $2,000/a\xF1o), Plan Protecci\xF3n 3K desde $14 USD/mes ($3,000/a\xF1o) y Plan Plus 5K desde $24 USD/mes ($5,000/a\xF1o). Los precios var\xEDan seg\xFAn edad y n\xFAmero de beneficiarios." } },
             { "@type": "Question", name: "\xBFQu\xE9 son los per\xEDodos de carencia?", acceptedAnswer: { "@type": "Answer", text: "El per\xEDodo de carencia es el tiempo de espera desde la afiliaci\xF3n antes de que se active cada cobertura. En Colmedikal: emergencias 24 horas, consultas ambulatorias 30 d\xEDas, maternidad 60-90 d\xEDas, hospitalizaci\xF3n y cirug\xEDas 90 d\xEDas, y preexistencias declaradas 730 d\xEDas (24 meses)." } },
             { "@type": "Question", name: "\xBFC\xF3mo funcionan las preexistencias en Colmedikal?", acceptedAnswer: { "@type": "Answer", text: "Las enfermedades preexistentes declaradas al momento de la afiliaci\xF3n quedan cubiertas a partir del mes 25 de vigencia, hasta el l\xEDmite anual contratado o 20 salarios b\xE1sicos, conforme a la legislaci\xF3n ecuatoriana. Las preexistencias no declaradas quedan excluidas permanentemente." } },
             { "@type": "Question", name: "\xBFC\xF3mo solicitar un reembolso m\xE9dico en Colmedikal?", acceptedAnswer: { "@type": "Answer", text: "Ingresa a la secci\xF3n de Tr\xE1mites en L\xEDnea en colmedikal.com/tramites, sube la factura del m\xE9dico particular, la historia cl\xEDnica y la receta. El reembolso se procesa en un promedio de 5 d\xEDas h\xE1biles si la atenci\xF3n est\xE1 dentro de las coberturas del plan." } },

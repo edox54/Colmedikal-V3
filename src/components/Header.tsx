@@ -539,7 +539,7 @@ export default function Header() {
                         Calcula tu tarifa exacta de Medicina Prepagada
                       </h4>
                       <p className="text-xs text-slate-300/95 leading-relaxed mt-2">
-                        Simula precios al instante ingresando las edades de tu núcleo familiar. Planes personalizados desde $45 USD sin cuotas sorpresa.
+                        Simula precios al instante ingresando las edades de tu núcleo familiar. Planes personalizados desde $10 USD al mes, sin cuotas sorpresa.
                       </p>
                     </div>
 

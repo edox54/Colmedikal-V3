@@ -243,7 +243,7 @@ export default function Cotizador({ selectedPlanId: propPlanId }: CotizadorProps
       // fabricated 'proteccion' default with a blank name, which is what caused
       // the backend to show "sin plan seleccionado" for people who did pick one.
       const preselectedPlan = preselectedPlanId ? plansComparativo.find(p => p.id === preselectedPlanId) : undefined;
-      const estimatedPrice = calculateDynamicPrice(preselectedPlan ? preselectedPlan.basePrice : 12);
+      const estimatedPrice = calculateDynamicPrice(preselectedPlan ? preselectedPlan.basePrice : (plansComparativo.find(p => p.id === 'proteccion')?.basePrice ?? 14));
       const result = await addLead({
         fullName: `${firstName} ${lastName}`,
         email: email,

@@ -4,7 +4,7 @@ export const PLANS = [
   {
     id: 'inicio',
     name: 'Plan Inicio 2K',
-    basePrice: 8,
+    basePrice: 10,
     cobertura: '$2.000,00 USD Anual',
     dedHosp: '$40,00 USD Anual',
     maternidad: '$250,00 USD',
@@ -35,7 +35,7 @@ export const PLANS = [
   {
     id: 'proteccion',
     name: 'Plan Protección 3K',
-    basePrice: 12,
+    basePrice: 14,
     cobertura: '$3.000,00 USD Anual',
     dedHosp: '$40,00 USD Anual',
     maternidad: '$500,00 USD',
@@ -67,7 +67,7 @@ export const PLANS = [
   {
     id: 'plus',
     name: 'Plan Plus 5K',
-    basePrice: 22,
+    basePrice: 24,
     cobertura: '$5.000,00 USD Anual',
     dedHosp: '$40,00 USD Anual',
     maternidad: '$700,00 USD',

@@ -20,7 +20,7 @@ export const post: BlogPost = {
 
     '### ¿Cómo funciona exactamente?',
     'El funcionamiento de la medicina prepagada se basa en tres elementos clave:',
-    '1. **Cuota mensual fija:** El afiliado paga un monto mensual acordado según el plan elegido, la edad y el número de beneficiarios. En Colmedikal, los planes van desde $8 USD/mes por persona hasta planes premium con coberturas más amplias.',
+    '1. **Cuota mensual fija:** El afiliado paga un monto mensual acordado según el plan elegido, la edad y el número de beneficiarios. En Colmedikal, los planes van desde $10 USD/mes por persona hasta planes premium con coberturas más amplias.',
     '2. **Red de prestadores:** La empresa de medicina prepagada tiene convenios con clínicas, hospitales, especialistas y laboratorios de su red. Cuando el afiliado necesita atención, acude directamente a uno de estos prestadores sin necesidad de hacer pagos de bolsillo significativos.',
     '3. **Autorización directa:** En la mayoría de los casos, la atención es autorizada en tiempo real por la empresa al prestador. El afiliado solo presenta su carné de afiliación y, en algunos planes, cubre un deducible mínimo anual (en Colmedikal: $40 USD/año de hospitalización).',
     'El resultado: atención médica inmediata, sin esperas burocráticas y sin desembolsos imprevistos de dinero en momentos de crisis de salud.',
@@ -45,9 +45,9 @@ export const post: BlogPost = {
 
     '### ¿Cuánto cuesta la medicina prepagada en Ecuador?',
     'El costo mensual depende de varios factores: la edad del afiliado, el plan elegido y el número de beneficiarios. En Colmedikal, los valores de referencia son:',
-    '* **Plan Esencial:** desde $8 USD/mes por persona',
-    '* **Plan Recomendado:** desde $12 USD/mes por persona',
-    '* **Plan Platinum:** desde $22 USD/mes por persona',
+    '* **Plan Esencial:** desde $10 USD/mes por persona',
+    '* **Plan Recomendado:** desde $14 USD/mes por persona',
+    '* **Plan Platinum:** desde $24 USD/mes por persona',
     'Estos valores corresponden a personas adultas jóvenes; el precio aumenta progresivamente con la edad. Para conocer el valor exacto según tu perfil familiar, utiliza nuestro [cotizador en línea](/cotizador) que calcula la tarifa en segundos.',
 
     '### ¿Por qué elegir medicina prepagada en Ecuador?',

@@ -126,7 +126,7 @@ export const SEO_MATRIX: Record<string, PageSEOMetadata> = {
     ogType: 'website',
     aioQueryAnswer: {
       targetQuery: '¿Cuánto cuesta cotizar un plan de medicina prepagada de cobertura familiar en Ecuador?',
-      conciseAnswer: 'El costo mensual varía según las edades y número de beneficiarios. Con el Cotizador Inteligente y Transparente de Colmedikal, puedes simular cotizaciones para Planes Esenciales (desde $45 USD al mes), Vitales (cobertura médica robusta y copagos reducidos) e incluso Platinum (acceso premium a suites y exención completa de copagos) con cálculo instantáneo.'
+      conciseAnswer: 'El costo mensual varía según las edades y número de beneficiarios. Con el Cotizador Inteligente y Transparente de Colmedikal, puedes simular cotizaciones del Plan Inicio 2K (desde $10 USD al mes), el Plan Protección 3K (desde $14 USD al mes) y el Plan Plus 5K (desde $24 USD al mes) con cálculo instantáneo.'
     }
   },
   tramites: {

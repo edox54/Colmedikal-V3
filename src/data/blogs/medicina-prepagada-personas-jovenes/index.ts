@@ -19,7 +19,7 @@ export const post: BlogPost = {
 
     '### Razón 1: Las primas son más bajas cuando eres joven',
     'Este es el argumento financiero más poderoso. En medicina prepagada, el costo mensual se calcula según la **edad al momento de afiliación**. Una persona de 25 años pagará significativamente menos que una de 45 años por exactamente el mismo plan y la misma cobertura.',
-    'En Colmedikal, el Plan Esencial para una persona de 25 años puede estar en torno a los $8-10 USD/mes, mientras que para alguien de 45 años el mismo plan puede costar más del doble. **Afiliarte joven y sano es la decisión financieramente más inteligente que puedes tomar respecto a tu salud.**',
+    'En Colmedikal, el Plan Esencial para una persona de 25 años puede estar en torno a los $10 USD/mes, mientras que para alguien de 45 años el mismo plan puede costar más del doble. **Afiliarte joven y sano es la decisión financieramente más inteligente que puedes tomar respecto a tu salud.**',
     'Además, en muchas empresas de medicina prepagada la tarifa queda bloqueada o sube mínimamente con los años: te unes barato y mantienes ese beneficio de costo por mucho tiempo.',
 
     '### Razón 2: Los accidentes no distinguen edades',
@@ -44,7 +44,7 @@ export const post: BlogPost = {
 
     '### ¿Cuánto me cuesta siendo joven?',
     'Para darte una referencia aproximada, los valores de Colmedikal para personas jóvenes son muy accesibles:',
-    '* Entre 18 y 30 años: el Plan Esencial puede estar desde $8 USD/mes',
+    '* Entre 18 y 30 años: el Plan Esencial puede estar desde $10 USD/mes',
     '* Entre 31 y 40 años: los planes suben moderadamente, pero siguen siendo accesibles',
     '* La cuota exacta depende del plan elegido y tu edad actual — calcula la tuya con nuestro [cotizador en línea](/cotizador)',
 

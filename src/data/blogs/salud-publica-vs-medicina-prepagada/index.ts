@@ -48,7 +48,7 @@ export const post: BlogPost = {
     '### Comparativa directa: IESS vs. Medicina Prepagada',
     '| Criterio | IESS / MSP | Medicina Prepagada (Colmedikal) |',
     '|---|---|---|',
-    '| Costo | Aporte obligatorio (~9,45% del salario) | Desde $8 USD/mes por persona |',
+    '| Costo | Aporte obligatorio (~9,45% del salario) | Desde $10 USD/mes por persona |',
     '| Acceso a especialistas | 2 a 8 semanas de espera | Mismo día o 24-48 horas |',
     '| Red de prestadores | Hospitales públicos del sistema | Clínicas privadas de alta complejidad |',
     '| Habitación hospitalaria | Compartida (sala general) | Privada |',

@@ -28,7 +28,7 @@ const ok = { fullName: 'María López', docType: 'cedula', docNumber: '171234567
   assert.equal(r.b.leadId, 'new-1'); assert.equal(r.b.welcomeSent, true);
   assert.equal(posted[0].status, 'Cierre Efectivo');
   assert.equal(posted[0].quote_data.email, 'maria@x.co');
-  assert.equal(posted[0].quote_data.selectedPlanName, 'Plan Inicio 2K — $8/mes');
+  assert.equal(posted[0].quote_data.selectedPlanName, 'Plan Inicio 2K — $10/mes');
   assert.deepEqual(welcomed, ['new-1']);
   console.log('clients.check OK');
   srv.close();
