@@ -2544,6 +2544,18 @@ async function startServer() {
         return res.status(404).json({ success: false, message: "No encontrado" });
       }
       const d = leadMailData(lead);
+      if (typeof req.body?.planId === "string") {
+        const chosen = PLAN_CATALOG[req.body.planId];
+        if (!chosen) {
+          d.plan = "";
+          d.planId = void 0;
+          d.price = 0;
+        } else if (d.planId !== req.body.planId) {
+          d.planId = req.body.planId;
+          d.plan = `${chosen.name} \u2014 $${chosen.basePrice}/mes`;
+          d.price = chosen.basePrice;
+        }
+      }
       const { plan } = d;
       let sent = {};
       try {

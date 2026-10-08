@@ -1016,6 +1016,13 @@ async function startServer() {
       }
 
       const d = leadMailData(lead);
+      // What the visitor chose in THIS submission wins over whatever the stored lead still holds
+      // (a returning visitor's lead may carry a plan from an earlier quote).
+      if (typeof req.body?.planId === 'string') {
+        const chosen = PLAN_CATALOG[req.body.planId];
+        if (!chosen) { d.plan = ''; d.planId = undefined; d.price = 0; } // no plan picked: no plan, no price
+        else if (d.planId !== req.body.planId) { d.planId = req.body.planId; d.plan = `${chosen.name} — $${chosen.basePrice}/mes`; d.price = chosen.basePrice; }
+      }
       const { plan } = d;
 
       let sent: Record<string, number> = {};
