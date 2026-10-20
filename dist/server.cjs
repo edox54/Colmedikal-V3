@@ -27,7 +27,7 @@ var import_config = require("dotenv/config");
 var import_express7 = __toESM(require("express"), 1);
 var import_path6 = __toESM(require("path"), 1);
 var import_fs6 = __toESM(require("fs"), 1);
-var import_https = __toESM(require("https"), 1);
+var import_https2 = __toESM(require("https"), 1);
 var import_vite = require("vite");
 var import_jsonwebtoken = __toESM(require("jsonwebtoken"), 1);
 var import_helmet = __toESM(require("helmet"), 1);
@@ -1727,10 +1727,61 @@ ${u.note ? `<p style="font-size:14px;color:#334155;line-height:1.6;background:#f
   await mailer.sendMail({ from: MAIL_FROM, to: client.email, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
 }
 
+// src/server/keos.ts
+var import_https = __toESM(require("https"), 1);
+var KEOS_WEBHOOK_URL = process.env.KEOS_WEBHOOK_URL || "";
+var KEOS_WEBHOOK_TOKEN = process.env.KEOS_WEBHOOK_TOKEN || "";
+function toE164Ec(raw) {
+  const d = String(raw || "").replace(/\D/g, "");
+  const n = d.startsWith("593") ? d : d.startsWith("0") ? "593" + d.slice(1) : d.length === 9 ? "593" + d : d;
+  return /^5939\d{8}$/.test(n) ? n : "";
+}
+function sendLeadToKeos(d, isNew) {
+  if (!KEOS_WEBHOOK_URL) return Promise.resolve();
+  const body = JSON.stringify({
+    event: isNew ? "lead_created" : "lead_plan_selected",
+    code: d.code,
+    fullName: d.fullName,
+    firstName: d.fullName.split(" ")[0] || d.fullName,
+    email: d.email,
+    phone: d.phone,
+    whatsapp: toE164Ec(d.phone),
+    docNumber: d.docNumber || "",
+    province: d.province || "",
+    members: d.members,
+    plan: d.plan,
+    price: d.price,
+    channel: d.source?.channel || "",
+    utmCampaign: d.source?.utmCampaign || "",
+    landingPage: d.source?.landingPage || "",
+    createdAt: d.createdAt || ""
+  });
+  return new Promise((resolve) => {
+    const req = import_https.default.request(KEOS_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(body),
+        ...KEOS_WEBHOOK_TOKEN ? { Authorization: `Bearer ${KEOS_WEBHOOK_TOKEN}` } : {}
+      }
+    }, (res) => {
+      res.resume();
+      if ((res.statusCode || 500) >= 300) console.error(`[keos] ${d.code}: HTTP ${res.statusCode}`);
+      resolve();
+    });
+    req.on("error", (e) => {
+      console.error(`[keos] ${d.code}:`, e.message);
+      resolve();
+    });
+    req.setTimeout(8e3, () => req.destroy(new Error("timeout")));
+    req.end(body);
+  });
+}
+
 // server.ts
 function httpsGetJson(url, timeoutMs = 4e3) {
   return new Promise((resolve, reject) => {
-    const req = import_https.default.get(url, (res) => {
+    const req = import_https2.default.get(url, (res) => {
       let data = "";
       res.on("data", (c) => {
         data += c;
@@ -1888,7 +1939,7 @@ async function startServer() {
   const normId2 = (s) => typeof s === "string" ? s.toLowerCase().replace(/\s/g, "").trim() : "";
   const httpsJson = (url, opts = {}) => new Promise((resolve, reject) => {
     const u = new URL(url);
-    const req = import_https.default.request(u, { method: opts.method || "GET", headers: opts.headers }, (res) => {
+    const req = import_https2.default.request(u, { method: opts.method || "GET", headers: opts.headers }, (res) => {
       let data = "";
       res.on("data", (c) => {
         data += c;
@@ -2570,6 +2621,7 @@ async function startServer() {
       import_fs6.default.writeFileSync(LEAD_MAIL_FILE, JSON.stringify(sent));
       const client = clientMail(d);
       const team = teamMail(d, isNew);
+      void sendLeadToKeos(d, isNew);
       const results = await Promise.allSettled([
         /\S+@\S+\.\S+/.test(d.email) ? mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: CLIENT_REPLY_TO, ...client, attachments: pdfFor(d) }) : Promise.reject(new Error("lead sin email v\xE1lido")),
         LEAD_NOTIFY_TO.length ? sendEach(LEAD_NOTIFY_TO, { from: MAIL_FROM, replyTo: d.email || void 0, ...team }) : Promise.reject(new Error("LEAD_NOTIFY_TO vac\xEDo"))

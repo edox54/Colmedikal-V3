@@ -13,7 +13,8 @@ import { registerPortalPasswordRoutes } from './src/server/portalPassword';
 import { registerAdminAccessRoutes } from './src/server/adminAccess';
 import { registerClientRoutes } from './src/server/clients';
 import { registerAppointmentRoutes, mergeAppointment } from './src/server/appointments';
-import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, CLIENT_REPLY_TO, sendEach, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
+import { sendLeadToKeos } from './src/server/keos';
+import { mailer, MAIL_FROM,LEAD_NOTIFY_TO, CLIENT_REPLY_TO, sendEach, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
 // WASM-based llhttp parser, which fails under CloudLinux LVE memory limits).
@@ -1036,6 +1037,7 @@ async function startServer() {
 
       const client = clientMail(d);
       const team = teamMail(d, isNew);
+      void sendLeadToKeos(d, isNew); // KEOS CRM: WhatsApp al cliente + registro del lead (no bloquea)
       const results = await Promise.allSettled([
         /\S+@\S+\.\S+/.test(d.email)
           ? mailer.sendMail({ from: MAIL_FROM, to: d.email, replyTo: CLIENT_REPLY_TO, ...client, attachments: pdfFor(d) })
