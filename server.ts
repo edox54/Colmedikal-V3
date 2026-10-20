@@ -13,8 +13,8 @@ import { registerPortalPasswordRoutes } from './src/server/portalPassword';
 import { registerAdminAccessRoutes } from './src/server/adminAccess';
 import { registerClientRoutes } from './src/server/clients';
 import { registerAppointmentRoutes, mergeAppointment } from './src/server/appointments';
-import { sendLeadToKeos } from './src/server/keos';
-import { mailer, MAIL_FROM,LEAD_NOTIFY_TO, CLIENT_REPLY_TO, sendEach, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
+import { sendLeadToKeos, sendContactToKeos } from './src/server/keos';
+import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, layout, rows, CLIENT_REPLY_TO, sendEach, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
 
 // GET a JSON URL using the native https module (pure JS — avoids undici/fetch's
 // WASM-based llhttp parser, which fails under CloudLinux LVE memory limits).
@@ -192,6 +192,43 @@ async function startServer() {
   });
 
   // Endpoint para recibir datos de formularios
+  // Contact-page form: alert the team by email and push to the KEOS CRM. Before this the form only
+  // redirected to /gracias and the message was never delivered anywhere.
+  const contactHits = new Map<string, number[]>();
+  app.post('/api/contact', express.json({ limit: '20kb' }), async (req, res) => {
+    try {
+      const b = req.body || {};
+      const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+      const c = {
+        fullName: str(b.fullName, 120), email: str(b.email, 120), phone: str(b.phone, 30),
+        city: str(b.city, 60), topic: str(b.topic, 100), message: str(b.message, 2000),
+      };
+      if (b.website) return res.json({ success: true, ticket: 'CLM-000000' }); // honeypot: bots fill it, people never see it
+      if (!c.fullName || !/\S+@\S+\.\S+/.test(c.email) || !/^\d{7,10}$/.test(c.phone.replace(/[\s-]/g, '')) || !c.message) {
+        return res.status(400).json({ success: false, message: 'Datos inválidos' });
+      }
+      const ip = req.ip || 'x';
+      const hits = (contactHits.get(ip) || []).filter(t => Date.now() - t < 10 * 60_000);
+      if (hits.length >= 5) return res.status(429).json({ success: false, message: 'Demasiados envíos, intenta más tarde' });
+      contactHits.set(ip, [...hits, Date.now()]);
+
+      const ticket = `CLM-${Math.floor(100000 + Math.random() * 900000)}`;
+      void sendContactToKeos({ ticket, ...c });
+      if (mailer && LEAD_NOTIFY_TO.length) {
+        const html = layout('Nuevo mensaje desde Contacto', `<table width="100%" cellpadding="0" cellspacing="0">${rows([
+          ['Ticket', ticket], ['Nombre', c.fullName], ['Correo', c.email], ['Teléfono', c.phone],
+          ['Ciudad', c.city], ['Asunto', c.topic], ['Mensaje', c.message],
+        ])}</table>`);
+        sendEach(LEAD_NOTIFY_TO, { from: MAIL_FROM, replyTo: c.email, subject: `Contacto web: ${c.topic} · ${ticket}`, html })
+          .catch(e => console.error('[contact-mail]', ticket, e?.message || e));
+      }
+      res.json({ success: true, ticket });
+    } catch (e) {
+      console.error('[contact]', e);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
   app.post('/api/forms/submit', express.json(), async (req, res) => {
     try {
       const { type, data } = req.body;

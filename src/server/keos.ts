@@ -14,8 +14,7 @@ export function toE164Ec(raw: string): string {
 }
 
 export function sendLeadToKeos(d: LeadMailData, isNew: boolean): Promise<void> {
-  if (!KEOS_WEBHOOK_URL) return Promise.resolve();
-  const body = JSON.stringify({
+  return postToKeos(d.code, {
     event: isNew ? 'lead_created' : 'lead_plan_selected',
     code: d.code,
     fullName: d.fullName,
@@ -33,6 +32,30 @@ export function sendLeadToKeos(d: LeadMailData, isNew: boolean): Promise<void> {
     landingPage: d.source?.landingPage || '',
     createdAt: d.createdAt || '',
   });
+}
+
+export interface ContactData { ticket: string; fullName: string; email: string; phone: string; city: string; topic: string; message: string }
+
+/** Contact-page form → same Keos flow as quotes (event 'contact_form'; topic goes in `plan`, text in `message`). */
+export function sendContactToKeos(c: ContactData): Promise<void> {
+  return postToKeos(c.ticket, {
+    event: 'contact_form',
+    code: c.ticket,
+    fullName: c.fullName,
+    firstName: c.fullName.split(' ')[0] || c.fullName,
+    email: c.email,
+    phone: c.phone,
+    whatsapp: toE164Ec(c.phone),
+    province: c.city,
+    plan: c.topic,
+    message: c.message,
+    channel: 'contacto',
+  });
+}
+
+function postToKeos(code: string, payload: Record<string, unknown>): Promise<void> {
+  if (!KEOS_WEBHOOK_URL) return Promise.resolve();
+  const body = JSON.stringify(payload);
   return new Promise(resolve => {
     const req = https.request(KEOS_WEBHOOK_URL, {
       method: 'POST',
@@ -43,10 +66,10 @@ export function sendLeadToKeos(d: LeadMailData, isNew: boolean): Promise<void> {
       },
     }, res => {
       res.resume();
-      if ((res.statusCode || 500) >= 300) console.error(`[keos] ${d.code}: HTTP ${res.statusCode}`);
+      if ((res.statusCode || 500) >= 300) console.error(`[keos] ${code}: HTTP ${res.statusCode}`);
       resolve();
     });
-    req.on('error', e => { console.error(`[keos] ${d.code}:`, e.message); resolve(); });
+    req.on('error', e => { console.error(`[keos] ${code}:`, e.message); resolve(); });
     req.setTimeout(8000, () => req.destroy(new Error('timeout')));
     req.end(body);
   });

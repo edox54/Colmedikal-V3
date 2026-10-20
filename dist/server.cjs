@@ -1737,8 +1737,7 @@ function toE164Ec(raw) {
   return /^5939\d{8}$/.test(n) ? n : "";
 }
 function sendLeadToKeos(d, isNew) {
-  if (!KEOS_WEBHOOK_URL) return Promise.resolve();
-  const body = JSON.stringify({
+  return postToKeos(d.code, {
     event: isNew ? "lead_created" : "lead_plan_selected",
     code: d.code,
     fullName: d.fullName,
@@ -1756,6 +1755,25 @@ function sendLeadToKeos(d, isNew) {
     landingPage: d.source?.landingPage || "",
     createdAt: d.createdAt || ""
   });
+}
+function sendContactToKeos(c) {
+  return postToKeos(c.ticket, {
+    event: "contact_form",
+    code: c.ticket,
+    fullName: c.fullName,
+    firstName: c.fullName.split(" ")[0] || c.fullName,
+    email: c.email,
+    phone: c.phone,
+    whatsapp: toE164Ec(c.phone),
+    province: c.city,
+    plan: c.topic,
+    message: c.message,
+    channel: "contacto"
+  });
+}
+function postToKeos(code, payload) {
+  if (!KEOS_WEBHOOK_URL) return Promise.resolve();
+  const body = JSON.stringify(payload);
   return new Promise((resolve) => {
     const req = import_https.default.request(KEOS_WEBHOOK_URL, {
       method: "POST",
@@ -1766,11 +1784,11 @@ function sendLeadToKeos(d, isNew) {
       }
     }, (res) => {
       res.resume();
-      if ((res.statusCode || 500) >= 300) console.error(`[keos] ${d.code}: HTTP ${res.statusCode}`);
+      if ((res.statusCode || 500) >= 300) console.error(`[keos] ${code}: HTTP ${res.statusCode}`);
       resolve();
     });
     req.on("error", (e) => {
-      console.error(`[keos] ${d.code}:`, e.message);
+      console.error(`[keos] ${code}:`, e.message);
       resolve();
     });
     req.setTimeout(8e3, () => req.destroy(new Error("timeout")));
@@ -1913,6 +1931,47 @@ async function startServer() {
         commit: "unknown",
         deployedAt: (/* @__PURE__ */ new Date()).toISOString().slice(0, 19).replace("T", " ")
       });
+    }
+  });
+  const contactHits = /* @__PURE__ */ new Map();
+  app.post("/api/contact", import_express7.default.json({ limit: "20kb" }), async (req, res) => {
+    try {
+      const b = req.body || {};
+      const str5 = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
+      const c = {
+        fullName: str5(b.fullName, 120),
+        email: str5(b.email, 120),
+        phone: str5(b.phone, 30),
+        city: str5(b.city, 60),
+        topic: str5(b.topic, 100),
+        message: str5(b.message, 2e3)
+      };
+      if (b.website) return res.json({ success: true, ticket: "CLM-000000" });
+      if (!c.fullName || !/\S+@\S+\.\S+/.test(c.email) || !/^\d{7,10}$/.test(c.phone.replace(/[\s-]/g, "")) || !c.message) {
+        return res.status(400).json({ success: false, message: "Datos inv\xE1lidos" });
+      }
+      const ip = req.ip || "x";
+      const hits = (contactHits.get(ip) || []).filter((t) => Date.now() - t < 10 * 6e4);
+      if (hits.length >= 5) return res.status(429).json({ success: false, message: "Demasiados env\xEDos, intenta m\xE1s tarde" });
+      contactHits.set(ip, [...hits, Date.now()]);
+      const ticket = `CLM-${Math.floor(1e5 + Math.random() * 9e5)}`;
+      void sendContactToKeos({ ticket, ...c });
+      if (mailer && LEAD_NOTIFY_TO.length) {
+        const html = layout("Nuevo mensaje desde Contacto", `<table width="100%" cellpadding="0" cellspacing="0">${rows([
+          ["Ticket", ticket],
+          ["Nombre", c.fullName],
+          ["Correo", c.email],
+          ["Tel\xE9fono", c.phone],
+          ["Ciudad", c.city],
+          ["Asunto", c.topic],
+          ["Mensaje", c.message]
+        ])}</table>`);
+        sendEach(LEAD_NOTIFY_TO, { from: MAIL_FROM, replyTo: c.email, subject: `Contacto web: ${c.topic} \xB7 ${ticket}`, html }).catch((e) => console.error("[contact-mail]", ticket, e?.message || e));
+      }
+      res.json({ success: true, ticket });
+    } catch (e) {
+      console.error("[contact]", e);
+      res.status(500).json({ success: false, message: "Error interno" });
     }
   });
   app.post("/api/forms/submit", import_express7.default.json(), async (req, res) => {

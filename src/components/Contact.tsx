@@ -58,18 +58,25 @@ export default function Contact({ setCurrentPage }: ContactProps) {
     return Object.keys(tempErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [sending, setSending] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      const randomTickets = Math.floor(100000 + Math.random() * 900000);
-      // Redirect the lead to the dedicated thank-you page with their reference code
-      navigate('/gracias', {
-        state: {
-          ticketId: `CLM-${randomTickets}`,
-          name: formData.fullName,
-          subject: formData.topic,
-        },
+    if (!validate() || sending) return;
+    setSending(true);
+    try {
+      const r = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, website: (e.currentTarget.elements.namedItem('website') as HTMLInputElement | null)?.value || '' }),
       });
+      const j = await r.json();
+      if (!r.ok || !j.success) throw new Error(j.message || 'error');
+      navigate('/gracias', { state: { ticketId: j.ticket, name: formData.fullName, subject: formData.topic } });
+    } catch {
+      setErrors({ message: 'No pudimos enviar tu mensaje. Inténtalo de nuevo o escríbenos por WhatsApp al 098 702 8756.' });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -171,6 +178,7 @@ export default function Contact({ setCurrentPage }: ContactProps) {
         <div className="lg:col-span-7 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center">
           
           <form onSubmit={handleSubmit} className="space-y-6" id="contact-form-submit">
+              <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
               <div>
                 <h3 className="text-xl font-bold text-slate-950 mb-1">Indícame tu información de contacto</h3>
                 <p className="text-xs text-slate-400">Me encargaré de diseñar la mejor opción para ti y tu familia.</p>
@@ -284,8 +292,9 @@ export default function Contact({ setCurrentPage }: ContactProps) {
                   type="submit"
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 text-white font-bold text-xs shadow-md shadow-teal-500/10 hover:shadow-teal-500/25 transition-all text-center flex items-center justify-center gap-2 group cursor-pointer"
                   id="btn-contact-submit"
+                  disabled={sending}
                 >
-                  <span>Enviar Mensaje de Soporte</span>
+                  <span>{sending ? 'Enviando…' : 'Enviar Mensaje de Soporte'}</span>
                   <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-0.5 transition-transform" />
                 </button>
               </div>
