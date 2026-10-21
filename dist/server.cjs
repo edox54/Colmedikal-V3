@@ -5,6 +5,9 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __commonJS = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -21,6 +24,66 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+
+// src/assets/images/avatar_gomez_1780024902226.webp
+var require_avatar_gomez_1780024902226 = __commonJS({
+  "src/assets/images/avatar_gomez_1780024902226.webp"() {
+  }
+});
+
+// src/assets/images/avatar_restrepo_1780024921091.webp
+var require_avatar_restrepo_1780024921091 = __commonJS({
+  "src/assets/images/avatar_restrepo_1780024921091.webp"() {
+  }
+});
+
+// src/assets/images/avatar_caballero_1780024936325.webp
+var require_avatar_caballero_1780024936325 = __commonJS({
+  "src/assets/images/avatar_caballero_1780024936325.webp"() {
+  }
+});
+
+// src/assets/images/post_ecuador_prepagada_1780025031230.webp
+var require_post_ecuador_prepagada_1780025031230 = __commonJS({
+  "src/assets/images/post_ecuador_prepagada_1780025031230.webp"() {
+  }
+});
+
+// src/assets/images/post_examenes_anuales_1780025049525.webp
+var require_post_examenes_anuales_1780025049525 = __commonJS({
+  "src/assets/images/post_examenes_anuales_1780025049525.webp"() {
+  }
+});
+
+// src/assets/images/post_maternidad_1780025067027.webp
+var require_post_maternidad_1780025067027 = __commonJS({
+  "src/assets/images/post_maternidad_1780025067027.webp"() {
+  }
+});
+
+// src/assets/images/post_que_es_medicina_prepagada.webp
+var require_post_que_es_medicina_prepagada = __commonJS({
+  "src/assets/images/post_que_es_medicina_prepagada.webp"() {
+  }
+});
+
+// src/assets/images/post_salud_publica_vs_prepagada.webp
+var require_post_salud_publica_vs_prepagada = __commonJS({
+  "src/assets/images/post_salud_publica_vs_prepagada.webp"() {
+  }
+});
+
+// src/assets/images/post_seguro_vs_prepagada.webp
+var require_post_seguro_vs_prepagada = __commonJS({
+  "src/assets/images/post_seguro_vs_prepagada.webp"() {
+  }
+});
+
+// src/assets/images/post_prepagada_jovenes.webp
+var require_post_prepagada_jovenes = __commonJS({
+  "src/assets/images/post_prepagada_jovenes.webp"() {
+  }
+});
 
 // server.ts
 var import_config = require("dotenv/config");
@@ -1727,6 +1790,390 @@ ${u.note ? `<p style="font-size:14px;color:#334155;line-height:1.6;background:#f
   await mailer.sendMail({ from: MAIL_FROM, to: client.email, replyTo: CLIENT_REPLY_TO, subject: title, html: layout(title, body) });
 }
 
+// src/data/authors.ts
+var import_avatar_gomez_1780024902226 = __toESM(require_avatar_gomez_1780024902226(), 1);
+var import_avatar_restrepo_1780024921091 = __toESM(require_avatar_restrepo_1780024921091(), 1);
+var import_avatar_caballero_1780024936325 = __toESM(require_avatar_caballero_1780024936325(), 1);
+var AUTHORS = {
+  gomez: {
+    id: "gomez",
+    name: "Dr. Alejandro G\xF3mez Pradilla",
+    role: "Director M\xE9dico de Colmedikal",
+    specialty: "Especialista en Cardiolog\xEDa y Medicina Interna",
+    experience: "M\xE1s de 17 a\xF1os de experiencia en el sector salud en Ecuador",
+    avatar: import_avatar_gomez_1780024902226.default,
+    bio: "El Dr. G\xF3mez cuenta con una amplia trayectoria coordinando servicios de salud preventiva y medicina integral en Ecuador. Graduado de la Universidad Central del Ecuador y con especializaci\xF3n en el exterior, lidera el programa de cardiolog\xEDa integral de Colmedikal."
+  },
+  restrepo: {
+    id: "restrepo",
+    name: "Dra. Mariana Restrepo Hoyos",
+    role: "Coordinadora de Medicina y Bienestar Preventivo",
+    specialty: "Especialista en Medicina Familiar",
+    experience: "12+ a\xF1os de trayectoria cl\xEDnica acompa\xF1ando familias ecuatorianas",
+    avatar: import_avatar_restrepo_1780024921091.default,
+    bio: "La Dra. Mariana se dedica al dise\xF1o cient\xEDfico de programas de medicina familiar y tamizaje temprano en el Austro y la Costa ecuatoriana. Su filosof\xEDa combina la evidencia m\xE9dica de vanguardia con un trato c\xE1lido, humano e integral."
+  },
+  caballero: {
+    id: "caballero",
+    name: "Dra. Sof\xEDa Caballero Restrepo",
+    role: "Directora del Programa Materno-Infantil",
+    specialty: "Ginec\xF3loga Obstetra y Especialista en Embarazo de Alto Riesgo",
+    experience: "14+ a\xF1os cuidando la salud de las madres y neonatos ecuatorianos",
+    avatar: import_avatar_caballero_1780024936325.default,
+    bio: "La Dra. Sof\xEDa es un referente en la atenci\xF3n de gestantes y neonatolog\xEDa en Ecuador. Lidera con pasi\xF3n el programa de maternidad y parto humanizado de Colmedikal."
+  }
+};
+
+// src/data/blogs/medicina-prepagada-ecuador/index.ts
+var import_post_ecuador_prepagada_1780025031230 = __toESM(require_post_ecuador_prepagada_1780025031230(), 1);
+var post = {
+  id: "medicina-prepagada-ecuador",
+  title: "Gu\xEDa Completa de Medicina Prepagada en Ecuador: \xBFC\xF3mo elegir el mejor plan?",
+  slug: "medicina-prepagada-ecuador",
+  excerpt: "Descubre las diferencias claves entre el seguro p\xFAblico del IESS, un plan complementario y una Medicina Prepagada aut\xE9ntica en Ecuador para tomar la mejor decisi\xF3n de cobertura familiar.",
+  publishDate: "28 de Mayo de 2026",
+  readTime: "6 min de lectura",
+  category: "Planes y Cobertura",
+  author: AUTHORS.gomez,
+  image: import_post_ecuador_prepagada_1780025031230.default,
+  tags: ["Medicina Prepagada", "Salud Ecuador", "Elegir Plan", "Cotizador Colmedikal"],
+  content: [
+    "### \xBFPor qu\xE9 la salud privada se ha convertido en una prioridad en Ecuador?",
+    "En Ecuador, el sistema de salud p\xFAblico (como el IESS, los hospitales del Ministerio de Salud P\xFAblica o del ISSPOL) suele presentar retos de saturaci\xF3n, tiempos de espera prolongados de varios meses para especialistas y procesos burocr\xE1ticos de aprobaci\xF3n para tratamientos o cirug\xEDas. Por ello, miles de familias ecuatorianas buscan soluciones premium para garantizar una atenci\xF3n m\xE9dica confiable, \xE1gil y de alta calidad t\xE9cnica.",
+    "Dos de las alternativas m\xE9dicas voluntarias m\xE1s conocidas son los planes corporativos complementarios y los planes de Medicina Prepagada de Cobertura Integral. En este art\xEDculo explicaremos en detalle c\xF3mo funciona la Medicina Prepagada en el pa\xEDs y qu\xE9 variables cl\xEDnicas y financieras debes contemplar al momento de cotizar un plan.",
+    "### IESS vs. Plan Complementario vs. Medicina Prepagada",
+    "Es vital comprender en qu\xE9 se diferencia cada opci\xF3n disponible en el mercado ecuatoriano para evitar falsas expectativas y optimizar tu presupuesto familiar:",
+    "* **IESS (P\xFAblico/Obligatorio):** Es la cobertura b\xE1sica estatal financiada por la aportaci\xF3n patronal e individual. Cubre los servicios generales pero est\xE1 sujeta a agendamientos distantes, cupos limitados y desabastecimiento ocasional de medicaci\xF3n.",
+    "* **Plan M\xE9dico Cerrado:** Suele ser un servicio provisto por cl\xEDnicas espec\xEDficas que ofrece cobertura reducida a su propia red f\xEDsica, limitando la libertad del paciente de elegir m\xE9dicos particulares.",
+    "* **Medicina Prepagada (Colmedikal):** Es un plan privado independiente, robusto y auto-suficiente que te da acceso inmediato y directo a una ampl\xEDsima red de cl\xEDnicas de alta complejidad (hospitales de nivel 4) en Quito, Guayaquil, Cuenca, Ambato, Portoviejo y Manta. Puedes consultar nuestra [red completa de m\xE9dicos y especialistas](/directorio) disponibles a nivel nacional. Ofrece consultas con especialistas de primer nivel sin pasar por un m\xE9dico general, atenci\xF3n m\xE9dica a domicilio las 24 horas, terapias f\xEDsicas o de rehabilitaci\xF3n ilimitadas y cobertura completa para procedimientos ambulatorios y hospitalarios de primer orden.",
+    "### Variables clave para seleccionar tu plan ideal",
+    "Cuando te dispongas a cotizar tu medicina prepagada a trav\xE9s de un portal moderno como Colmedikal Ecuador, eval\xFAa los siguientes factores:",
+    "1. **El Cuadro M\xE9dico y Red de Cl\xEDnicas:** Aseg\xFArate de que el plan incluya los mejores centros asistenciales de tu zona (por ejemplo, el Hospital Vozandes, Northospital, Cl\xEDnica Internacional, Cl\xEDnica San Rafael en Quito, o la Cl\xEDnica Panamericana en Guayaquil). El acceso a cl\xEDnicas l\xEDderes es el indicador de calidad n\xFAmero uno.",
+    "2. **Copagos y Deductibles:** Algunos planes de bajo costo mensual cobran copagos altos cada vez que vas a consulta o te realizan ex\xE1menes. Otros planes premium te exoneran de copagos o mantienen los deducibles en montos m\xEDnimos muy f\xE1ciles de cubrir.",
+    "3. **L\xEDmites de Cobertura y Preexistencias:** Al afilizarte o cambiar de seguro en el Ecuador, debes reportar tu historial m\xE9dico de manera transparente. El factor clave es que el plan incluya un alto l\xEDmite de cobertura econ\xF3mica para hospitalizaci\xF3n, cirug\xEDas complejas y maternidad.",
+    "4. **Terapia y Rehabilitaci\xF3n Ilimitada:** En caso de accidentes o procesos post-operatorios, una buena cobertura de rehabilitaci\xF3n f\xEDsica y neurol\xF3gica sin n\xFAmero m\xE1ximo de sesiones evita costos catastr\xF3ficos inesperados para tu econom\xEDa familiar.",
+    "### Conclusi\xF3n y Recomendaci\xF3n M\xE9dica",
+    "Invertir en una medicina prepagada no es solo un gasto, es blindar la tranquilidad de tu familia frente a contingencias inesperadas de salud. Un plan de medicina prepagada debidamente balanceado se adapta a las edades de tu n\xFAcleo familiar y a su presupuesto actual. Te invitamos a utilizar nuestro [Cotizador Inteligente Colmedikal](/cotizador) para explorar de manera 100% transparente el plan ideal para ti, calculando instant\xE1neamente tarifas de acuerdo con tus miembros familiares. Tambi\xE9n puedes [agendar una cita con nuestros asesores](/agendamiento) para orientaci\xF3n personalizada sin costo.",
+    "Tambi\xE9n te puede interesar: [Atenci\xF3n Materna y Familiar: beneficios de cobertura de alta complejidad](/blog/cobertura-salud-familiar-maternidad) \xB7 [5 ex\xE1menes preventivos anuales indispensables](/blog/examenes-preventivos-anuales)."
+  ]
+};
+
+// src/data/blogs/examenes-preventivos-anuales/index.ts
+var import_post_examenes_anuales_1780025049525 = __toESM(require_post_examenes_anuales_1780025049525(), 1);
+var post2 = {
+  id: "examenes-preventivos-anuales",
+  title: "Salud Preventiva: 5 ex\xE1menes anuales indispensables que pueden salvar tu vida",
+  slug: "examenes-preventivos-anuales",
+  excerpt: "La prevenci\xF3n es el pilar de la salud moderna. Conoce los cinco chequeos del tamizaje m\xE9dico que todo adulto en Ecuador debe realizarse a\xF1o tras a\xF1o.",
+  publishDate: "26 de Mayo de 2026",
+  readTime: "5 min de lectura",
+  category: "Prevenci\xF3n y Bienestar",
+  author: AUTHORS.restrepo,
+  image: import_post_examenes_anuales_1780025049525.default,
+  tags: ["Medicina Preventiva", "Chequeos M\xE9dicos", "Salud Adultos", "Tamizaje Cl\xEDnico"],
+  content: [
+    '### Prevenir es vivir: Rompiendo el mito de "ir al m\xE9dico solo cuando duele"',
+    "Hist\xF3ricamente, la medicina del siglo XX se caracteriz\xF3 por ser predominantemente reactiva: las personas asist\xEDan al hospital \xFAnicamente al presentar dolores cr\xF3nicos o s\xEDntomas inmanejables. La medicina moderna y preventiva gira en torno a un paradigma opuesto: detectar de manera microsc\xF3pica o temprana las alteraciones bioqu\xEDmicas y fisiol\xF3gicas antes de que desarrollen s\xEDntomas visibles.",
+    "En Colmedikal creemos firmemente que un examen de sangre o una imagen diagn\xF3stica r\xE1pida a los 30, 40 o 50 a\xF1os puede modificar completamente la expectativa de vida de un paciente. A continuaci\xF3n, te explicamos cu\xE1les son los cinco chequeos m\xE9dicos anuales m\xE1s urgentes para mantener un control \xF3ptimo sobre tu bienestar.",
+    "### 1. Perfil Lip\xEDdico y Glicemia en Ayunas",
+    'Las enfermedades cardiovasculares y la diabetes mellitus tipo 2 son llamadas "las asesinas silenciosas" de nuestro siglo. Muchas personas viven durante a\xF1os con niveles de colesterol LDL ("malo"), triglic\xE9ridos e insulina cr\xF3nicamente elevados sin sentir absolutamente nada.',
+    "Un examen r\xE1pido de sangre permite capturar a tiempo la resistencia a la insulina o la acumulaci\xF3n de placa ateromatosa, permitiendo revertir estas patolog\xEDas mediante ajustes nutricionales guiados y medicamentos antes de sufrir un infarto de miocardio.",
+    "### 2. Tamizaje Oncol\xF3gico seg\xFAn Edad y G\xE9nero",
+    "El diagn\xF3stico temprano del c\xE1ncer incrementa las tasas de supervivencia por encima del 90%. Los chequeos de rutina indispensables son:",
+    "* **Citolog\xEDa Cervicovaginal y Prueba de VPH:** Indispensable anualmente para mujeres desde el inicio de su vida sexual activa para prevenir el c\xE1ncer de cuello uterino.",
+    "* **Mamograf\xEDa Anual o Bienal:** Crucial para mujeres a partir de los 40 a\xF1os o antes si existen factores gen\xE9ticos o antecedentes directos de c\xE1ncer de ovario o mama.",
+    "* **Examen de PSA (Ant\xEDgeno Prost\xE1tico Espec\xEDfico):** Recomendado para hombres a partir de los 40-45 a\xF1os para la detecci\xF3n precoz del c\xE1ncer de pr\xF3stata.",
+    "* **Colonoscopia de tamizaje:** Fundamental una vez cada 10 a\xF1os para toda persona mayor de 45 a\xF1os para prevenir el c\xE1ncer colorrectal.",
+    "### 3. Presi\xF3n Arterial y Control del Endotelio",
+    "La hipertensi\xF3n arterial afecta a cerca del 30% de los adultos en Ecuador y da\xF1a silenciosamente los vasos sangu\xEDneos del cerebro, coraz\xF3n y ri\xF1ones. Monitorear tu presi\xF3n sist\xF3lica y diast\xF3lica peri\xF3dicamente en consulta m\xE9dica general te protege de accidentes cerebrovasculares catastr\xF3ficos.",
+    "### 4. Perfil Tiroideo (TSH y T4 libre)",
+    "La gl\xE1ndula tiroides maneja el termostato metab\xF3lico de todo tu organismo. El hipotiroidismo (tiroides perezosa) provoca fatiga inexplicable, aumento inexplicable de masa grasa, estre\xF1imiento de dif\xEDcil manejo y estados depresivos leves que suelen confundirse con estr\xE9s cotidiano. Un simple tamizaje anual con la hormona TSH devuelve de inmediato la calidad de vida y energ\xEDa.",
+    "### Beneficios de canalizar tu prevenci\xF3n con Medicina Prepagada",
+    "Uno de los mayores obst\xE1culos para cumplir con estos chequeos anuales en el sistema tradicional del IESS es la burocracia para conseguir \xF3rdenes m\xE9dicas y [agendar citas de especialidad](/agendamiento). Con planes de medicina prepagada como los de Colmedikal, accedes directamente a laboratorios cl\xEDnicos premium del pa\xEDs y a los [m\xE9dicos especialistas en prevenci\xF3n familiar](/directorio) de manera r\xE1pida, c\xF3moda, sin autorizaciones demoradas y bajo un acompa\xF1amiento de primer orden. Tambi\xE9n puedes conocer en detalle todos nuestros [servicios de salud disponibles](/servicios).",
+    "Tambi\xE9n te puede interesar: [Gu\xEDa completa de medicina prepagada en Ecuador](/blog/medicina-prepagada-ecuador) \xB7 [Atenci\xF3n materna y familiar: beneficios de cobertura de alta complejidad](/blog/cobertura-salud-familiar-maternidad)."
+  ]
+};
+
+// src/data/blogs/cobertura-salud-familiar-maternidad/index.ts
+var import_post_maternidad_1780025067027 = __toESM(require_post_maternidad_1780025067027(), 1);
+var post3 = {
+  id: "cobertura-salud-familiar-maternidad",
+  title: "Atenci\xF3n Materna y Familiar: Beneficios de contar con coberturas de alta complejidad",
+  slug: "cobertura-salud-familiar-maternidad",
+  excerpt: "Planificar el nacimiento de tu hijo bajo un esquema de Medicina Prepagada te garantiza tranquilidad absoluta desde las primeras semanas de gestaci\xF3n hasta el cuidado neonatal post-parto.",
+  publishDate: "24 de Mayo de 2026",
+  readTime: "5 min de lectura",
+  category: "Salud Familiar",
+  author: AUTHORS.caballero,
+  image: import_post_maternidad_1780025067027.default,
+  tags: ["Salud Materna", "Maternidad Prepagada", "Planes Familiares", "Cuidado Neonatal"],
+  content: [
+    "### La importancia de la planificaci\xF3n familiar y m\xE9dica",
+    "El embarazo y el nacimiento de un hijo es uno de los hitos m\xE1s maravillosos y significativos en la vida de cualquier familia. No obstante, tambi\xE9n representa un per\xEDodo de intensas demandas f\xEDsicas y psicol\xF3gicas, donde la incertidumbre m\xE9dica respecto a las complicaciones potenciales puede generar mucho estr\xE9s.",
+    "Garantizar que tu gestaci\xF3n, el parto y los primeros meses del reci\xE9n nacido transcurran en un entorno m\xE9dico con tecnolog\xEDa de punta, m\xE9dicos altamente formados y habitaciones c\xF3modas y privadas es una decisi\xF3n que impacta el futuro saludable de tu beb\xE9.",
+    "### \xBFPor qu\xE9 contar con Medicina Prepagada durante el Embarazo?",
+    "La atenci\xF3n obst\xE9trica convencional suele estar restringida a tiempos breves de consulta y un control ecogr\xE1fico m\xEDnimo. Optar por un plan familiar integral con Colmedikal te ofrece ventajas de valor m\xE9dico incalculable:",
+    "1. **M\xE9dico Ginecobstetra de Cabecera:** Elige y atiende todas tus consultas de control mensual directamente con el obstetra de tu absoluta confianza. \xC9l te acompa\xF1ar\xE1 durante todo el embarazo y estar\xE1 presente en el momento del parto.",
+    "2. **Ecograf\xEDas de Detalle Anat\xF3mico Incluidas:** Las ecograf\xEDas especializadas de alta definici\xF3n y de detalle anat\xF3mico de segundo trimestre (cruciales para diagnosticar malformaciones de manera temprana) e incluso ecograf\xEDas gen\xE9ticas iniciales se realizan sin trabas de autorizaci\xF3n.",
+    "3. **Habitaci\xF3n Suite Privada Individual para el Parto:** Goza de la tranquilidad de dar a luz y recuperarte en una c\xF3moda suite hospitalaria privada, con ba\xF1o propio, un sof\xE1 adaptado para el acompa\xF1ante y total intimidad familiar.",
+    "4. **Acceso a Unidades de Cuidado Intensivo Neonatal (UCIN):** Aunque toda futura madre anhela un parto sin percances, la prematurez o complicaciones respiratorias transitorias del neonato pueden demandar incubadora y cuidados complejos. Los planes de medicina prepagada de Colmedikal cubren la estancia en UCIN de alto nivel para tu beb\xE9 sin que se generen facturas impagables para tu econom\xEDa familiar.",
+    '### El Anexo de "Inclusi\xF3n de Hijo Nacido en el Contrato"',
+    "Este es un beneficio fundamental que pocas personas conocen: al tener tu Medicina Prepagada de Colmedikal contratada con anterioridad y al nacer tu beb\xE9 bajo esta cobertura, tu reci\xE9n nacido queda autom\xE1ticamente blindado e integrado al contrato sin restricciones por preexistencias cong\xE9nitas. Es decir, si el beb\xE9 nace con alguna condici\xF3n m\xE9dica especial, el seguro privado cubre todo su tratamiento de por vida de forma incondicional desde el primer minuto de respiraci\xF3n.",
+    "### Recomendaciones para Futuros Padres",
+    "Si est\xE1s planeando tener hijos en los pr\xF3ximos 12 a 24 meses, la recomendaci\xF3n m\xE9dica n\xFAmero uno es cotizar tu plan con anterioridad. La mayor\xEDa de seguros m\xE9dicos privados de primer nivel exigen un per\xEDodo de carencia para la cobertura del parto (habitualmente que la concepci\xF3n se d\xE9 despu\xE9s de la afiliaci\xF3n o de un tiempo estipulado). Utiliza el [Cotizador Online Colmedikal](/cotizador) hoy mismo, ingresando los datos de tu pareja, para estructurar el plan de maternidad perfecto con tarifas altamente competitivas. Si tienes dudas, puedes [agendar una asesor\xEDa gratuita](/agendamiento) o consultar nuestro [directorio de ginecobstetras](/directorio).",
+    "Tambi\xE9n te puede interesar: [Gu\xEDa completa de medicina prepagada en Ecuador](/blog/medicina-prepagada-ecuador) \xB7 [5 ex\xE1menes preventivos anuales indispensables](/blog/examenes-preventivos-anuales)."
+  ]
+};
+
+// src/data/blogs/que-es-medicina-prepagada/index.ts
+var import_post_que_es_medicina_prepagada = __toESM(require_post_que_es_medicina_prepagada(), 1);
+var post4 = {
+  id: "que-es-medicina-prepagada",
+  title: "\xBFQu\xE9 es la medicina prepagada y c\xF3mo funciona exactamente?",
+  slug: "que-es-medicina-prepagada",
+  excerpt: "Descubre qu\xE9 es la medicina prepagada, c\xF3mo funciona el modelo de pago mensual, qu\xE9 cubre, cu\xE1les son sus diferencias con el seguro m\xE9dico tradicional y por qu\xE9 miles de familias ecuatorianas la eligen cada a\xF1o.",
+  publishDate: "5 de Julio de 2026",
+  readTime: "7 min de lectura",
+  category: "Conceptos B\xE1sicos",
+  author: AUTHORS.gomez,
+  image: import_post_que_es_medicina_prepagada.default,
+  tags: ["Medicina Prepagada", "Qu\xE9 es", "C\xF3mo funciona", "Salud Ecuador", "Planes de Salud"],
+  content: [
+    "### \xBFQu\xE9 es la medicina prepagada?",
+    "La medicina prepagada es un modelo de financiamiento de salud privada en el que el afiliado paga una cuota mensual fija a cambio de cobertura m\xE9dica integral. A diferencia del seguro de salud tradicional \u2014que act\xFAa como reembolso despu\xE9s del gasto\u2014 la medicina prepagada funciona como un sistema de prepago directo: t\xFA pagas antes de necesitar atenci\xF3n, y cuando la necesitas, la empresa cubre los costos acordados sin tr\xE1mites de reembolso.",
+    "En Ecuador, las empresas de medicina prepagada est\xE1n reguladas por la Superintendencia de Compa\xF1\xEDas, Valores y Seguros (SCVS), que establece los requisitos m\xEDnimos de solvencia y cobertura que deben cumplir. Colmedikal opera bajo esta regulaci\xF3n como **Colmedikal Compa\xF1\xEDa de Medicina Prepagada S.A.**, brindando planes de salud a individuos y familias en todo el territorio nacional.",
+    "### \xBFC\xF3mo funciona exactamente?",
+    "El funcionamiento de la medicina prepagada se basa en tres elementos clave:",
+    "1. **Cuota mensual fija:** El afiliado paga un monto mensual acordado seg\xFAn el plan elegido, la edad y el n\xFAmero de beneficiarios. En Colmedikal, los planes van desde $10 USD/mes por persona hasta planes premium con coberturas m\xE1s amplias.",
+    "2. **Red de prestadores:** La empresa de medicina prepagada tiene convenios con cl\xEDnicas, hospitales, especialistas y laboratorios de su red. Cuando el afiliado necesita atenci\xF3n, acude directamente a uno de estos prestadores sin necesidad de hacer pagos de bolsillo significativos.",
+    "3. **Autorizaci\xF3n directa:** En la mayor\xEDa de los casos, la atenci\xF3n es autorizada en tiempo real por la empresa al prestador. El afiliado solo presenta su carn\xE9 de afiliaci\xF3n y, en algunos planes, cubre un deducible m\xEDnimo anual (en Colmedikal: $40 USD/a\xF1o de hospitalizaci\xF3n).",
+    "El resultado: atenci\xF3n m\xE9dica inmediata, sin esperas burocr\xE1ticas y sin desembolsos imprevistos de dinero en momentos de crisis de salud.",
+    "### \xBFQu\xE9 cubre la medicina prepagada?",
+    "La cobertura var\xEDa seg\xFAn el plan contratado, pero en t\xE9rminos generales los planes de Colmedikal incluyen:",
+    "* **Consultas con especialistas** sin necesidad de referencia de m\xE9dico general (acceso directo a cardiolog\xEDa, ginecolog\xEDa, neurolog\xEDa, dermatolog\xEDa y m\xE1s de 25 especialidades)",
+    "* **Hospitalizaci\xF3n** en cl\xEDnicas privadas de primer nivel, incluyendo habitaci\xF3n, alimentaci\xF3n, medicaci\xF3n hospitalaria y honorarios m\xE9dicos",
+    "* **Cirug\xEDa programada y de emergencia** cubierta hasta el l\xEDmite anual del plan",
+    "* **Maternidad:** controles prenatales, parto (natural o ces\xE1rea) y atenci\xF3n del reci\xE9n nacido",
+    "* **Emergencias 24/7**, incluyendo ambulancia terrestre",
+    "* **Laboratorio cl\xEDnico e imagenolog\xEDa** (ecograf\xEDas, radiograf\xEDas, tomograf\xEDas seg\xFAn el plan)",
+    "* **Odontolog\xEDa b\xE1sica** en los planes que incluyen esta prestaci\xF3n",
+    "Puedes revisar el detalle completo de coberturas seg\xFAn cada plan en nuestra p\xE1gina de [servicios m\xE9dicos](/servicios).",
+    "### \xBFQu\xE9 NO cubre la medicina prepagada?",
+    "Es igualmente importante conocer las exclusiones m\xE1s comunes para no tener sorpresas:",
+    "* **Preexistencias no declaradas:** Enfermedades que el afiliado ten\xEDa antes de afiliarse y no report\xF3 quedan excluidas permanentemente.",
+    "* **Per\xEDodos de carencia:** Los primeros d\xEDas o meses de afiliaci\xF3n tienen restricciones de uso seg\xFAn el tipo de prestaci\xF3n. Por ejemplo, en Colmedikal, las emergencias tienen 24 horas de carencia, mientras que hospitalizaci\xF3n programada tiene 90 d\xEDas.",
+    "* **Cosm\xE9ticos y est\xE9ticos:** Cirug\xEDas pl\xE1sticas con fines est\xE9ticos (sin indicaci\xF3n m\xE9dica) generalmente no est\xE1n cubiertas.",
+    "* **Preexistencias declaradas en per\xEDodo de exclusi\xF3n:** Las enfermedades preexistentes declaradas entran a cobertura reci\xE9n a partir del mes 25 de afiliaci\xF3n.",
+    "### \xBFCu\xE1nto cuesta la medicina prepagada en Ecuador?",
+    "El costo mensual depende de varios factores: la edad del afiliado, el plan elegido y el n\xFAmero de beneficiarios. En Colmedikal, los valores de referencia son:",
+    "* **Plan Esencial:** desde $10 USD/mes por persona",
+    "* **Plan Recomendado:** desde $14 USD/mes por persona",
+    "* **Plan Platinum:** desde $24 USD/mes por persona",
+    "Estos valores corresponden a personas adultas j\xF3venes; el precio aumenta progresivamente con la edad. Para conocer el valor exacto seg\xFAn tu perfil familiar, utiliza nuestro [cotizador en l\xEDnea](/cotizador) que calcula la tarifa en segundos.",
+    "### \xBFPor qu\xE9 elegir medicina prepagada en Ecuador?",
+    "El sistema p\xFAblico de salud (IESS, hospitales del MSP) tiene cobertura universal pero enfrenta desaf\xEDos estructurales: agendamiento de especialistas que puede tomar semanas o meses, desabastecimiento de medicamentos e infraestructura con saturaci\xF3n cr\xF3nica. La medicina prepagada privada es la respuesta a esa brecha:",
+    "* Atenci\xF3n el mismo d\xEDa en la mayor\xEDa de consultas de especialidad",
+    "* Red de cl\xEDnicas privadas de alta complejidad en todo Ecuador",
+    "* Sin tr\xE1mites de reembolso \u2014 la empresa paga directamente al prestador",
+    "* Tranquilidad econ\xF3mica frente a gastos m\xE9dicos imprevistos que pueden superar los $10.000 USD en un evento de hospitalizaci\xF3n o cirug\xEDa mayor",
+    "Si est\xE1s evaluando proteger la salud de tu familia, [agenda una asesor\xEDa gratuita](/agendamiento) con nuestro equipo de Colmedikal.",
+    "Tambi\xE9n te puede interesar: [Seguro de salud vs. Medicina Prepagada: \xBFCu\xE1l me conviene?](/blog/seguro-salud-vs-medicina-prepagada) \xB7 [\xBFVale la pena si soy joven y sano?](/blog/medicina-prepagada-personas-jovenes)."
+  ]
+};
+
+// src/data/blogs/salud-publica-vs-medicina-prepagada/index.ts
+var import_post_salud_publica_vs_prepagada = __toESM(require_post_salud_publica_vs_prepagada(), 1);
+var post5 = {
+  id: "salud-publica-vs-medicina-prepagada",
+  title: "\xBFCu\xE1l es la diferencia entre el sistema de salud p\xFAblico y la medicina prepagada?",
+  slug: "salud-publica-vs-medicina-prepagada",
+  excerpt: "IESS, hospitales del MSP y medicina prepagada privada: comparamos cobertura, tiempos de espera, red de prestadores y costos para que tomes la mejor decisi\xF3n para tu familia en Ecuador.",
+  publishDate: "5 de Julio de 2026",
+  readTime: "8 min de lectura",
+  category: "Conceptos B\xE1sicos",
+  author: AUTHORS.restrepo,
+  image: import_post_salud_publica_vs_prepagada.default,
+  tags: ["Sistema P\xFAblico de Salud", "IESS", "Medicina Prepagada", "Comparativa", "Salud Ecuador"],
+  content: [
+    "### El sistema de salud en Ecuador: dos caminos distintos",
+    "En Ecuador coexisten dos grandes sistemas de atenci\xF3n m\xE9dica: el **sistema p\xFAblico** (que incluye al IESS, los hospitales del Ministerio de Salud P\xFAblica, el ISSPOL y el ISSFA) y el **sistema privado**, dentro del cual se encuentra la medicina prepagada. Ambos buscan el mismo objetivo \u2014cuidar tu salud\u2014 pero operan con l\xF3gicas, recursos y velocidades muy distintas. Entender estas diferencias es fundamental para tomar decisiones informadas sobre la cobertura de salud de tu familia.",
+    "### El sistema de salud p\xFAblico en Ecuador",
+    "El sistema p\xFAblico de salud ecuatoriano tiene como pilar al **IESS (Instituto Ecuatoriano de Seguridad Social)**, que cubre a los trabajadores en relaci\xF3n de dependencia mediante aportes mensuales obligatorios del empleador y del empleado. Adicionalmente, el **Ministerio de Salud P\xFAblica (MSP)** opera una red de hospitales y centros de salud de acceso universal y gratuito para toda la poblaci\xF3n.",
+    "**Fortalezas del sistema p\xFAblico:**",
+    "* Acceso universal: cualquier ciudadano puede atenderse en centros del MSP sin costo",
+    "* Red geogr\xE1fica amplia: presencia en provincias y cantones alejados del pa\xEDs",
+    "* Cobertura de enfermedades catastr\xF3ficas de alto costo",
+    "* Financiado con aportes patronales e individuales (en el caso del IESS)",
+    "**Limitaciones del sistema p\xFAblico:**",
+    "* **Tiempos de espera prolongados:** agendar con un especialista del IESS puede tomar semanas o meses seg\xFAn la especialidad y la ciudad",
+    "* **Cupos limitados:** muchos servicios tienen cupo m\xE1ximo diario, obligando al afiliado a madrugar o a quedarse sin atenci\xF3n",
+    "* **Desabastecimiento:** es frecuente que ciertos medicamentos o insumos quir\xFArgicos no est\xE9n disponibles en los establecimientos p\xFAblicos",
+    "* **Procesos burocr\xE1ticos:** para cirug\xEDas electivas o tratamientos especializados se requieren m\xFAltiples aprobaciones y derivaciones previas",
+    "* **Infraestructura saturada:** los hospitales p\xFAblicos de referencia (como el Eugenio Espejo o el Carlos Andrade Mar\xEDn en Quito) operan frecuentemente al l\xEDmite de su capacidad",
+    "### La medicina prepagada privada",
+    "La medicina prepagada es un modelo privado en el que el afiliado paga una cuota mensual fija y, a cambio, accede a atenci\xF3n m\xE9dica en una red de cl\xEDnicas y especialistas privados con cobertura directa. No reemplaza al sistema p\xFAblico: lo **complementa** cuando la inmediatez y la calidad de atenci\xF3n son prioritarias.",
+    "**Fortalezas de la medicina prepagada (Colmedikal):**",
+    "* **Atenci\xF3n inmediata:** en la mayor\xEDa de casos, la consulta con especialista se agenda el mismo d\xEDa o al d\xEDa siguiente",
+    "* **Acceso directo a especialistas:** sin necesidad de pasar por un m\xE9dico de primer nivel que te derive \u2014 consultas directas con cardi\xF3logos, ginec\xF3logos, dermat\xF3logos y m\xE1s de 25 especialidades",
+    "* **Red de cl\xEDnicas de alta complejidad:** hospitales y cl\xEDnicas privadas de nivel 4 en Quito, Guayaquil, Cuenca, Ambato, Manta y Portoviejo (ver [directorio completo de m\xE9dicos](/directorio))",
+    "* **Sin tr\xE1mites de reembolso:** la empresa autoriza y paga directamente al prestador",
+    "* **Habitaci\xF3n privada en hospitalizaci\xF3n:** sin compartir espacio con otros pacientes",
+    "* **Atenci\xF3n 24/7:** emergencias y atenci\xF3n a domicilio disponible todos los d\xEDas del a\xF1o",
+    "**Limitaciones de la medicina prepagada:**",
+    "* Tiene un costo mensual que debe planificarse dentro del presupuesto familiar",
+    "* Los per\xEDodos de carencia implican esperar un tiempo determinado para ciertos procedimientos",
+    "* Las preexistencias no declaradas quedan excluidas permanentemente",
+    "### Comparativa directa: IESS vs. Medicina Prepagada",
+    "| Criterio | IESS / MSP | Medicina Prepagada (Colmedikal) |",
+    "|---|---|---|",
+    "| Costo | Aporte obligatorio (~9,45% del salario) | Desde $10 USD/mes por persona |",
+    "| Acceso a especialistas | 2 a 8 semanas de espera | Mismo d\xEDa o 24-48 horas |",
+    "| Red de prestadores | Hospitales p\xFAblicos del sistema | Cl\xEDnicas privadas de alta complejidad |",
+    "| Habitaci\xF3n hospitalaria | Compartida (sala general) | Privada |",
+    "| Elecci\xF3n de m\xE9dico | Seg\xFAn disponibilidad del sistema | Libre elecci\xF3n dentro de la red |",
+    "| Proceso de autorizaci\xF3n | Derivaciones previas requeridas | Autorizaci\xF3n directa en l\xEDnea |",
+    "| Emergencias | Cubierto | Cubierto (24/7, desde las primeras 24h) |",
+    "| Maternidad | Cubierto | Cubierto (bono de $250 a $700 seg\xFAn plan) |",
+    "| Medicaci\xF3n | Seg\xFAn disponibilidad | Cubierta en hospitalizaci\xF3n |",
+    "### \xBFSon excluyentes? No necesariamente",
+    "Muchos ecuatorianos que ya aportan al IESS optan adicionalmente por un plan de medicina prepagada para complementar su cobertura. Esta combinaci\xF3n es especialmente recomendada cuando:",
+    "* Tienes enfermedades cr\xF3nicas que requieren control frecuente con especialistas",
+    "* Tu familia incluye ni\xF1os o adultos mayores con necesidades de salud recurrentes",
+    "* Valoras la inmediatez y no quieres depender de la disponibilidad del sistema p\xFAblico",
+    "* Quieres acceso a cl\xEDnicas privadas de mayor nivel tecnol\xF3gico",
+    "En ese caso, el IESS funciona como una red de seguridad de base y la medicina prepagada como el nivel de atenci\xF3n premium que decides activar cuando lo necesitas.",
+    "### Conclusi\xF3n",
+    "El sistema p\xFAblico ofrece cobertura universal y es una red de seguridad fundamental para todos los ecuatorianos. Sin embargo, sus limitaciones estructurales \u2014tiempos de espera, saturaci\xF3n y burocracia\u2014 hacen que muchas familias busquen complementarlo con un plan privado. La medicina prepagada de Colmedikal est\xE1 dise\xF1ada precisamente para cubrir esa brecha: atenci\xF3n m\xE9dica \xE1gil, de alta calidad y sin sorpresas econ\xF3micas.",
+    "Conoce los planes disponibles y cotiza en minutos usando nuestro [cotizador en l\xEDnea](/cotizador), o [agenda una asesor\xEDa gratuita](/agendamiento) con nuestro equipo.",
+    "Tambi\xE9n te puede interesar: [\xBFQu\xE9 es la medicina prepagada y c\xF3mo funciona?](/blog/que-es-medicina-prepagada) \xB7 [Seguro de salud vs. Medicina Prepagada: \xBFCu\xE1l me conviene?](/blog/seguro-salud-vs-medicina-prepagada)."
+  ]
+};
+
+// src/data/blogs/seguro-salud-vs-medicina-prepagada/index.ts
+var import_post_seguro_vs_prepagada = __toESM(require_post_seguro_vs_prepagada(), 1);
+var post6 = {
+  id: "seguro-salud-vs-medicina-prepagada",
+  title: "Seguro de salud vs. Medicina Prepagada: \xBFCu\xE1l es la diferencia y cu\xE1l me conviene?",
+  slug: "seguro-salud-vs-medicina-prepagada",
+  excerpt: "Seguro m\xE9dico y medicina prepagada suenan similares pero funcionan de forma muy diferente. En esta gu\xEDa explicamos sus diferencias en cobertura, reembolsos, costos y cu\xE1l es la mejor opci\xF3n seg\xFAn tu situaci\xF3n.",
+  publishDate: "5 de Julio de 2026",
+  readTime: "7 min de lectura",
+  category: "Comparativas",
+  author: AUTHORS.gomez,
+  image: import_post_seguro_vs_prepagada.default,
+  tags: ["Seguro de Salud", "Medicina Prepagada", "Comparativa", "Reembolso", "Cobertura M\xE9dica"],
+  content: [
+    "### Una confusi\xF3n muy com\xFAn",
+    'En Ecuador \u2014y en general en Am\xE9rica Latina\u2014 los t\xE9rminos "seguro de salud" y "medicina prepagada" se usan con frecuencia como si fueran lo mismo. Pero no lo son. Tienen estructuras de financiamiento distintas, formas de acceso a la atenci\xF3n diferentes y mecanismos de pago completamente opuestos. Conocer estas diferencias puede ahorrarte dinero y, en momentos de crisis m\xE9dica, evitarte una experiencia frustrante.',
+    "### \xBFQu\xE9 es un seguro de salud?",
+    "Un **seguro de salud** es un contrato con una aseguradora (regulada por la Superintendencia de Bancos) bajo el cual el asegurado paga una prima mensual o anual. Cuando ocurre un evento m\xE9dico cubierto, el asegurado **primero paga de su bolsillo** los gastos en la cl\xEDnica o m\xE9dico de su elecci\xF3n y luego **solicita el reembolso** a la aseguradora, adjuntando facturas, recetas y documentaci\xF3n m\xE9dica.",
+    "**Caracter\xEDsticas clave del seguro de salud:**",
+    "* **Modelo de reembolso:** pagas t\xFA primero, te devuelven despu\xE9s (puede tardar d\xEDas o semanas)",
+    "* **Deducible anual:** monto que el asegurado debe cubrir antes de que la aseguradora pague (puede ir de $200 a $1.000+ USD dependiendo del plan)",
+    "* **Coaseguro:** porcentaje del gasto que el asegurado sigue pagando despu\xE9s de superar el deducible (ej: la aseguradora cubre el 80%, t\xFA el 20%)",
+    "* **Red abierta o semicerrada:** en algunos planes puedes atenderte en cualquier establecimiento; en otros hay una red preferente",
+    "* **Prima variable:** el costo anual puede aumentar significativamente al renovar seg\xFAn edad, siniestralidad o decisi\xF3n de la aseguradora",
+    "### \xBFQu\xE9 es la medicina prepagada?",
+    "La **medicina prepagada** es un modelo de salud privada en el que el afiliado paga una cuota mensual fija y accede directamente a atenci\xF3n m\xE9dica en la red de prestadores de la empresa, **sin necesidad de pagar de bolsillo** ni tramitar reembolsos posteriores. La empresa de medicina prepagada coordina y paga directamente al m\xE9dico o cl\xEDnica.",
+    "**Caracter\xEDsticas clave de la medicina prepagada:**",
+    "* **Pago directo al prestador:** vas a la cl\xEDnica con tu carn\xE9, la empresa autoriza y paga directamente \u2014 sin desembolso inmediato tuyo",
+    "* **Deducible m\xEDnimo y fijo:** en Colmedikal, el deducible de hospitalizaci\xF3n es de apenas $40 USD anuales, independientemente del n\xFAmero de eventos",
+    "* **Sin coaseguro en la mayor\xEDa de prestaciones:** el afiliado no paga porcentaje adicional del gasto cubierto",
+    "* **Cuota mensual estable y predecible:** el valor no var\xEDa mes a mes por factores de siniestralidad",
+    "* **Red cerrada de prestadores:** la atenci\xF3n es dentro de la red convenida de cl\xEDnicas y especialistas de Colmedikal a nivel nacional",
+    "### Comparativa directa: Seguro de Salud vs. Medicina Prepagada",
+    "| Criterio | Seguro de Salud | Medicina Prepagada (Colmedikal) |",
+    "|---|---|---|",
+    "| \xBFQui\xE9n paga al m\xE9dico? | T\xFA primero, luego te reembolsan | La empresa, directamente |",
+    "| Tiempo para recuperar el dinero | D\xEDas a semanas | No aplica \u2014 no pagas de bolsillo |",
+    "| Deducible | $200 \u2013 $1.000+ USD/a\xF1o | $40 USD/a\xF1o (hospitalizaci\xF3n) |",
+    "| Coaseguro | S\xED (ej: 20% a tu cargo) | No en la mayor\xEDa de prestaciones |",
+    "| Prima / cuota | Variable, puede subir al renovar | Fija seg\xFAn plan y edad al afiliarse |",
+    "| Libre elecci\xF3n de m\xE9dico | Amplia o total | Dentro de la red de Colmedikal |",
+    "| Proceso de autorizaci\xF3n | Formularios y espera de aprobaci\xF3n | Autorizaci\xF3n en tiempo real |",
+    "| Acceso a especialistas | Depende del plan y proveedor | Directo, sin derivaci\xF3n previa |",
+    "### \xBFCu\xE1l me conviene?",
+    "La respuesta depende de tu perfil y prioridades:",
+    "**Elige medicina prepagada si:**",
+    "* Quieres acceso inmediato a especialistas sin tr\xE1mites ni desembolsos previos",
+    "* Buscas un costo mensual fijo y predecible para planificar tu presupuesto familiar",
+    "* Prefieres no manejar procesos de reembolso en momentos de estr\xE9s m\xE9dico",
+    "* Tienes familia con uso m\xE9dico frecuente (controles, especialidades, laboratorios)",
+    "**Elige seguro de salud si:**",
+    "* Prefieres total libertad para elegir cualquier m\xE9dico o cl\xEDnica del pa\xEDs, incluso fuera de una red",
+    "* Tienes capacidad econ\xF3mica para cubrir gastos iniciales y esperar el reembolso",
+    "* Buscas cobertura internacional o de viaje adem\xE1s de la local",
+    "* Tus necesidades m\xE9dicas son espor\xE1dicas y prefieres un modelo de riesgo puro",
+    "En muchos casos, la combinaci\xF3n de ambas es la estrategia \xF3ptima: medicina prepagada para la atenci\xF3n cotidiana y un seguro de salud de cobertura amplia para eventos catastr\xF3ficos de alto costo.",
+    "### \xBFY el IESS?",
+    "El aporte al IESS es obligatorio para los trabajadores en relaci\xF3n de dependencia y cubre prestaciones b\xE1sicas. Sin embargo, no reemplaza ni el seguro de salud ni la medicina prepagada para quienes buscan atenci\xF3n m\xE1s \xE1gil y en cl\xEDnicas de mayor nivel. Muchos afiliados al IESS contratan adicionalmente un plan de Colmedikal para tener lo mejor de ambos mundos.",
+    "### Conclusi\xF3n",
+    "Seguro de salud y medicina prepagada son productos complementarios, no id\xE9nticos. Si tu prioridad es la inmediatez de la atenci\xF3n, la certeza del costo y no tener que adelantar dinero en momentos de crisis, la medicina prepagada es la opci\xF3n m\xE1s conveniente para la mayor\xEDa de familias ecuatorianas.",
+    "Usa nuestro [cotizador en l\xEDnea](/cotizador) para ver cu\xE1nto te costar\xEDa un plan de Colmedikal seg\xFAn tu edad y n\xFAmero de beneficiarios, o [contacta a nuestro equipo](/contacto) para resolver tus dudas.",
+    "Tambi\xE9n te puede interesar: [\xBFQu\xE9 es la medicina prepagada y c\xF3mo funciona?](/blog/que-es-medicina-prepagada) \xB7 [\xBFVale la pena si soy joven y sano?](/blog/medicina-prepagada-personas-jovenes)."
+  ]
+};
+
+// src/data/blogs/medicina-prepagada-personas-jovenes/index.ts
+var import_post_prepagada_jovenes = __toESM(require_post_prepagada_jovenes(), 1);
+var post7 = {
+  id: "medicina-prepagada-personas-jovenes",
+  title: "\xBFVale la pena pagar medicina prepagada si soy una persona joven y sana?",
+  slug: "medicina-prepagada-personas-jovenes",
+  excerpt: "La respuesta corta es s\xED, y hay razones m\xE9dicas y financieras de peso. Descubre por qu\xE9 la juventud y la buena salud son precisamente el mejor momento para afiliarte a un plan de medicina prepagada en Ecuador.",
+  publishDate: "5 de Julio de 2026",
+  readTime: "6 min de lectura",
+  category: "Conceptos B\xE1sicos",
+  author: AUTHORS.restrepo,
+  image: import_post_prepagada_jovenes.default,
+  tags: ["Medicina Prepagada J\xF3venes", "Salud Preventiva", "Cu\xE1ndo Afiliarse", "Ecuador", "Planificaci\xF3n Financiera"],
+  content: [
+    '### "Soy joven y sano, \xBFpara qu\xE9 necesito medicina prepagada?"',
+    "Es una de las preguntas m\xE1s frecuentes que recibimos en Colmedikal, y es completamente v\xE1lida. Si tienes entre 20 y 35 a\xF1os, probablemente no visitas al m\xE9dico con frecuencia, rara vez te hospitalizas y sientes que pagar\xEDas una cuota mensual por algo que no usas. Pero este razonamiento tiene varios errores de base que vale la pena desmontar.",
+    "### Raz\xF3n 1: Las primas son m\xE1s bajas cuando eres joven",
+    "Este es el argumento financiero m\xE1s poderoso. En medicina prepagada, el costo mensual se calcula seg\xFAn la **edad al momento de afiliaci\xF3n**. Una persona de 25 a\xF1os pagar\xE1 significativamente menos que una de 45 a\xF1os por exactamente el mismo plan y la misma cobertura.",
+    "En Colmedikal, el Plan Esencial para una persona de 25 a\xF1os puede estar en torno a los $10 USD/mes, mientras que para alguien de 45 a\xF1os el mismo plan puede costar m\xE1s del doble. **Afiliarte joven y sano es la decisi\xF3n financieramente m\xE1s inteligente que puedes tomar respecto a tu salud.**",
+    "Adem\xE1s, en muchas empresas de medicina prepagada la tarifa queda bloqueada o sube m\xEDnimamente con los a\xF1os: te unes barato y mantienes ese beneficio de costo por mucho tiempo.",
+    "### Raz\xF3n 2: Los accidentes no distinguen edades",
+    "La salud no es solo enfermedades cr\xF3nicas. Los accidentes de tr\xE1nsito, las lesiones deportivas, las fracturas, las emergencias por intoxicaciones o apendicitis aguda pueden ocurrirle a cualquier persona en cualquier momento, y tienen costos hospitalarios que pueden superar f\xE1cilmente los $5.000 USD en una cl\xEDnica privada.",
+    "Una hospitalizaci\xF3n de tres d\xEDas con cirug\xEDa en una cl\xEDnica privada de Quito o Guayaquil puede costarte entre $4.000 y $15.000 USD, dependiendo del procedimiento. Sin un plan de medicina prepagada, ese costo sale de tu bolsillo o del de tu familia. Con Colmedikal, el deducible m\xE1ximo que pagar\xEDas de hospitalizaci\xF3n es de $40 USD al a\xF1o.",
+    "### Raz\xF3n 3: Las preexistencias son tu mayor riesgo futuro",
+    "Cuando te afilias a medicina prepagada, debes declarar tu historial m\xE9dico. **Las enfermedades que ya tienes al momento de afiliarte** quedan sujetas a per\xEDodos de exclusi\xF3n: se cubren reci\xE9n a partir del mes 25. Las preexistencias no declaradas quedan excluidas permanentemente.",
+    "Si esperas a afiliarte hasta que tengas una enfermedad diagnosticada (diabetes, hipertensi\xF3n, problemas card\xEDacos, tiroides), esa condici\xF3n quedar\xE1 excluida de tu cobertura por 24 meses o puede incluso ser motivo de rechazo del plan. **Afiliarte mientras est\xE1s sano es justamente cuando puedes entrar sin exclusiones relevantes.**",
+    "La iron\xEDa es que la medicina prepagada es m\xE1s valiosa para quienes m\xE1s la necesitan, pero es m\xE1s cara y restrictiva cuando se busca tarde.",
+    "### Raz\xF3n 4: La salud preventiva tiene un costo real",
+    "Incluso si est\xE1s sano, un adulto joven deber\xEDa hacerse al menos una vez al a\xF1o:",
+    "* Chequeo general con m\xE9dico de medicina interna",
+    "* Ex\xE1menes de laboratorio b\xE1sicos (biometr\xEDa, glucosa, perfil lip\xEDdico, funci\xF3n renal)",
+    "* Consultas de especialidad seg\xFAn historia familiar (cardiolog\xEDa si hay antecedentes, ginecolog\xEDa para mujeres, etc.)",
+    "Estos controles en cl\xEDnica privada sin plan pueden costar entre $200 y $400 USD al a\xF1o solo en consultas y laboratorios. Con un plan de Colmedikal activo, est\xE1n cubiertos dentro de tu cobertura regular. Aprende cu\xE1les son los [5 ex\xE1menes preventivos anuales indispensables](/blog/examenes-preventivos-anuales) para tu edad.",
+    "### Raz\xF3n 5: La tranquilidad tiene valor",
+    "M\xE1s all\xE1 de los n\xFAmeros, hay un factor que frecuentemente se subestima: la **tranquilidad de saber que est\xE1s cubierto**. Si tienes un accidente a medianoche, saber que puedes ir a una cl\xEDnica privada de primer nivel sin preocuparte por el costo es un valor enorme. Si tienes s\xEDntomas que te preocupan, puedes consultar con un especialista esta semana \u2014no en tres meses cuando consigas turno en el sistema p\xFAblico.",
+    "Para personas j\xF3venes con vida activa, deportes, viajes internos frecuentes o responsabilidades laborales que no les permiten ausentarse por problemas de salud mal atendidos, la medicina prepagada es una herramienta de productividad tanto como de bienestar.",
+    "### \xBFCu\xE1nto me cuesta siendo joven?",
+    "Para darte una referencia aproximada, los valores de Colmedikal para personas j\xF3venes son muy accesibles:",
+    "* Entre 18 y 30 a\xF1os: el Plan Esencial puede estar desde $10 USD/mes",
+    "* Entre 31 y 40 a\xF1os: los planes suben moderadamente, pero siguen siendo accesibles",
+    "* La cuota exacta depende del plan elegido y tu edad actual \u2014 calcula la tuya con nuestro [cotizador en l\xEDnea](/cotizador)",
+    "### Conclusi\xF3n: el mejor momento es ahora",
+    "Si est\xE1s sano y eres joven, tienes el privilegio de poder acceder a la medicina prepagada al menor costo posible, sin exclusiones por preexistencias y con la posibilidad de construir desde hoy un historial de cobertura que te proteger\xE1 durante d\xE9cadas.",
+    'Esperar a "cuando lo necesite" es el error m\xE1s com\xFAn \u2014y m\xE1s costoso\u2014 en planificaci\xF3n de salud. La medicina prepagada no es un lujo; es una decisi\xF3n inteligente que se toma antes de necesitarla.',
+    "Da el primer paso: [cotiza tu plan ahora](/cotizador) o [agenda una asesor\xEDa sin costo](/agendamiento) con nuestro equipo.",
+    "Tambi\xE9n te puede interesar: [\xBFQu\xE9 es la medicina prepagada y c\xF3mo funciona?](/blog/que-es-medicina-prepagada) \xB7 [5 ex\xE1menes preventivos anuales indispensables](/blog/examenes-preventivos-anuales)."
+  ]
+};
+
+// src/data/blogData.ts
+var BLOG_POSTS = [
+  post,
+  post2,
+  post3,
+  post4,
+  post5,
+  post6,
+  post7
+];
+
 // src/server/keos.ts
 var import_https = __toESM(require("https"), 1);
 var KEOS_WEBHOOK_URL = process.env.KEOS_WEBHOOK_URL || "";
@@ -3032,27 +3479,46 @@ ${[...staticUrls, ...extraUrls, ...blogUrls].join("\n")}
       }
       return blogCache;
     };
+    const LEGACY_JUNK = /^\/(gva_template|link|wp-[a-z]+|product|product-category|shop|cart|checkout|my-account|feed|tag|category|author)(\/|$)|\.php$/i;
+    const SPA_PATHS = /* @__PURE__ */ new Set([
+      ...Object.keys(routes).filter((r) => r !== "/blog-detalle"),
+      "/mapa-red-medica",
+      "/privacy",
+      "/gracias",
+      "/mi-colmedikal",
+      "/portal-afiliados",
+      "/admin",
+      "/seo-panel",
+      "/power-seo"
+    ]);
     app.get("*", async (req, res) => {
       const pathname = req.path.replace(/\/$/, "") || "/";
+      if (LEGACY_JUNK.test(pathname)) {
+        res.status(410).set("X-Robots-Tag", "noindex").type("text/plain").send("410 Gone");
+        return;
+      }
       const basePath = pathname.startsWith("/blog/") ? "/blog-detalle" : pathname;
       let base = routes[basePath] || routes["/"];
+      let found = SPA_PATHS.has(pathname);
       if (pathname.startsWith("/blog/") && pathname !== "/blog") {
         const slug = pathname.replace("/blog/", "");
         if (slug) {
           const posts = await getBlogPosts();
-          const post = posts.find((p) => p.slug === slug || p.id === slug);
-          if (post) {
+          const post8 = posts.find((p) => p.slug === slug || p.id === slug) || BLOG_POSTS.find((p) => p.slug === slug);
+          if (!posts.length) found = true;
+          if (post8) {
+            found = true;
             base = {
-              title: `${post.title} | Blog Colmedikal`,
-              description: post.excerpt || post.description || base.description,
-              keywords: (post.tags || []).join(", ") || base.keywords,
-              og_image: post.image || base.og_image
+              title: `${post8.title} | Blog Colmedikal`,
+              description: post8.excerpt || post8.description || base.description,
+              keywords: (post8.tags || []).join(", ") || base.keywords,
+              og_image: (typeof post8.image === "string" && /^https?:/.test(post8.image) ? post8.image : "") || base.og_image
             };
           }
         }
       }
       const noindexRoutes = ["/admin", "/seo-panel", "/power-seo"];
-      const robotsContent = noindexRoutes.some((r) => pathname.startsWith(r)) ? "noindex, nofollow" : "index, follow";
+      const robotsContent = !found || noindexRoutes.some((r) => pathname.startsWith(r)) ? "noindex, nofollow" : "index, follow";
       const overrides = await getOverrides();
       const ov = overrides[pathname] || overrides[basePath] || {};
       const meta = {
@@ -3180,7 +3646,7 @@ ${[...staticUrls, ...extraUrls, ...blogUrls].join("\n")}
   <script id="ga4-init">gtag('js',new Date());gtag('config','${esc2(ga4IdCache)}');</script>` : "";
       html = html.replace("</head>", `  ${ldBlocks}${gtagSnippet}
   </head>`);
-      res.set("Content-Type", "text/html; charset=UTF-8");
+      res.status(found ? 200 : 404).set("Content-Type", "text/html; charset=UTF-8");
       res.send(html);
     });
   }

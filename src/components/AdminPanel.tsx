@@ -68,6 +68,7 @@ import ClaimsSection from './admin/sections/ClaimsSection';
 import type { Claim } from '../data/claims';
 import ClientesSection from './admin/sections/ClientesSection';
 import DoctorsSection from './admin/sections/DoctorsSection';
+import { doctorNivel, nivelOverrides } from '../data/network';
 import AdminsSection from './admin/sections/AdminsSection';
 import SitioSection from './admin/sections/SitioSection';
 
@@ -364,7 +365,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   const [newDoc, setNewDoc] = useState({
     name: '',
     specialty: 'Medicina General',
-    city: 'Quito',
+    city: 'Quito, Pichincha',
     phone: '',
     email: '',
     clinic: '',
@@ -466,6 +467,14 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
 
     const imageUrl = imageMap[newDoc.image] || newDoc.image || avatarGomez;
 
+    // The API drops `nivel`, so persist it in settings too (see nivelOverrides in src/data/network.ts)
+    const saveNivel = (key: string) => {
+      const o = nivelOverrides(seoSettings);
+      o[key] = Number(newDoc.nivel) || 1;
+      saveSEOSettings({ doctor_niveles: JSON.stringify(o) })
+        .catch(() => alert('El especialista se guardó, pero no se pudo guardar el Nivel de Red. Intenta de nuevo.'));
+    };
+
     if (editingDocId) {
       const existingDoctorObj = doctors.find(d => d.id === editingDocId);
       const updatedDoctorObj: Doctor = {
@@ -485,6 +494,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         nivel: newDoc.nivel,
       };
       updateDoctor(updatedDoctorObj);
+      saveNivel(editingDocId);
       setEditingDocId(null);
       setDocSuccessMsg('¡Especialista prestador actualizado con éxito!');
     } else {
@@ -504,13 +514,14 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         nivel: newDoc.nivel,
       };
       addDoctor(newDoctorObj);
+      saveNivel('name:' + newDoc.name);
       setDocSuccessMsg('¡Especialista registrado con éxito en el Directorio Médico!');
     }
 
     setNewDoc({
       name: '',
       specialty: 'Medicina General',
-      city: 'Quito',
+      city: 'Quito, Pichincha',
       phone: '',
       email: '',
       clinic: '',
@@ -554,7 +565,7 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     setNewDoc({
       name: '',
       specialty: 'Medicina General',
-      city: 'Quito',
+      city: 'Quito, Pichincha',
       phone: '',
       email: '',
       clinic: '',
@@ -594,8 +605,13 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
   }, [leads]);
 
 
+  const doctorsWithNivel = useMemo(
+    () => doctors.map(d => ({ ...d, nivel: doctorNivel(d, seoSettings) })),
+    [doctors, seoSettings.doctor_niveles]
+  );
+
   const data: AdminSharedProps = {
-    doctors, refunds, appointments, authorizations, leads, admins,
+    doctors: doctorsWithNivel, refunds, appointments, authorizations, leads, admins,
     login, addDoctor, deleteDoctor, toggleDoctorActiveStatus, updateDoctor,
     updateRefundStatus, updateAuthorizationStatus, updateAppointmentStatus,
     updateLeadStatus, updateClientPaymentStatus, updateLeadPlan,

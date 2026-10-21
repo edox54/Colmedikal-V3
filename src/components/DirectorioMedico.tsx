@@ -243,7 +243,7 @@ export default function DirectorioMedico() {
     }
 
     // Nivel set in the admin Directorio (legacy name fallback in src/data/network.ts)
-    const docNivel = doctorNivel(doc);
+    const docNivel = doctorNivel(doc, seoSettings);
     const matchesNivel = selectedNivel === null || docNivel === selectedNivel;
 
     return matchesSearch && matchesSpecialty && matchesCity && matchesDoctorSpecialty && matchesNivel;

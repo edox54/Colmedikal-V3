@@ -13,6 +13,7 @@ import { registerPortalPasswordRoutes } from './src/server/portalPassword';
 import { registerAdminAccessRoutes } from './src/server/adminAccess';
 import { registerClientRoutes } from './src/server/clients';
 import { registerAppointmentRoutes, mergeAppointment } from './src/server/appointments';
+import { BLOG_POSTS } from './src/data/blogData';
 import { sendLeadToKeos, sendContactToKeos } from './src/server/keos';
 import { mailer, MAIL_FROM, LEAD_NOTIFY_TO, layout, rows, CLIENT_REPLY_TO, sendEach, clientMail, teamMail, quotePdfAttachment, type LeadMailData } from './src/server/leadMail';
 
@@ -1495,23 +1496,37 @@ async function startServer() {
     };
 
     // Provide general routing fallback to index.html for react-router-dom with per-route meta injection
+    // Leftovers of the old hacked WordPress site that Google still has indexed: 410 Gone drops them fastest.
+    const LEGACY_JUNK = /^\/(gva_template|link|wp-[a-z]+|product|product-category|shop|cart|checkout|my-account|feed|tag|category|author)(\/|$)|\.php$/i;
+    // Every path the SPA really serves (App.tsx); anything else is a real 404, not a soft 404.
+    const SPA_PATHS = new Set([...Object.keys(routes).filter(r => r !== '/blog-detalle'),
+      '/mapa-red-medica', '/privacy', '/gracias', '/mi-colmedikal', '/portal-afiliados', '/admin', '/seo-panel', '/power-seo']);
+
     app.get('*', async (req, res) => {
       const pathname = req.path.replace(/\/$/, '') || '/';
+      if (LEGACY_JUNK.test(pathname)) {
+        res.status(410).set('X-Robots-Tag', 'noindex').type('text/plain').send('410 Gone');
+        return;
+      }
       const basePath = pathname.startsWith('/blog/') ? '/blog-detalle' : pathname;
       let base = routes[basePath] || routes['/'];
+      let found = SPA_PATHS.has(pathname);
 
       // Dynamic blog post SSR: resolve actual post title/description
       if (pathname.startsWith('/blog/') && pathname !== '/blog') {
         const slug = pathname.replace('/blog/', '');
         if (slug) {
           const posts = await getBlogPosts();
-          const post = posts.find((p: any) => p.slug === slug || p.id === slug);
+          // CMS posts first, then the posts bundled in src/data/blogData.ts
+          const post: any = posts.find((p: any) => p.slug === slug || p.id === slug) || BLOG_POSTS.find(p => p.slug === slug);
+          if (!posts.length) found = true; // blog API unreachable: never 404 a post we just can't verify
           if (post) {
+            found = true;
             base = {
               title: `${post.title} | Blog Colmedikal`,
               description: post.excerpt || post.description || base.description,
               keywords: (post.tags || []).join(', ') || base.keywords,
-              og_image: post.image || base.og_image,
+              og_image: (typeof post.image === 'string' && /^https?:/.test(post.image) ? post.image : '') || base.og_image,
             };
           }
         }
@@ -1519,7 +1534,7 @@ async function startServer() {
 
       // Determine robots directive — noindex for admin/seo routes
       const noindexRoutes = ['/admin', '/seo-panel', '/power-seo'];
-      const robotsContent = noindexRoutes.some(r => pathname.startsWith(r)) ? 'noindex, nofollow' : 'index, follow';
+      const robotsContent = !found || noindexRoutes.some(r => pathname.startsWith(r)) ? 'noindex, nofollow' : 'index, follow';
 
       // DB override (from SEO panel) wins over the hardcoded defaults
       const overrides = await getOverrides();
@@ -1669,7 +1684,7 @@ async function startServer() {
 
       html = html.replace('</head>', `  ${ldBlocks}${gtagSnippet}\n  </head>`);
 
-      res.set('Content-Type', 'text/html; charset=UTF-8');
+      res.status(found ? 200 : 404).set('Content-Type', 'text/html; charset=UTF-8');
       res.send(html);
     });
   }

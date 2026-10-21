@@ -41,6 +41,21 @@ import {
 import { Doctor } from '../../../types';
 import { AdminSharedProps } from '../adminTypes';
 
+// Main Ecuador cities as "Ciudad, Provincia" (same format as the provider data). Free text is still allowed.
+const EC_CITIES = [
+  'Quito, Pichincha', 'Cayambe, Pichincha', 'Machachi, Pichincha', 'Sangolquí, Pichincha', 'Tumbaco, Pichincha', 'Rumiñahui, Pichincha',
+  'Guayaquil, Guayas', 'Durán, Guayas', 'Samborondón, Guayas', 'Daule, Guayas', 'Milagro, Guayas', 'Playas, Guayas', 'La Aurora, Guayas', 'El Triunfo, Guayas', 'Naranjal, Guayas', 'Bucay, Guayas',
+  'Cuenca, Azuay', 'Gualaceo, Azuay', 'Azogues, Cañar', 'La Troncal, Cañar', 'Loja, Loja', 'Catamayo, Loja',
+  'Machala, El Oro', 'Pasaje, El Oro', 'Santa Rosa, El Oro', 'Huaquillas, El Oro', 'Arenillas, El Oro',
+  'Portoviejo, Manabí', 'Manta, Manabí', 'Chone, Manabí', 'El Carmen, Manabí', 'Jipijapa, Manabí', 'Bahía de Caráquez, Manabí',
+  'Esmeraldas, Esmeraldas', 'Atacames, Esmeraldas', 'Quinindé, Esmeraldas', 'Santo Domingo, Tsáchilas',
+  'Babahoyo, Los Ríos', 'Quevedo, Los Ríos', 'Ventanas, Los Ríos', 'Santa Elena, Santa Elena', 'Salinas, Santa Elena', 'La Libertad, Santa Elena',
+  'Ambato, Tungurahua', 'Baños, Tungurahua', 'Latacunga, Cotopaxi', 'Riobamba, Chimborazo', 'Guaranda, Bolívar',
+  'Ibarra, Imbabura', 'Otavalo, Imbabura', 'Atuntaqui, Imbabura', 'Tulcán, Carchi',
+  'Tena, Napo', 'Puyo, Pastaza', 'Macas, Morona Santiago', 'Zamora, Zamora Chinchipe', 'Nueva Loja, Sucumbíos', 'Francisco de Orellana, Orellana',
+  'Puerto Ayora, Galápagos', 'Puerto Baquerizo Moreno, Galápagos',
+];
+
 type Props = Pick<AdminSharedProps, 'doctors' | 'deleteDoctor' | 'toggleDoctorActiveStatus' | 'newDoc' | 'setNewDoc' | 'editingDocId' | 'docSuccessMsg' | 'handleAddDoctor' | 'handleEditInitiate' | 'handleCancelEdit' | 'avatarGomez' | 'avatarRestrepo' | 'avatarDoctorM2' | 'avatarDoctorF2'>;
 
 export default function DoctorsSection(props: Props) {
@@ -115,15 +130,17 @@ export default function DoctorsSection(props: Props) {
                   {/* City */}
                   <div className="space-y-0.5">
                     <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">Ciudad:</label>
-                    <select
+                    <input
+                      list="ec-cities"
+                      required
+                      placeholder="Ej. Quito, Pichincha"
                       value={newDoc.city}
                       onChange={(e) => setNewDoc({...newDoc, city: e.target.value})}
                       className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs"
-                    >
-                      <option value="Quito">Quito</option>
-                      <option value="Guayaquil">Guayaquil</option>
-                      <option value="Cuenca">Cuenca</option>
-                    </select>
+                    />
+                    <datalist id="ec-cities">
+                      {[...new Set([...EC_CITIES, ...doctors.map(d => d.city).filter(Boolean)])].sort().map(c => <option key={c} value={c} />)}
+                    </datalist>
                   </div>
                 </div>
 

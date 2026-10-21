@@ -5,9 +5,16 @@ import { PLANS } from './plans';
 const NIVEL2_NAMES = new Set(['CENTRO MÉDICO ESPECIALIZADO NORTE (DEMO)', 'CLÍNICA AVANZADA DEL LITORAL (DEMO)']);
 const NIVEL3_NAMES = new Set(['HOSPITAL DE ESPECIALIDADES COLMEDIKAL (DEMO)', 'CLÍNICA INTERNACIONAL COLMEDIKAL (DEMO)']);
 
+// ponytail: the external API drops `nivel` on save/read, so the admin also stores it in the
+// `doctor_niveles` setting ({ [id | "name:<NAME>"]: 1|2|3 }). Drop this once the API returns `nivel`.
+export function nivelOverrides(settings?: Record<string, string>): Record<string, number> {
+  try { return JSON.parse(settings?.doctor_niveles || '{}'); } catch { return {}; }
+}
+
 /** Network level of a provider: the value set in Directorio Médico, else the legacy name list, else 1. */
-export function doctorNivel(d: { name: string; nivel?: number | string | null }): number {
-  const n = Number(d.nivel);
+export function doctorNivel(d: { id?: string; name: string; nivel?: number | string | null }, settings?: Record<string, string>): number {
+  const o = nivelOverrides(settings);
+  const n = Number(o[d.id || ''] ?? o['name:' + d.name] ?? d.nivel);
   if (n === 2 || n === 3) return n;
   return NIVEL3_NAMES.has(d.name) ? 3 : NIVEL2_NAMES.has(d.name) ? 2 : 1;
 }

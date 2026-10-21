@@ -178,8 +178,8 @@ export default function AgendamientoCitas({ setCurrentPage, embedded, onBooked }
   // Only providers within the nivel that the client's current plan grants access to.
   const clientNivel = planNivel(profile?.basePlanId);
   const nivelDoctors = useMemo(
-    () => activeDoctors.filter(d => doctorNivel(d) === clientNivel),
-    [activeDoctors, clientNivel]
+    () => activeDoctors.filter(d => doctorNivel(d, seoSettings) === clientNivel),
+    [activeDoctors, clientNivel, seoSettings.doctor_niveles]
   );
 
   // Real, live specialties — same derivation (and completion) as the Directorio filter.

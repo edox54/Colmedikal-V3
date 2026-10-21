@@ -8,32 +8,32 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './components/Home';
-import Services from './components/Services';
-import About from './components/About';
-import Contact from './components/Contact';
-import Cotizador from './components/Cotizador';
-import DirectorioMedico from './components/DirectorioMedico';
-import TramitesOnline from './components/TramitesOnline';
-import AgendamientoCitas from './components/AgendamientoCitas';
-import PreguntasFrecuentes from './components/PreguntasFrecuentes';
-import PrivacyPolicy from './components/PrivacyPolicy';
-import Blog from './components/Blog';
+const Services = React.lazy(() => import('./components/Services'));
+const About = React.lazy(() => import('./components/About'));
+const Contact = React.lazy(() => import('./components/Contact'));
+const Cotizador = React.lazy(() => import('./components/Cotizador'));
+const DirectorioMedico = React.lazy(() => import('./components/DirectorioMedico'));
+const TramitesOnline = React.lazy(() => import('./components/TramitesOnline'));
+const AgendamientoCitas = React.lazy(() => import('./components/AgendamientoCitas'));
+const PreguntasFrecuentes = React.lazy(() => import('./components/PreguntasFrecuentes'));
+const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
+const Blog = React.lazy(() => import('./components/Blog'));
 import FloatingWidget from './components/FloatingWidget';
 import SEOController from './seo/SEOController';
 import { ColmedikalProvider } from './context/ColmedikalContext';
 const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
-import NotFound from './components/NotFound';
+const NotFound = React.lazy(() => import('./components/NotFound'));
 import TrackingManager from './components/TrackingManager';
 import CookieConsent from './components/CookieConsent';
 const SEOPanel = React.lazy(() => import('./components/SEOPanel'));
 const PowerSEOPanel = React.lazy(() => import('./components/PowerSEOPanel'));
-import MapaRedMedica from './components/MapaRedMedica';
-import Gracias from './components/Gracias';
+const MapaRedMedica = React.lazy(() => import('./components/MapaRedMedica'));
+const Gracias = React.lazy(() => import('./components/Gracias'));
 const PortalAfiliados = React.lazy(() => import('./components/PortalAfiliados'));
 import Maintenance from './components/Maintenance';
 import Logo from './components/Logo';
 import { captureAttribution } from './utils/attribution';
-// ponytail: admin / SEO / portal are lazy chunks — keeps the main bundle (and the
+// ponytail: every page except Home is a lazy chunk (jsPDF, Leaflet stay out of the first load) — keeps the main bundle (and the
 // server-side `vite build` memory peak, which CloudLinux LVE kills near ~1GB) down.
 import { useColmedikal } from './context/ColmedikalContext';
 
@@ -134,7 +134,7 @@ function HomeLayout({ component: Component }: { component: React.ElementType }) 
       <Header />
       <main className="flex-grow pt-4">
         <div className="animate-in fade-in duration-500">
-          <Component setCurrentPage={setCurrentPage} />
+          <React.Suspense fallback={<div className="min-h-[60vh]" />}><Component setCurrentPage={setCurrentPage} /></React.Suspense>
         </div>
       </main>
       <Footer />
@@ -159,7 +159,7 @@ function AdminLayout({ component: Component }: { component: React.ElementType })
     <div className="flex flex-col min-h-screen w-full bg-slate-50 text-slate-800" id="colmedikal-portal-layout-root">
       <main className="flex-grow">
         <div className="animate-in fade-in duration-300">
-          <Component setCurrentPage={setCurrentPage} />
+          <React.Suspense fallback={<div className="min-h-[60vh]" />}><Component setCurrentPage={setCurrentPage} /></React.Suspense>
         </div>
       </main>
     </div>

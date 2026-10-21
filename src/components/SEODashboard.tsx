@@ -191,10 +191,11 @@ export default function SEODashboard({ initialTab }: { initialTab?: SeoTab }) {
   };
 
   // Generate sitemap XML
-  const staticRoutes = ROUTES.map(r => `  <url>\n    <loc>https://colmedikal.com${r.path}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>${r.path === '/' ? '1.0' : '0.8'}</priority>\n  </url>`);
+  // /cotizador is Disallowed in robots.txt; listing it makes Search Console warn "blocked by robots.txt"
+  const staticRoutes = [...ROUTES.filter(r => r.path !== '/cotizador'), { path: '/mapa-red-medica' }, { path: '/privacy' }].map(r => `  <url>\n    <loc>https://colmedikal.com${r.path}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>${r.path === '/' ? '1.0' : '0.8'}</priority>\n  </url>`);
   const blogRoutes = [
     ...BLOG_POSTS.map(p => `  <url>\n    <loc>https://colmedikal.com/blog/${p.slug}</loc>\n    <lastmod>${toISODate(p.publishDate)}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`),
-    ...blogPostsCMS.filter(p => p.published).map(p => `  <url>\n    <loc>https://colmedikal.com/blog/${p.slug}</loc>\n    <lastmod>${toISODate(p.publish_date || p.created_at)}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`),
+    ...blogPostsCMS.filter(p => p.published && !BLOG_POSTS.some(b => b.slug === p.slug)).map(p => `  <url>\n    <loc>https://colmedikal.com/blog/${p.slug}</loc>\n    <lastmod>${toISODate(p.publish_date || p.created_at)}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`),
   ];
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...staticRoutes, ...blogRoutes].join('\n')}\n</urlset>`;
 

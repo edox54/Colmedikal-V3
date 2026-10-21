@@ -38,7 +38,7 @@ import {
   EyeOff,
   ChevronRight,
 } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import type { AppointmentChange, AppointmentItem } from '../../../types';
 import { AdminSharedProps } from '../adminTypes';
 
@@ -53,6 +53,8 @@ const BADGE: Record<AppointmentItem['status'], string> = {
   Cancelada: 'text-red-700 bg-red-50 border-red-200',
   'No asistió': 'text-slate-600 bg-slate-100 border-slate-300',
 };
+type View = 'todas' | 'activas' | 'pendientes' | 'confirmadas' | 'completadas' | 'cerradas' | 'hoy';
+const VIEW_LABEL: Record<View, string> = { todas: 'todas', activas: 'activas', pendientes: 'pendientes', confirmadas: 'confirmadas', completadas: 'completadas', cerradas: 'canceladas / no asistió', hoy: 'hoy' };
 const ACTIVE: AppointmentItem['status'][] = ['Pendiente', 'Confirmada', 'Reagendada'];
 const fmtAt = (v: string) => new Date(v).toLocaleString('es-EC', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
@@ -65,6 +67,33 @@ export default function AppointmentsSection(props: Props) {
   const completadas = appointments.filter(a => a.status === 'Completada');
   const today = new Date().toISOString().split('T')[0];
   const citasHoy = appointments.filter(a => a.aptDate === today && ACTIVE.includes(a.status));
+  const cerradas = appointments.filter(a => a.status === 'Cancelada' || a.status === 'No asistió');
+
+  // Filters: stat cards act as status filter, plus search, day and sort
+  const [view, setView] = useState<View>('activas');
+  const [q, setQ] = useState('');
+  const [day, setDay] = useState('');
+  const [sort, setSort] = useState<'proximas' | 'recientes'>('proximas');
+  const visible = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const byView: Record<View, (a: AppointmentItem) => boolean> = {
+      todas: () => true,
+      activas: a => ACTIVE.includes(a.status),
+      pendientes: a => a.status === 'Pendiente',
+      confirmadas: a => a.status === 'Confirmada' || a.status === 'Reagendada',
+      completadas: a => a.status === 'Completada',
+      cerradas: a => a.status === 'Cancelada' || a.status === 'No asistió',
+      hoy: a => a.aptDate === today && ACTIVE.includes(a.status),
+    };
+    const key = (a: AppointmentItem) => `${a.aptDate || '9999'} ${a.aptTime || ''}`;
+    return appointments
+      .filter(byView[view])
+      .filter(a => !day || a.aptDate === day)
+      .filter(a => !term || [a.patientName, a.patientId, a.patientPhone, a.doctorName, a.specialty, a.clinic, a.city]
+        .some(v => (v || '').toLowerCase().includes(term)))
+      .sort((a, b) => sort === 'proximas' ? key(a).localeCompare(key(b)) : key(b).localeCompare(key(a)));
+  }, [appointments, view, q, day, sort, today]);
+  const card = (v: View) => `p-3 rounded-xl border text-center cursor-pointer transition hover:shadow-md ${view === v ? 'ring-2 ring-offset-1 ring-[#0C4169]' : ''}`;
 
   const btn = 'px-2.5 py-1 font-bold text-[10px] rounded-lg cursor-pointer';
   return (
@@ -83,33 +112,43 @@ export default function AppointmentsSection(props: Props) {
       {flash && <div role="status" className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">{flash}</div>}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
-          <span className="text-lg font-black text-slate-900 dark:text-white font-mono">{appointments.length}</span>
-          <span className="block text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">Total</span>
-        </div>
-        <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-center">
-          <span className="text-lg font-black text-amber-700 font-mono">{pendientes.length}</span>
-          <span className="block text-[9px] text-amber-600 font-bold uppercase">Pendientes</span>
-        </div>
-        <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-center">
-          <span className="text-lg font-black text-emerald-700 font-mono">{confirmadas.length}</span>
-          <span className="block text-[9px] text-emerald-600 font-bold uppercase">Confirmadas / reagendadas</span>
-        </div>
-        <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-200 text-center">
-          <span className="text-lg font-black text-indigo-700 font-mono">{completadas.length}</span>
-          <span className="block text-[9px] text-indigo-600 font-bold uppercase">Completadas</span>
-        </div>
-        <div className="bg-slate-900 p-3 rounded-xl text-center">
-          <span className="text-lg font-black text-teal-400 font-mono">{citasHoy.length}</span>
-          <span className="block text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">Hoy</span>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {([
+          ['todas', appointments.length, 'Total', 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800', 'text-slate-900 dark:text-white', 'text-slate-400'],
+          ['pendientes', pendientes.length, 'Pendientes', 'bg-amber-50 border-amber-200', 'text-amber-700', 'text-amber-600'],
+          ['confirmadas', confirmadas.length, 'Confirmadas / reagendadas', 'bg-emerald-50 border-emerald-200', 'text-emerald-700', 'text-emerald-600'],
+          ['completadas', completadas.length, 'Completadas', 'bg-indigo-50 border-indigo-200', 'text-indigo-700', 'text-indigo-600'],
+          ['cerradas', cerradas.length, 'Canceladas / no asistió', 'bg-red-50 border-red-200', 'text-red-700', 'text-red-600'],
+          ['hoy', citasHoy.length, 'Hoy', 'bg-slate-900 border-slate-900', 'text-teal-400', 'text-slate-400'],
+        ] as const).map(([v, n, label, bg, num, txt]) => (
+          <button key={v} type="button" onClick={() => setView(view === v ? 'activas' : v)} aria-pressed={view === v} className={`${card(v)} ${bg}`}>
+            <span className={`block text-lg font-black font-mono ${num}`}>{n}</span>
+            <span className={`block text-[9px] font-bold uppercase ${txt}`}>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar paciente, cédula, teléfono, médico, clínica…"
+          className="flex-1 min-w-[220px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs" />
+        <input type="date" value={day} onChange={e => setDay(e.target.value)} aria-label="Filtrar por día"
+          className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs" />
+        <select value={sort} onChange={e => setSort(e.target.value as typeof sort)} aria-label="Orden"
+          className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs">
+          <option value="proximas">Fecha: más próximas primero</option>
+          <option value="recientes">Fecha: más lejanas primero</option>
+        </select>
+        {(q || day || view !== 'activas') && (
+          <button type="button" onClick={() => { setQ(''); setDay(''); setView('activas'); }} className="px-3 py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 cursor-pointer">Limpiar filtros</button>
+        )}
+        <span className="text-[11px] text-slate-500 ml-auto">{visible.length} de {appointments.length} citas · vista: <strong>{VIEW_LABEL[view]}</strong></span>
       </div>
 
       {/* Cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {appointments.length > 0 ? (
-          appointments.map((apt) => (
+        {visible.length > 0 ? (
+          visible.map((apt) => (
             <div key={apt.id} className={`bg-white dark:bg-slate-900 p-5 rounded-2xl border shadow-sm flex flex-col justify-between ${
               apt.status === 'Cancelada' || apt.status === 'No asistió' ? 'border-red-100 opacity-70' : apt.status === 'Completada' ? 'border-emerald-100' : 'border-slate-200 dark:border-slate-800'
             }`}>
@@ -177,8 +216,8 @@ export default function AppointmentsSection(props: Props) {
         ) : (
           <div className="col-span-full text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
             <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-bold text-slate-600 dark:text-slate-400">No hay citas agendadas.</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Las citas aparecen cuando los pacientes las solicitan desde /agendamiento.</p>
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-400">{appointments.length ? 'Ninguna cita coincide con los filtros.' : 'No hay citas agendadas.'}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{appointments.length ? 'Cambia la búsqueda o pulsa "Limpiar filtros".' : 'Las citas aparecen cuando los pacientes las solicitan desde /agendamiento.'}</p>
           </div>
         )}
       </div>
