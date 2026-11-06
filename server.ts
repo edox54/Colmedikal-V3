@@ -98,11 +98,11 @@ async function startServer() {
       [
         "default-src 'self'",
         "connect-src 'self' https://api.colmedikal.com https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://*.tile.openstreetmap.org",
-        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://www.tiktok.com https://*.tiktokcdn.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' data: https://fonts.gstatic.com",
         "img-src 'self' data: blob: https:",
-        "frame-src 'self' blob: https://www.google.com https://maps.google.com https://www.openstreetmap.org",
+        "frame-src 'self' blob: https://www.google.com https://maps.google.com https://www.openstreetmap.org https://www.facebook.com https://www.instagram.com https://www.tiktok.com",
         "media-src 'self' blob: data:",
         "worker-src 'self' blob:",
         "frame-ancestors 'none'",
@@ -1606,7 +1606,8 @@ async function startServer() {
           sameAs: [
             'https://www.facebook.com/colmedikal',
             'https://www.instagram.com/colmedikal',
-            'https://www.linkedin.com/company/colmedikal',
+            'https://www.linkedin.com/company/colmedikal-medicina-prepagada-s-a/',
+            'https://www.tiktok.com/@colmedikal',
           ],
         },
         // WebSite — sitelinks search box signal

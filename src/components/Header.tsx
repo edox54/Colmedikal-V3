@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Logo from './Logo';
+import SocialLinks from './SocialLinks';
 import { useColmedikal } from '../context/ColmedikalContext';
 
 export default function Header() {
@@ -39,7 +40,8 @@ export default function Header() {
     { id: 'horario', content: <span>🕒 Lunes a Viernes 08:30 - 18:30</span> },
     { id: 'presencia', content: <span>📍 Presencia en UIO, GYE, CUE y todo el país</span> },
     { id: 'tel', content: <a href="tel:022567191" className="hover:text-white transition-colors">📞 02-2567191</a> },
-    { id: 'whatsapp', content: <a href="https://wa.me/593987028756" target="_blank" rel="noreferrer" className="hover:text-emerald-450 text-emerald-400 transition-colors">💬 WhatsApp: 098 702 8756</a> }
+    { id: 'whatsapp', content: <a href="https://wa.me/593987028756" target="_blank" rel="noreferrer" className="hover:text-emerald-450 text-emerald-400 transition-colors">💬 WhatsApp: 098 702 8756</a> },
+    { id: 'redes', content: <span className="flex items-center gap-4">Síguenos <SocialLinks className="text-slate-300 hover:text-white" iconClassName="w-4 h-4" /></span> }
   ];
 
   const [currentTickerIdx, setCurrentTickerIdx] = useState(0);
@@ -139,6 +141,10 @@ export default function Header() {
           <a href="tel:022567191" className="hover:text-white transition-colors">📞 02-2567191</a>
           <span className="text-slate-700">|</span>
           <a href="https://wa.me/593987028756" target="_blank" rel="noreferrer" className="hover:text-emerald-450 text-emerald-400 transition-colors">💬 WhatsApp: 098 702 8756</a>
+          <span className="text-slate-700">|</span>
+          <span className="flex items-center gap-2.5">
+            <SocialLinks className="text-slate-400 hover:text-white transition-colors" iconClassName="w-3.5 h-3.5" />
+          </span>
           <span className="text-slate-700">|</span>
           <Link to="/admin" className="text-slate-500 hover:text-slate-300 transition-colors text-[10px]">🔐 Admin</Link>
         </div>

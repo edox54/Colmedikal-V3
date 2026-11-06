@@ -18,6 +18,7 @@ import {
 import { Plan } from '../types';
 import { MEDICAL_PLANS } from '../data';
 import Logo from './Logo';
+import SocialFeed from './SocialFeed';
 const MapaRedMedica = React.lazy(() => import('./MapaRedMedica'));
 import { useNavigate, Link } from 'react-router-dom';
 import heroBannerImg from '../assets/images/colmedikal_doctor_family_hero_1780008609458.webp';
@@ -512,6 +513,9 @@ export default function Home() {
 
         </div>
       </section>
+
+      {/* 5.5 REDES SOCIALES — últimos posts */}
+      <SocialFeed />
 
       {/* 6. CONVERTING CALL TO ACTION AREA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

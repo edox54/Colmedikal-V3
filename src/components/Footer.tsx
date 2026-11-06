@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { HeartPulse, Mail, Phone, MapPin, ShieldCheck, Clock, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
+import SocialLinks from './SocialLinks';
 
 interface VersionInfo {
   version: string;
@@ -38,6 +39,12 @@ export default function Footer() {
             <p className="text-sm text-white/80 leading-relaxed">
               Cuidamos lo que más importa con la red de atención médica, hospitalización y apoyo preventivo de mayor prestigio en el país. Inspirados en estándares de excelencia.
             </p>
+            <div className="flex items-center gap-2.5">
+              <SocialLinks
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-[#4597CA] text-white flex items-center justify-center transition-colors"
+                iconClassName="w-4 h-4"
+              />
+            </div>
             <div className="flex items-center gap-2 text-xs text-teal-400 font-mono bg-teal-950/40 px-3 py-1.5 rounded-lg border border-teal-800/40 w-fit">
               <ShieldCheck className="w-4 h-4 text-teal-400" />
               <span>SCVS (Superintendencia de Compañías, Valores y Seguros)</span>
