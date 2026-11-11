@@ -187,7 +187,7 @@ export default function KpisSection(props: Props) {
                       <p className="text-[9px] text-slate-400 dark:text-slate-500">{new Date(ld.timestamp).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}</p>
                     </div>
                     <div className="text-right space-y-1">
-                      <span className="font-bold text-slate-900 dark:text-white font-mono">${Number(ld.estimatedPrice || 0).toFixed(2)}/mes</span>
+                      <span className="font-bold text-slate-900 dark:text-white font-mono">{Number(ld.estimatedPrice || 0) > 0 ? `$${Number(ld.estimatedPrice).toFixed(2)}/mes` : 'Sin plan elegido'}</span>
                       <span className="block text-[9px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded uppercase text-center w-full">
                         {ld.status}
                       </span>

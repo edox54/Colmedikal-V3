@@ -2198,7 +2198,7 @@ function sendLeadToKeos(d, isNew) {
     province: d.province || "",
     members: d.members,
     childrenAges: (d.childrenAges || []).join(", "),
-    plan: d.plan,
+    plan: d.plan || "Sin plan elegido",
     planId: d.planId || "",
     price: d.price,
     channel: d.source?.channel || "",

@@ -168,7 +168,7 @@ export interface AdminSharedProps extends AdminCtx {
   permissionsAll?: Record<string, import('./permissionsApi').MemberPermissions>;
   saveMemberPermissions: (email: string, p: import('../../data/adminPermissions').AdminPermissions | { reset: true }) => Promise<void>;
 
-  resolvePlanName: (l: { quoteData?: { selectedPlanName?: string; basePlanId?: string } }) => string;
+  resolvePlanName: (l: { estimatedPrice?: number; quoteData?: { selectedPlanName?: string; basePlanId?: string } }) => string;
   SOURCE_BADGE: Record<string, string>;
   PLAN_CATALOG: Record<string, { name: string; basePrice: number }>;
   handlePlanChange: (leadId: string, basePlanId: string) => void;

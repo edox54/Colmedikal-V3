@@ -304,8 +304,10 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
     proteccion: 'Plan Protección 3K',
     plus: 'Plan Plus 5K',
   };
-  const resolvePlanName = (l: { quoteData?: { selectedPlanName?: string; basePlanId?: string } }): string =>
-    normalizePlanName(l.quoteData?.selectedPlanName) || PLAN_ID_TO_NAME[l.quoteData?.basePlanId || ''] || '';
+  // Last-resort fallback: the monthly price identifies the plan when name and id are both missing.
+  const PRICE_TO_NAME: Record<number, string> = { 10: 'Plan Inicio 2K', 14: 'Plan Protección 3K', 24: 'Plan Plus 5K' };
+  const resolvePlanName = (l: { estimatedPrice?: number; quoteData?: { selectedPlanName?: string; basePlanId?: string } }): string =>
+    normalizePlanName(l.quoteData?.selectedPlanName) || PLAN_ID_TO_NAME[l.quoteData?.basePlanId || ''] || PRICE_TO_NAME[Number(l.estimatedPrice)] || '';
 
   // Origin badge styling — where this lead came from (see src/utils/attribution.ts)
   const SOURCE_BADGE: Record<string, string> = {
@@ -344,8 +346,8 @@ export default function AdminPanel({ setCurrentPage }: AdminPanelProps) {
         l.quoteData?.phone || '',
         l.quoteData?.docNumber || '',
         l.quoteData?.birthDate || '',
-        resolvePlanName(l),
-        Number(l.estimatedPrice || 0).toFixed(2),
+        resolvePlanName(l) || 'Sin plan elegido',
+        Number(l.estimatedPrice || 0) > 0 ? Number(l.estimatedPrice).toFixed(2) : 'Sin plan elegido',
         l.status,
         l.assignedTo || '',
         new Date(l.timestamp).toLocaleString('es-EC'),
