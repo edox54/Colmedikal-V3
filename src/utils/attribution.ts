@@ -39,15 +39,26 @@ function classify(params: URLSearchParams, referrer: string): LeadSource {
   return { channel: 'Directo' };
 }
 
-// First-touch attribution: the first visit "wins" and stays in localStorage
-// indefinitely, UNLESS a later visit carries an explicit tracking signal
+const ATTRIBUTION_TTL_MS = 15 * 24 * 60 * 60 * 1000; // 15 días
+
+// First-touch attribution: the first visit "wins" and stays in localStorage for
+// 15 days, UNLESS a later visit carries an explicit tracking signal
 // (utm_*, gclid, fbclid, ref) — that always overrides, since it means the
-// person clicked a specific tracked link again.
+// person clicked a specific tracked link again. After 15 days the stored entry
+// expires and the next visit is recorded as a new first touch.
+function isFresh(raw: string | null): boolean {
+  if (!raw) return false;
+  try {
+    const t = Date.parse(JSON.parse(raw).capturedAt);
+    return Number.isFinite(t) && Date.now() - t < ATTRIBUTION_TTL_MS;
+  } catch { return false; } // malformed or without capturedAt (legacy) → treat as expired
+}
+
 export function captureAttribution(): void {
   try {
     const params = new URLSearchParams(window.location.search);
     const hasExplicitSignal = !!(params.get('utm_source') || params.get('gclid') || params.get('fbclid') || params.get('ref'));
-    if (localStorage.getItem(STORAGE_KEY) && !hasExplicitSignal) return;
+    if (isFresh(localStorage.getItem(STORAGE_KEY)) && !hasExplicitSignal) return;
 
     const source = classify(params, document.referrer);
     source.landingPage = window.location.pathname;
@@ -59,6 +70,6 @@ export function captureAttribution(): void {
 export function getStoredAttribution(): LeadSource | undefined {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : undefined;
+    return raw && isFresh(raw) ? JSON.parse(raw) : undefined; // expired → no attribution (captureAttribution refreshes it on the next page load)
   } catch { return undefined; }
 }
